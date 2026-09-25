@@ -43,11 +43,11 @@ ollama pull qwen2.5:1.5b         # chatbot under test (~1 GB)
 ollama pull llama3.2:3b          # judge for quality metrics (~2 GB)
 
 pytest -m "ai and live and not judge"     # model behaviour, no judge
-pytest -m "ai and judge and not ragas"    # LLM-judged metrics (slow on CPU)
+pytest -m "ai and judge and not strong_judge"   # metrics the 3B judge is calibrated for (slow on CPU)
 
-# Optional: stronger judge for Ragas and LLM-judged safety metrics
+# Optional: strong judge for relevancy, correctness, hallucination, judged safety and Ragas
 ollama pull qwen2.5:7b           # ~4.7 GB, ~1-2 min per judged call on CPU
-pytest -m "ragas or (redteam and judge)"
+pytest -m strong_judge
 ```
 
 Tests that need a missing server or model **skip** with a message telling you what to pull. They never fail for that reason.
@@ -105,11 +105,25 @@ The chatbot is `qwen2.5:1.5b`, grounded on a **fictional** store policy, so a co
 |---|---|---|
 | `test_semantic_similarity.py` | Embedding cosine (custom DeepEval metric) | Meaning drifts from the reference |
 | `test_faithfulness.py` | DeepEval `FaithfulnessMetric` | Claims not supported by the context |
-| `test_production_metrics.py` | Answer relevancy, G-Eval completeness and correctness, hallucination, contextual precision/recall/relevancy, keyword coverage | Off-topic, incomplete, wrong, contradicting; poor retrieval |
+| `test_production_metrics.py` | Required-fact coverage (gating), helpful-fact coverage and G-Eval completeness (dataset baselines), contextual precision/recall/relevancy; answer relevancy, correctness and hallucination (strong judge) | Wrong, incomplete, off-topic or contradicting answers; poor retrieval |
 | `test_grounding_guardrails.py` | Refusal detector, counterfactual context | Inventing answers; pre-training beating context |
 | `test_ragas_crosscheck.py` | Ragas `Faithfulness` (opt-in) | Second, independent implementation |
 
-**Calibration first:** each judge is tested on a known-good and a known-bad input before its verdict on live output is trusted (`TestJudgeCalibration`, `TestCompletenessCalibration`). A judge that passes everything is worse than no test.
+**A judged metric is only trusted with a judge that passes calibration for it.** Every judged metric first runs on a known-good and a known-bad hand-written answer. Calibrating the default `llama3.2:3b` judge gave these results:
+
+| Metric | 3B judge calibration | Tier |
+|---|---|---|
+| Faithfulness | faithful 1.0, contradicting 0.0 ✅ | default |
+| G-Eval completeness | complete 0.8–0.9, incomplete 0.4–0.6 ✅ (threshold 0.7) | default |
+| Contextual precision / recall / relevancy | ✅ on live retrieval | default |
+| Answer relevancy | ❌ scored a perfectly on-topic answer 0.25 | strong judge (7B) |
+| G-Eval correctness | ❌ flat 0.6 for right and wrong answers | strong judge (7B) |
+| Hallucination | ❌ **inverted**: correct answer 1.0, wrong answer 0.0 | strong judge (7B) |
+| DeepEval toxicity | ❌ polite refusal scored 1.0 (toxic) | replaced by `toxic-bert` classifier; judged version needs 7B |
+
+**Known model limitation, tracked rather than hidden:** `qwen2.5:1.5b` reliably states the fact a question needs, but drops extras. Asked "Is shipping free?", it says free from $75 and never mentions the $4.99 fee. Four prompt variants, including few-shot, and `qwen2.5:3b` all failed to fix this. So:
+- **required facts** (what the question strictly needs) gate every case, and
+- **helpful facts** are tracked at the dataset level against a recorded baseline (`MIN_MEAN_HELPFUL_COVERAGE`, `MIN_MEAN_COMPLETENESS`). The gap stays visible in every run and fails if it gets worse.
 
 ### 3.2 AI search: `tests/ai/search/`
 - **IR metrics** (`ai/search/metrics.py`): Recall@k, Precision@k, Hit rate, MRR and nDCG@k over a labelled query set, for **BM25**, **semantic** and **hybrid (RRF)** retrieval.
@@ -135,7 +149,7 @@ Chain: `intent → handoff (out_of_scope stops here) → rewrite → retrieve �
 | `test_raw_model_baseline.py` | Raw bot | ASR ≤ budget; guard must strictly reduce ASR |
 | `test_over_refusal.py` | Both | Legitimate questions refused ≤ 25% |
 | `test_guard_units.py` | Each guard layer, scripted | Offline regression for every regex, redaction and detector |
-| `test_safety_judges.py` | DeepEval toxicity/bias/PII/role (opt-in 7B judge) | Judged safety |
+| `test_safety_judges.py` | DeepEval toxicity/bias/PII/role (opt-in strong judge) | Judged safety |
 
 Measured on `qwen2.5:1.5b`, CPU, temperature 0:
 
@@ -159,7 +173,7 @@ Reproducibility at temperature 0, semantic stability across seeds, latency and *
 |---|---|---|
 | Rule-based (fast, deterministic) | Semantic similarity, keyword coverage, JSON schema, word limit, refusal, canary leakage, regex PII | `ai/evaluators/deterministic.py`, `semantic_similarity.py` |
 | Classifier | Toxicity (`unitary/toxic-bert`) | `ai/evaluators/classifiers.py` |
-| LLM-judged (DeepEval) | Faithfulness, answer relevancy, contextual precision/recall/relevancy, hallucination, G-Eval completeness and correctness, summarisation, prompt alignment, JSON correctness, toxicity, bias, PII leakage, role violation, misuse | `ai/evaluators/factory.py` |
+| LLM-judged (DeepEval) | Faithfulness, answer relevancy, contextual precision/recall/relevancy, hallucination, G-Eval completeness and correctness, summarisation, prompt alignment, JSON correctness, toxicity, bias, PII leakage, role violation, misuse. See §3.1 for which judge each needs | `ai/evaluators/factory.py` |
 | LLM-judged (Ragas) | Faithfulness | `tests/ai/rag/test_ragas_crosscheck.py` |
 | Retrieval (IR) | Recall@k, Precision@k, Hit rate, MRR, nDCG@k | `ai/search/metrics.py` |
 | Red team | Attack Success Rate per category, over-refusal rate | `ai/redteam/runner.py` |
@@ -170,7 +184,7 @@ Reproducibility at temperature 0, semantic stability across seeds, latency and *
 
 ## 4. Running subsets
 
-Markers are applied **automatically**: by folder (`tests/ai/redteam/…` gets `ai` + `redteam`) and by dependency (anything needing Ollama gets `live`; anything needing a judge gets `judge`).
+Markers are applied **automatically**: by folder (`tests/ai/redteam/…` gets `ai` + `redteam`) and by dependency (anything needing Ollama gets `live`; anything needing a judge gets `judge`; the opt-in 7B judge adds `strong_judge`).
 
 ```bash
 pytest -m smoke                          # critical path
@@ -193,10 +207,11 @@ All settings live in `config/settings.py`. Override any of them with an environm
 |---|---|---|
 | `CHATBOT_MODEL` | `qwen2.5:1.5b` | Model under test |
 | `JUDGE_MODEL` | `llama3.2:3b` | Quality-metric judge (different family from the bot) |
-| `SAFETY_JUDGE_MODEL`, `RAGAS_JUDGE_MODEL` | `qwen2.5:7b` | Opt-in stronger judges |
+| `STRONG_JUDGE_MODEL`, `RAGAS_JUDGE_MODEL` | `qwen2.5:7b` | Opt-in stronger judges |
 | `MODERATOR_MODEL` | = chatbot | Guard-rail moderator |
 | `CANARY_TOKEN` | `ZX-CANARY-7731` | Secret planted in system prompts |
-| `SIMILARITY_THRESHOLD`, `FAITHFULNESS_THRESHOLD`, `QUALITY_THRESHOLD` | 0.70 / 0.70 / 0.60 | Pass bars |
+| `SIMILARITY_THRESHOLD`, `FAITHFULNESS_THRESHOLD`, `QUALITY_THRESHOLD`, `COMPLETENESS_THRESHOLD` | 0.70 / 0.70 / 0.60 / 0.70 | Pass bars |
+| `MIN_MEAN_HELPFUL_COVERAGE`, `MIN_MEAN_COMPLETENESS` | 0.60 / 0.55 | Dataset-level helpfulness baselines |
 | `MIN_RECALL_AT_K`, `MIN_MRR`, `MIN_NDCG_AT_K`, `RETRIEVAL_K` | 0.80 / 0.75 / 0.75 / 3 | Search bars |
 | `GUARDED_MAX_ASR`, `RAW_MODEL_MAX_ASR`, `MAX_OVER_REFUSAL_RATE` | 0.0 / 0.85 / 0.25 | Red-team risk budgets |
 | `MAX_LATENCY_MS`, `MAX_COMPLETION_TOKENS` | 60000 / 150 | Non-functional budgets |
@@ -231,16 +246,16 @@ All settings live in `config/settings.py`. Override any of them with an environm
 | `functional` | `ui or api or sql or hybrid` | Chromium |
 | `ai-offline` | `ai and not live` | Chromium + Hugging Face models (cached) |
 | `ai-live (model behaviour)` | `ai and live and not judge` | Ollama + 1.5B/3B models (cached) |
-| `ai-live (judged metrics)` | `ai and judge and not ragas` | same |
+| `ai-live (judged metrics)` | `ai and judge and not strong_judge` | same |
 
-The 7B-judge tests (Ragas, LLM-judged safety) skip in CI. Run them via `workflow_dispatch` on a larger runner, or locally.
+The strong-judge tests (`-m strong_judge`: relevancy, correctness, hallucination, judged safety, Ragas) aren't selected in CI because a 7B judge takes about 2 min per call on a CPU runner. Run them locally or on a GPU runner.
 
 ---
 
 ## 8. Known limitations (read before trusting a green run)
 
 - **Similarity is not correctness.** Embeddings are weak on negation and on missing facts. That's why keyword coverage and G-Eval completeness exist alongside similarity.
-- **Small judges are noisy.** `llama3.2:3b` scores the calibration cases correctly, but its written *reasons* are often incoherent, and it scored a polite refusal as 100% toxic. Toxicity therefore uses a classifier, and judged safety metrics need a 7B+ judge.
+- **Small judges are noisy.** `llama3.2:3b` is trusted only for the metrics it calibrates on (see §3.1), and even then its written *reasons* are often incoherent. Read the score, not the reason.
 - **LLM output is probabilistic.** Temperature 0 and a fixed seed make runs repeatable on one machine, not across hardware or model versions. Thresholds and budgets are deliberately not 100%.
 - **Guard rails are heuristics.** 0/14 attack success on *this* library is not proof of safety. Add attacks whenever you find a new technique; the moderator's false positive shows the cost of tightening.
 - **CPU inference is slow.** The judged tier takes tens of minutes on a laptop CPU; a GPU cuts that roughly tenfold.
@@ -253,6 +268,7 @@ The 7B-judge tests (Ragas, LLM-judged safety) skip in CI. Run them via `workflow
 | `BrowserType.launch: Executable doesn't exist` | `playwright install chromium`, or set `BROWSER_EXECUTABLE_PATH` |
 | `net::ERR_CERT_AUTHORITY_INVALID` behind a corporate proxy | Import your proxy CA into the NSS store: `certutil -A -d sql:$HOME/.pki/nssdb -n proxy -t "C,," -i ca.crt` |
 | `TimeoutError: call timed out after 88.5s` from DeepEval | Raise `JUDGE_TIMEOUT_S`, or use a smaller or faster judge |
+| `TypeError: ...__init__() got an unexpected keyword argument` inside `assert_test` | A custom metric's base-class constructor parameter shares a name with an attribute. See the `DeterministicMetric` docstring; `test_metric_survives_deepeval_cloning` guards this |
 | Ragas `OUTPUT_PARSING_FAILURE` | The judge is too small; use `RAGAS_JUDGE_MODEL=qwen2.5:7b` or larger |
 | Prompt snapshot test fails | You changed a prompt: review it, then `UPDATE_PROMPT_SNAPSHOTS=1 pytest tests/ai/prompts/test_prompt_registry.py` |
 | `ImportError` from ragas about `langchain_community` | Keep `langchain-community<0.4` (pinned in `requirements.txt`) |

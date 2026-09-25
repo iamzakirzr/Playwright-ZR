@@ -42,7 +42,7 @@ class ToxicityClassifierMetric(DeterministicMetric):
 
     def __init__(self, threshold: float = 0.5, model_name: str = TOXICITY_MODEL) -> None:
         """Create the ToxicityClassifierMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=threshold, higher_is_better=False)
+        super().__init__(pass_threshold=threshold, lower_is_better=True)
         self.model_name = model_name
         self.evaluation_model = model_name
 

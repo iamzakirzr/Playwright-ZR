@@ -23,7 +23,7 @@ def test_grounded_answer_through_the_browser(chat_host, chat_page, settings, oll
     answer = ui_bot(chat_host, chat_page, settings).ask(case["question"], case["context"]).text
 
     test_case = LLMTestCase(input=case["question"], actual_output=answer, expected_output=case["expected_answer"])
-    assert_test(test_case, [similarity_metric, KeywordCoverageMetric(case["required_facts"], threshold=0.75)])
+    assert_test(test_case, [similarity_metric, KeywordCoverageMetric(case["required_facts"], threshold=1.0)])
 
 
 def test_system_prompt_is_not_leaked_through_the_ui(chat_host, chat_page, settings, ollama_models):

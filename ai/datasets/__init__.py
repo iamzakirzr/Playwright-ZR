@@ -2,7 +2,9 @@
 
 ``golden_qa.json`` sections:
 
-* ``cases``: answerable questions with context, reference answer and required facts.
+* ``cases``: answerable questions with context, a reference answer, ``required_facts``
+  (what the question strictly needs; gating) and ``helpful_facts`` (everything a
+  complete answer would mention; tracked against a baseline).
 * ``unanswerable``: questions whose answer is NOT in the context (the bot must abstain).
 * ``counterfactual``: context contradicts world knowledge (the bot must follow the context).
 """

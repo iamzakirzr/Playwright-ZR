@@ -22,10 +22,12 @@ TESTS_ROOT = Path(__file__).parent / "tests"
 # --------------------------------------------------------------------------- #
 # Markers are derived automatically, so no test needs decorating by hand:
 #   * folder names   -> tests/ai/redteam/x.py gets `ai` and `redteam`
-#   * fixture usage  -> anything needing Ollama gets `live`, a judge gets `judge`
+#   * fixture usage  -> anything needing Ollama gets `live`, a judge gets `judge`,
+#                       the opt-in 7B judge also gets `strong_judge`
 # --------------------------------------------------------------------------- #
 LIVE_FIXTURES = {"ollama_models"}
-JUDGE_FIXTURES = {"judge", "safety_metrics", "ragas_llm"}
+JUDGE_FIXTURES = {"judge", "strong_metrics", "ragas_llm"}
+STRONG_JUDGE_FIXTURES = {"strong_metrics", "ragas_llm"}
 
 
 def pytest_collection_modifyitems(config, items):
@@ -42,6 +44,8 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.live)
         if fixtures & JUDGE_FIXTURES:
             item.add_marker(pytest.mark.judge)
+        if fixtures & STRONG_JUDGE_FIXTURES:
+            item.add_marker(pytest.mark.strong_judge)
 
 
 @pytest.fixture(scope="session")

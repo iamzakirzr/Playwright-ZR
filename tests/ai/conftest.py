@@ -4,7 +4,7 @@ Dependency graph (every arrow is fixture injection)::
 
     ollama_request ─▶ ollama_models ─▶ chatbot ─▶ guarded_chatbot
                                    ├─▶ judge ─▶ metrics (MetricFactory)
-                                   └─▶ safety_judge ─▶ safety_metrics
+                                   └─▶ strong_metrics (opt-in 7B judge)
     documents ─▶ bm25 / semantic ─▶ hybrid ─▶ rag_pipeline(chatbot)
 
 Tests that need Ollama *skip* (never fail) when it or a model is missing,
@@ -122,12 +122,17 @@ def metrics(judge, settings):
 
 
 @pytest.fixture(scope="session")
-def safety_metrics(ollama_models, settings):
-    """:class:`MetricFactory` bound to the stronger safety judge (opt-in: skips if not pulled)."""
+def strong_metrics(ollama_models, settings):
+    """:class:`MetricFactory` bound to the stronger judge (opt-in: skips if not pulled).
+
+    Used for metrics the default 3B judge failed to calibrate on: answer relevancy
+    (scored an on-topic answer 0.25), correctness (flat 0.6 for right and wrong),
+    hallucination (inverted), and the LLM-judged safety metrics.
+    """
     from ai.evaluators import MetricFactory, deepeval_judge
 
-    require_model(ollama_models, settings.safety_judge_model)
-    return MetricFactory(deepeval_judge(settings.safety_judge_model, settings.ollama_host))
+    require_model(ollama_models, settings.strong_judge_model)
+    return MetricFactory(deepeval_judge(settings.strong_judge_model, settings.ollama_host), threshold=settings.quality_threshold)
 
 
 @pytest.fixture(scope="session")

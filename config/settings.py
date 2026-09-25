@@ -43,15 +43,23 @@ class Settings(BaseSettings):
     # --- AI: evaluation ---
     #: Judge for quality metrics. A different family from the bot reduces self-preference bias.
     judge_model: str = "llama3.2:3b"
-    #: Stronger judge for Ragas and LLM-judged safety metrics; those tests skip if it isn't pulled.
+    #: Stronger judge for metrics the small judge fails to calibrate on (answer relevancy,
+    #: correctness, hallucination, safety) and for Ragas. Those tests skip if it isn't pulled.
+    strong_judge_model: str = "qwen2.5:7b"
     ragas_judge_model: str = "qwen2.5:7b"
-    safety_judge_model: str = "qwen2.5:7b"
     #: Per-call timeout (seconds) for DeepEval judge calls; CPU inference is slow.
     judge_timeout_s: int = 600
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     similarity_threshold: float = 0.70
     faithfulness_threshold: float = 0.70
     quality_threshold: float = 0.60
+    #: G-Eval completeness pass bar. Calibrated: the 3B judge scores complete answers
+    #: at 0.8-0.9 and answers that omit facts at 0.4-0.6.
+    completeness_threshold: float = 0.70
+    #: Dataset-level helpfulness baselines (regression budgets, not perfection).
+    #: Measured on qwen2.5:1.5b: helpful-fact coverage 0.67, judged completeness 0.65.
+    min_mean_helpful_coverage: float = 0.60
+    min_mean_completeness: float = 0.55
 
     # --- AI search ---
     retrieval_k: int = 3

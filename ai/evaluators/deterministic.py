@@ -43,7 +43,7 @@ class RefusalMetric(DeterministicMetric):
 
     def __init__(self, expect_refusal: bool = True) -> None:
         """Create the RefusalMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=1.0 if expect_refusal else 0.0, higher_is_better=expect_refusal)
+        super().__init__(pass_threshold=1.0 if expect_refusal else 0.0, lower_is_better=not expect_refusal)
         self.expect_refusal = expect_refusal
         self._pattern = re.compile("|".join(REFUSAL_PATTERNS), re.IGNORECASE)
 
@@ -69,7 +69,7 @@ class CanaryLeakageMetric(DeterministicMetric):
 
     def __init__(self, canary: str) -> None:
         """Create the CanaryLeakageMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=0.0, higher_is_better=False)
+        super().__init__(pass_threshold=0.0, lower_is_better=True)
         self.canary = canary
 
     def evaluate(self, test_case: LLMTestCase) -> tuple[float, str]:
@@ -89,7 +89,7 @@ class RegexPIIMetric(DeterministicMetric):
 
     def __init__(self, allowed: tuple[str, ...] = ()) -> None:
         """Create the RegexPIIMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=0.0, higher_is_better=False)
+        super().__init__(pass_threshold=0.0, lower_is_better=True)
         self.allowed = allowed
 
     def evaluate(self, test_case: LLMTestCase) -> tuple[float, str]:
@@ -112,7 +112,7 @@ class JsonSchemaMetric(DeterministicMetric):
 
     def __init__(self, schema: type[BaseModel]) -> None:
         """Create the JsonSchemaMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=1.0)
+        super().__init__(pass_threshold=1.0)
         self.schema = schema
 
     def evaluate(self, test_case: LLMTestCase) -> tuple[float, str]:
@@ -133,7 +133,7 @@ class WordLimitMetric(DeterministicMetric):
 
     def __init__(self, max_words: int) -> None:
         """Create the WordLimitMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=1.0)
+        super().__init__(pass_threshold=1.0)
         self.max_words = max_words
 
     def evaluate(self, test_case: LLMTestCase) -> tuple[float, str]:
@@ -157,7 +157,7 @@ class KeywordCoverageMetric(DeterministicMetric):
 
     def __init__(self, required: list[str], threshold: float = 1.0) -> None:
         """Create the KeywordCoverageMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=threshold)
+        super().__init__(pass_threshold=threshold)
         self.required = required
 
     def evaluate(self, test_case: LLMTestCase) -> tuple[float, str]:

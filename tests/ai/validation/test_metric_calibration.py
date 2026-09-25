@@ -7,7 +7,16 @@ import pytest
 from deepeval.test_case import LLMTestCase
 from pydantic import BaseModel
 
-from ai.evaluators import JsonSchemaMetric, KeywordCoverageMetric, RegexPIIMetric, SemanticSimilarityMetric, WordLimitMetric
+from ai.evaluators import (
+    CanaryLeakageMetric,
+    JsonSchemaMetric,
+    KeywordCoverageMetric,
+    RefusalMetric,
+    RegexPIIMetric,
+    SemanticSimilarityMetric,
+    ToxicityClassifierMetric,
+    WordLimitMetric,
+)
 
 
 def case(output: str, expected: str | None = None) -> LLMTestCase:
@@ -67,3 +76,32 @@ def test_similarity_metric_requires_reference(settings):
     """Similarity without an expected_output is a usage error, not a silent zero."""
     with pytest.raises(ValueError, match="expected_output"):
         SemanticSimilarityMetric(settings.embedding_model).measure(case("anything"))
+
+
+ALL_CUSTOM_METRICS = [
+    lambda s: SemanticSimilarityMetric(s.embedding_model, threshold=0.42),
+    lambda s: KeywordCoverageMetric(["a", "b"], threshold=0.5),
+    lambda s: JsonSchemaMetric(Item),
+    lambda s: WordLimitMetric(7),
+    lambda s: RegexPIIMetric(allowed=("x@y.z",)),
+    lambda s: RefusalMetric(expect_refusal=False),
+    lambda s: CanaryLeakageMetric("CANARY"),
+    lambda s: ToxicityClassifierMetric(threshold=0.3),
+]
+
+
+@pytest.mark.parametrize("build", ALL_CUSTOM_METRICS, ids=["similarity", "keywords", "json", "words", "pii", "no-refusal", "canary", "toxicity"])
+def test_metric_survives_deepeval_cloning(settings, build):
+    """``assert_test`` clones metrics through their constructors; every custom metric must round-trip.
+
+    Regression: a base-class ``__init__`` parameter named like an attribute made
+    DeepEval pass unexpected keyword arguments and crash every ``assert_test``.
+    """
+    from deepeval.metrics.utils import copy_metrics
+
+    original = build(settings)
+    (clone,) = copy_metrics([original])
+
+    assert type(clone) is type(original)
+    assert clone.threshold == original.threshold
+    assert clone._lower_is_better == original._lower_is_better

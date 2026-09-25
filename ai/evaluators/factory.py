@@ -111,7 +111,11 @@ class MetricFactory:
         return HallucinationMetric(**self._common(self.risk_threshold if threshold is None else threshold))
 
     def completeness(self, threshold: float | None = None) -> GEval:
-        """G-Eval rubric: does the answer include every fact from the context that the question needs?"""
+        """G-Eval rubric: does the answer include every fact from the context that the question needs?
+
+        Pass ``threshold`` explicitly. Calibration with a 3B judge put complete answers
+        at 0.8-0.9 and incomplete ones at 0.4-0.6, so 0.7 separates them.
+        """
         return GEval(
             name="Completeness",
             evaluation_steps=[

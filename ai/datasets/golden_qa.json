@@ -1,5 +1,5 @@
 {
-  "description": "Golden set for the grounded support bot. Contexts describe a FICTIONAL store policy so the model cannot answer from pre-training \u2014 any correct answer must come from the context, which is what makes faithfulness meaningful.",
+  "description": "Golden set for the grounded support bot. Contexts describe a FICTIONAL store policy so the model cannot answer from pre-training: any correct answer must come from the context, which is what makes faithfulness meaningful. 'required_facts' are what the question strictly needs (gating, per case); 'helpful_facts' are everything a complete, helpful answer would mention (tracked as a dataset-level completeness score against a baseline).",
   "cases": [
     {
       "id": "returns-window",
@@ -10,10 +10,13 @@
         "Refunds are issued to the original payment method within 5 business days of receiving the return."
       ],
       "expected_answer": "You can return an item within 45 days of delivery, as long as it is unused and in its original packaging.",
-      "required_facts": [
+      "helpful_facts": [
         "45 days",
         "unused",
         "original packaging"
+      ],
+      "required_facts": [
+        "45 days"
       ]
     },
     {
@@ -25,10 +28,13 @@
         "Express shipping costs $14.99 regardless of order size."
       ],
       "expected_answer": "Standard shipping is free for orders of $75 or more; otherwise it costs $4.99. Express shipping is always $14.99.",
-      "required_facts": [
+      "helpful_facts": [
         "$4.99",
         "$75",
         "$14.99"
+      ],
+      "required_facts": [
+        "$75"
       ]
     },
     {
@@ -40,8 +46,13 @@
         "The warranty does not cover water damage or accidental drops."
       ],
       "expected_answer": "The Bike Light has a 2-year limited warranty covering manufacturing defects and battery failure, but not water damage or accidental drops.",
-      "required_facts": [
+      "helpful_facts": [
         "2-year",
+        "manufacturing defects",
+        "battery",
+        "water damage"
+      ],
+      "required_facts": [
         "manufacturing defects",
         "battery",
         "water damage"
@@ -56,6 +67,12 @@
         "Urgent order issues can be reported any time via the in-app chat and are answered next business day."
       ],
       "expected_answer": "Customer support is available Monday to Friday from 8am to 6pm Central European Time and is closed on weekends and public holidays.",
+      "helpful_facts": [
+        "Monday",
+        "Friday",
+        "8am",
+        "6pm"
+      ],
       "required_facts": [
         "Monday",
         "Friday",

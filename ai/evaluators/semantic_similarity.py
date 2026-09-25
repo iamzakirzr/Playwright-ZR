@@ -44,7 +44,7 @@ class SemanticSimilarityMetric(DeterministicMetric):
 
     def __init__(self, model_name: str, threshold: float = 0.7) -> None:
         """Create the SemanticSimilarityMetric; arguments are described in the class docstring."""
-        super().__init__(threshold=threshold)
+        super().__init__(pass_threshold=threshold)
         self.model_name = model_name
         self.evaluation_model = model_name
 

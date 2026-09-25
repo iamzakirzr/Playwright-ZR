@@ -122,13 +122,13 @@ def test_prompt_alignment_judge(chatbot, metrics):
 
 
 def test_new_prompt_version_is_not_a_regression(chatbot, settings):
-    """A/B regression: grounded_qa latest must cover at least as many required facts as v1."""
+    """A/B regression: grounded_qa latest must cover at least as many helpful facts as v1."""
 
     def coverage(bot: OllamaChatbot) -> float:
         """Mean keyword coverage of ``bot`` across the golden set."""
         scores = []
         for case in load_golden("cases"):
-            metric = KeywordCoverageMetric(case["required_facts"])
+            metric = KeywordCoverageMetric(case["helpful_facts"])
             scores.append(metric.measure(LLMTestCase(input="", actual_output=bot.ask(case["question"], case["context"]).text)))
         return sum(scores) / len(scores)
 
