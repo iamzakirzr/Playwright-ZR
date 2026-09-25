@@ -1,3 +1,5 @@
+"""Booking CRUD API tests with pydantic contract validation on every response."""
+
 from datetime import date, timedelta
 
 import pytest
@@ -7,6 +9,7 @@ from api.schemas import Booking, BookingDates, BookingId, CreatedBooking
 
 @pytest.fixture
 def new_booking() -> Booking:
+    """A valid booking 30 days out, used as the request body."""
     checkin = date.today() + timedelta(days=30)
     return Booking(
         firstname="Ada",
@@ -20,6 +23,7 @@ def new_booking() -> Booking:
 
 @pytest.fixture
 def created_booking(authed_booking_client, new_booking):
+    """Create a booking for the test and delete it afterwards (setup + teardown)."""
     response = authed_booking_client.create_booking(new_booking)
     assert response.ok, response.text()
     created = CreatedBooking.model_validate(response.json())
@@ -29,11 +33,12 @@ def created_booking(authed_booking_client, new_booking):
 
 @pytest.mark.smoke
 def test_create_booking_matches_contract(created_booking, new_booking):
-    # model_validate in the fixture already enforced the schema contract
+    """The API stores exactly what was sent (the fixture's ``model_validate`` already enforced the schema)."""
     assert created_booking.booking == new_booking
 
 
 def test_get_booking_round_trip(booking_client, created_booking):
+    """GET returns the same booking that POST created."""
     response = booking_client.get_booking(created_booking.bookingid)
 
     assert response.status == 200
@@ -41,6 +46,7 @@ def test_get_booking_round_trip(booking_client, created_booking):
 
 
 def test_full_update(authed_booking_client, created_booking):
+    """PUT replaces the booking and echoes the new state."""
     updated = created_booking.booking.model_copy(update={"firstname": "Grace", "totalprice": 999})
 
     response = authed_booking_client.update_booking(created_booking.bookingid, updated)
@@ -50,6 +56,7 @@ def test_full_update(authed_booking_client, created_booking):
 
 
 def test_partial_update(authed_booking_client, created_booking):
+    """PATCH changes only the given field and keeps the rest."""
     response = authed_booking_client.partial_update(created_booking.bookingid, {"lastname": "Hopper"})
 
     assert response.status == 200
@@ -59,6 +66,7 @@ def test_partial_update(authed_booking_client, created_booking):
 
 
 def test_delete_booking(authed_booking_client, booking_client, new_booking):
+    """DELETE removes the booking; a later GET returns 404."""
     booking_id = CreatedBooking.model_validate(authed_booking_client.create_booking(new_booking).json()).bookingid
 
     assert authed_booking_client.delete_booking(booking_id).status == 201
@@ -66,6 +74,7 @@ def test_delete_booking(authed_booking_client, booking_client, new_booking):
 
 
 def test_filter_by_name_returns_created_booking(booking_client, created_booking):
+    """Query filters find the created booking by name."""
     response = booking_client.list_ids(firstname="Ada", lastname="Lovelace")
 
     ids = [BookingId.model_validate(b).bookingid for b in response.json()]
@@ -73,4 +82,5 @@ def test_filter_by_name_returns_created_booking(booking_client, created_booking)
 
 
 def test_get_unknown_booking_returns_404(booking_client):
+    """A non-existent id returns 404, not 500."""
     assert booking_client.get_booking(999_999_999).status == 404

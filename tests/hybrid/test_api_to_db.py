@@ -5,6 +5,7 @@ from api.schemas import Booking, BookingDates, CreatedBooking
 
 
 def test_api_booking_persists_consistently(authed_booking_client, booking_client, booking_repo):
+    """Create via API, read back, persist to SQL: every column matches the request payload."""
     checkin = date.today() + timedelta(days=10)
     payload = Booking(
         firstname="Alan",

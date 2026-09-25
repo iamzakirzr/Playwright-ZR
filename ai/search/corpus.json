@@ -1,0 +1,42 @@
+{
+  "description": "Knowledge base for the AI-search suite. Each golden policy is split into atomic passages, and there are near-duplicate distractors so ranking quality matters.",
+  "documents": [
+    {"id": "returns-1", "title": "Return window", "text": "Sauce Demo Store accepts returns within 45 days of delivery."},
+    {"id": "returns-2", "title": "Return condition", "text": "Returned items must be unused and in original packaging."},
+    {"id": "returns-3", "title": "Refund timing", "text": "Refunds are issued to the original payment method within 5 business days of receiving the return."},
+    {"id": "shipping-1", "title": "Standard shipping fee", "text": "Standard shipping costs $4.99 for orders under $75."},
+    {"id": "shipping-2", "title": "Free shipping threshold", "text": "Orders of $75 or more ship free with standard shipping."},
+    {"id": "shipping-3", "title": "Express shipping", "text": "Express shipping costs $14.99 regardless of order size."},
+    {"id": "warranty-1", "title": "Bike Light warranty term", "text": "The Sauce Labs Bike Light has a 2-year limited warranty."},
+    {"id": "warranty-2", "title": "Warranty coverage", "text": "The warranty covers manufacturing defects and battery failure."},
+    {"id": "warranty-3", "title": "Warranty exclusions", "text": "The warranty does not cover water damage or accidental drops."},
+    {"id": "support-1", "title": "Support hours", "text": "Customer support is available Monday to Friday, 8am to 6pm Central European Time."},
+    {"id": "support-2", "title": "Support closures", "text": "Support is closed on weekends and public holidays."},
+    {"id": "payments-1", "title": "Accepted payments", "text": "We accept Visa, Mastercard, PayPal and Sauce gift cards. Cash on delivery is not available."},
+    {"id": "distractor-1", "title": "Backpack care", "text": "The Sauce Labs Backpack is water resistant and can be wiped clean with a damp cloth."},
+    {"id": "distractor-2", "title": "Fleece Jacket sizing", "text": "The Sauce Labs Fleece Jacket runs one size small; order a size up."},
+    {"id": "distractor-3", "title": "Newsletter", "text": "Subscribers to the Sauce newsletter get early access to seasonal sales."}
+  ],
+  "queries": [
+    {"query": "how long do I have to send something back", "relevant": ["returns-1"]},
+    {"query": "when will I get my refund", "relevant": ["returns-3"]},
+    {"query": "is delivery free", "relevant": ["shipping-2", "shipping-1"]},
+    {"query": "express delivery price", "relevant": ["shipping-3"]},
+    {"query": "what does the bike light guarantee cover", "relevant": ["warranty-2", "warranty-1"]},
+    {"query": "is water damage covered on the light", "relevant": ["warranty-3"]},
+    {"query": "can I call support on saturday", "relevant": ["support-2", "support-1"]},
+    {"query": "do you take paypal", "relevant": ["payments-1"]}
+  ],
+  "robustness": [
+    {"query": "retrn windw for itmes", "relevant": "returns-1", "kind": "typos"},
+    {"query": "RETURN WINDOW", "relevant": "returns-1", "kind": "casing"},
+    {"query": "shipping express cost", "relevant": "shipping-3", "kind": "word-order"},
+    {"query": "bike lamp warranty length", "relevant": "warranty-1", "kind": "synonym"},
+    {"query": "what payment methods are accepted", "relevant": "payments-1", "kind": "paraphrase"}
+  ],
+  "out_of_domain": [
+    "who won the 1998 football world cup",
+    "recipe for sourdough bread",
+    "explain quantum entanglement"
+  ]
+}

@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  PYTHON_VERSION: "3.11"
+  HF_HOME: ~/.cache/huggingface
+
 jobs:
   functional:
     name: UI / API / SQL
@@ -15,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
       - name: Install dependencies
         run: |
@@ -32,12 +36,50 @@ jobs:
             reports/
             test-results/
 
-  ai-eval:
-    name: AI chatbot evaluation
+  ai-offline:
+    name: AI offline (search, prompts, chains, guards, widget)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    # LLM evals are slower and probabilistic: run them separately so they
-    # never block the deterministic suites.
+    timeout-minutes: 20
+    # Deterministic AI tests: embeddings, classifiers, scripted models, stubbed UI. No LLM server.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('config/settings.py', 'ai/evaluators/classifiers.py') }}
+      - name: Run offline AI suites
+        run: pytest -m "ai and not live" -v --junitxml=reports/ai-offline.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-offline-results
+          path: |
+            reports/
+            test-results/
+
+  ai-live:
+    name: AI live (${{ matrix.tier }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # LLM evals are slower and probabilistic, so they run apart from the deterministic suites.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tier: model behaviour
+            marker: "live and not judge"
+          - tier: judged metrics
+            marker: "judge and not ragas"
     env:
       CHATBOT_MODEL: qwen2.5:1.5b
       JUDGE_MODEL: llama3.2:3b
@@ -45,12 +87,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
       - name: Install dependencies
         run: |
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('config/settings.py', 'ai/evaluators/classifiers.py') }}
       - name: Cache Ollama models
         uses: actions/cache@v4
         with:
@@ -63,11 +111,15 @@ jobs:
           for i in $(seq 1 30); do curl -sf localhost:11434/api/version && break; sleep 1; done
           ollama pull "$CHATBOT_MODEL"
           ollama pull "$JUDGE_MODEL"
-      - name: Run AI evaluation
-        # Ragas cross-check needs a 7B judge (~2 min/sample on CPU); run it via workflow_dispatch on a bigger runner.
-        run: pytest -m "ai and not ragas" -v --junitxml=reports/ai.xml
+      - name: Run live AI suites
+        # Ragas and LLM-judged safety tests need a 7B judge (~2 min per call on CPU);
+        # they skip here and run via workflow_dispatch on a bigger runner.
+        run: pytest -m "ai and (${{ matrix.marker }})" -v --junitxml=reports/ai-live.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ai-eval-results
-          path: reports/
+          name: ai-live-${{ strategy.job-index }}
+          path: |
+            reports/
+            test-results/
+            ollama.log

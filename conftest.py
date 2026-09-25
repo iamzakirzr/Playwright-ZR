@@ -20,19 +20,33 @@ TESTS_ROOT = Path(__file__).parent / "tests"
 
 
 # --------------------------------------------------------------------------- #
-# Markers are derived from folder names, so `pytest -m api` just works.
+# Markers are derived automatically, so no test needs decorating by hand:
+#   * folder names   -> tests/ai/redteam/x.py gets `ai` and `redteam`
+#   * fixture usage  -> anything needing Ollama gets `live`, a judge gets `judge`
 # --------------------------------------------------------------------------- #
+LIVE_FIXTURES = {"ollama_models"}
+JUDGE_FIXTURES = {"judge", "safety_metrics", "ragas_llm"}
+
+
 def pytest_collection_modifyitems(config, items):
+    """Attach folder-based and dependency-based markers to every collected test."""
     for item in items:
         try:
-            layer = Path(item.fspath).relative_to(TESTS_ROOT).parts[0]
+            parts = Path(item.fspath).relative_to(TESTS_ROOT).parts
         except ValueError:
             continue
-        item.add_marker(getattr(pytest.mark, layer))
+        for folder in parts[:-1]:
+            item.add_marker(getattr(pytest.mark, folder))
+        fixtures = set(getattr(item, "fixturenames", ()))
+        if fixtures & LIVE_FIXTURES:
+            item.add_marker(pytest.mark.live)
+        if fixtures & JUDGE_FIXTURES:
+            item.add_marker(pytest.mark.judge)
 
 
 @pytest.fixture(scope="session")
 def settings() -> Settings:
+    """Typed, env-overridable configuration shared by every layer."""
     return get_settings()
 
 
@@ -49,21 +63,25 @@ def browser_type_launch_args(browser_type_launch_args, settings):
 # --------------------------------------------------------------------------- #
 @pytest.fixture
 def login_page(page, settings) -> LoginPage:
+    """Login page object bound to the current browser page."""
     return LoginPage(page, settings.ui_base_url)
 
 
 @pytest.fixture
 def inventory_page(page, settings) -> InventoryPage:
+    """Inventory (product list) page object."""
     return InventoryPage(page, settings.ui_base_url)
 
 
 @pytest.fixture
 def cart_page(page, settings) -> CartPage:
+    """Cart page object."""
     return CartPage(page, settings.ui_base_url)
 
 
 @pytest.fixture
 def checkout_page(page, settings) -> CheckoutPage:
+    """Checkout page object (all three checkout steps)."""
     return CheckoutPage(page, settings.ui_base_url)
 
 
@@ -79,6 +97,7 @@ def logged_in(login_page, inventory_page, settings) -> InventoryPage:
 # --------------------------------------------------------------------------- #
 @pytest.fixture(scope="session")
 def api_request(playwright: Playwright, settings):
+    """Session-wide Playwright HTTP client for the booking API."""
     ctx = playwright.request.new_context(base_url=settings.api_base_url)
     yield ctx
     ctx.dispose()
@@ -86,21 +105,25 @@ def api_request(playwright: Playwright, settings):
 
 @pytest.fixture(scope="session")
 def auth_client(api_request) -> AuthClient:
+    """Service object for the /auth endpoint."""
     return AuthClient(api_request)
 
 
 @pytest.fixture(scope="session")
 def auth_token(auth_client, settings) -> str:
+    """A valid API token, created once per session."""
     return auth_client.create_token(settings.api_username, settings.api_password)
 
 
 @pytest.fixture
 def booking_client(api_request) -> BookingClient:
+    """Unauthenticated booking client (read-only operations)."""
     return BookingClient(api_request)
 
 
 @pytest.fixture
 def authed_booking_client(api_request, auth_token) -> BookingClient:
+    """Booking client carrying the auth cookie (write operations)."""
     return BookingClient(api_request).authenticate(auth_token)
 
 
@@ -109,6 +132,7 @@ def authed_booking_client(api_request, auth_token) -> BookingClient:
 # --------------------------------------------------------------------------- #
 @pytest.fixture(scope="session")
 def db_connection(settings):
+    """One seeded SQLite connection per session."""
     conn = create_connection(settings.db_path)
     yield conn
     conn.close()
@@ -116,6 +140,7 @@ def db_connection(settings):
 
 @pytest.fixture
 def db(db_connection):
+    """Per-test transaction, rolled back afterwards so tests never see each other's writes."""
     db_connection.execute("BEGIN")
     yield db_connection
     db_connection.execute("ROLLBACK")
@@ -123,16 +148,19 @@ def db(db_connection):
 
 @pytest.fixture
 def user_repo(db) -> UserRepository:
+    """Repository for the users table."""
     return UserRepository(db)
 
 
 @pytest.fixture
 def order_repo(db) -> OrderRepository:
+    """Repository for orders and order items."""
     return OrderRepository(db)
 
 
 @pytest.fixture
 def booking_repo(db) -> BookingRepository:
+    """Repository for bookings mirrored from the API."""
     return BookingRepository(db)
 
 

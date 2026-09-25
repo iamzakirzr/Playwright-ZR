@@ -1,21 +1,22 @@
 """Ragas cross-check of faithfulness with an independent implementation.
 
 Two frameworks agreeing is stronger evidence than one. Ragas' structured
-prompts need a >= 7B judge, so this is opt-in: it skips unless
-RAGAS_JUDGE_MODEL is pulled in Ollama.
+prompts need a judge of 7B or more, so this test is opt-in: it skips unless
+RAGAS_JUDGE_MODEL has been pulled into Ollama.
 """
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from ai.datasets import load_golden
+from ai.datasets import golden_case
 
-CASE = next(c for c in load_golden("cases") if c["id"] == "warranty")
+CASE = golden_case("warranty")
 
 
 @pytest.mark.ragas
 def test_ragas_faithfulness_on_live_answer(ask, ragas_llm, settings):
+    """Ragas must agree with DeepEval that the live warranty answer is faithful."""
     from ragas import SingleTurnSample
     from ragas.metrics import Faithfulness
 

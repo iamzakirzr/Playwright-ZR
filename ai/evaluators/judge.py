@@ -11,12 +11,16 @@ from deepeval.models import OllamaModel
 
 
 def deepeval_judge(model: str, ollama_host: str) -> OllamaModel:
+    """Return a DeepEval judge backed by a local Ollama model (temperature 0 for repeatable verdicts)."""
     return OllamaModel(model=model, base_url=ollama_host, temperature=0)
 
 
 def ragas_judge(model: str, ollama_host: str):
-    # Ragas needs a judge that reliably emits its structured JSON; in practice
-    # that means >= 7B parameters. 3B models fail with OUTPUT_PARSING_FAILURE.
+    """Return a Ragas-compatible judge backed by a local Ollama model.
+
+    Ragas needs a judge that reliably emits its structured JSON; in practice that
+    means 7B parameters or more. 3B models fail with OUTPUT_PARSING_FAILURE.
+    """
     from langchain_ollama import ChatOllama
     from ragas.llms import LangchainLLMWrapper
 

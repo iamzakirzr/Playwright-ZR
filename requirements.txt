@@ -12,5 +12,6 @@ ragas>=0.3,<0.5
 langchain-community>=0.3.27,<0.4
 langchain-ollama>=0.3,<2
 sentence-transformers>=3.0,<7
+# transformers (pulled in by sentence-transformers) also runs the toxic-bert classifier
 # CPU-only torch keeps the install ~200MB instead of ~2GB:
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu

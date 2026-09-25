@@ -1,3 +1,5 @@
+"""End-to-end purchase flow and inventory behaviour through page objects."""
+
 import pytest
 from playwright.sync_api import expect
 
@@ -6,6 +8,7 @@ PRODUCTS = ["Sauce Labs Backpack", "Sauce Labs Bike Light"]
 
 @pytest.mark.smoke
 def test_end_to_end_purchase(logged_in, cart_page, checkout_page):
+    """Add two products, check out, verify total = subtotal + tax, and see the confirmation."""
     for product in PRODUCTS:
         logged_in.add_to_cart(product)
     assert logged_in.header.cart_count() == len(PRODUCTS)
@@ -27,6 +30,7 @@ def test_end_to_end_purchase(logged_in, cart_page, checkout_page):
 
 
 def test_checkout_requires_customer_info(logged_in, cart_page, checkout_page):
+    """Checkout blocks an empty customer form with a validation error."""
     logged_in.add_to_cart(PRODUCTS[0])
     logged_in.header.open_cart()
     cart_page.checkout()
@@ -41,6 +45,7 @@ def test_checkout_requires_customer_info(logged_in, cart_page, checkout_page):
     [("lohi", "prices", False), ("hilo", "prices", True), ("az", "names", False), ("za", "names", True)],
 )
 def test_inventory_sorting(logged_in, option, key, reverse):
+    """Each sort option orders the products correctly."""
     logged_in.sort_by(option)
 
     values = getattr(logged_in, key)()
