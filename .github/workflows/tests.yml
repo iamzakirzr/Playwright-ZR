@@ -1,0 +1,73 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  functional:
+    name: UI / API / SQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Run functional suites
+        run: pytest -m "ui or api or sql or hybrid" -n auto --junitxml=reports/functional.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: functional-results
+          path: |
+            reports/
+            test-results/
+
+  ai-eval:
+    name: AI chatbot evaluation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # LLM evals are slower and probabilistic: run them separately so they
+    # never block the deterministic suites.
+    env:
+      CHATBOT_MODEL: qwen2.5:1.5b
+      JUDGE_MODEL: llama3.2:3b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+      - name: Cache Ollama models
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.CHATBOT_MODEL }}-${{ env.JUDGE_MODEL }}
+      - name: Start Ollama and pull models
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          (ollama serve > ollama.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf localhost:11434/api/version && break; sleep 1; done
+          ollama pull "$CHATBOT_MODEL"
+          ollama pull "$JUDGE_MODEL"
+      - name: Run AI evaluation
+        # Ragas cross-check needs a 7B judge (~2 min/sample on CPU); run it via workflow_dispatch on a bigger runner.
+        run: pytest -m "ai and not ragas" -v --junitxml=reports/ai.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-eval-results
+          path: reports/
