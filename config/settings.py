@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     #: Per-call timeout (seconds) for DeepEval judge calls; CPU inference is slow.
     judge_timeout_s: int = 600
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    #: Vision model for the opt-in visual judge (tests skip if it isn't pulled).
+    vision_model: str = "qwen2.5vl:3b"
     similarity_threshold: float = 0.70
     faithfulness_threshold: float = 0.70
     quality_threshold: float = 0.60

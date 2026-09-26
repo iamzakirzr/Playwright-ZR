@@ -3,6 +3,8 @@
 import pytest
 from playwright.sync_api import expect
 
+from data import CheckoutCustomerFactory
+
 PRODUCTS = ["Sauce Labs Backpack", "Sauce Labs Bike Light"]
 
 
@@ -19,7 +21,7 @@ def test_end_to_end_purchase(logged_in, cart_page, checkout_page):
 
     cart_page.checkout()
     checkout_page.expect_loaded()
-    checkout_page.fill_customer_info("Ada", "Lovelace", "10115")
+    checkout_page.fill_customer_info(**CheckoutCustomerFactory.build())
 
     # Business rule: total = item total + tax (to the cent)
     assert checkout_page.item_total() == pytest.approx(29.99 + 9.99)

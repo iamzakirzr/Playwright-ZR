@@ -2,6 +2,7 @@
 from playwright.sync_api import expect
 
 from pages.base_page import BasePage
+from reporting import step
 from pages.components.header import Header
 
 
@@ -27,6 +28,7 @@ class CartPage(BasePage):
         """Names of the products in the cart."""
         return self.item_names.all_inner_texts()
 
+    @step("Start checkout")
     def checkout(self) -> None:
         """Start checkout."""
         self.checkout_button.click()

@@ -2,6 +2,7 @@
 from playwright.sync_api import expect
 
 from pages.base_page import BasePage
+from reporting import step
 
 
 class LoginPage(BasePage):
@@ -22,6 +23,7 @@ class LoginPage(BasePage):
         expect(self.login_button).to_be_visible()
         return self
 
+    @step("Log in as {username}")
     def login_as(self, username: str, password: str) -> None:
         """Fill both fields and submit."""
         self.username_input.fill(username)

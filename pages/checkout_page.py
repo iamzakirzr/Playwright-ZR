@@ -2,6 +2,7 @@
 from playwright.sync_api import expect
 
 from pages.base_page import BasePage
+from reporting import step
 
 
 class CheckoutPage(BasePage):
@@ -32,6 +33,7 @@ class CheckoutPage(BasePage):
         expect(self.title).to_have_text("Checkout: Your Information")
         return self
 
+    @step("Enter customer details ({first} {last}, {postal})")
     def fill_customer_info(self, first: str, last: str, postal: str) -> None:
         """Complete step one and continue to the overview."""
         self.first_name.fill(first)
@@ -56,6 +58,7 @@ class CheckoutPage(BasePage):
         """Grand total including tax."""
         return self._money(self.total_label.inner_text())
 
+    @step("Place the order")
     def finish(self) -> None:
         """Place the order."""
         self.finish_button.click()

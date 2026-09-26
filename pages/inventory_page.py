@@ -2,6 +2,7 @@
 from playwright.sync_api import expect
 
 from pages.base_page import BasePage
+from reporting import step
 from pages.components.header import Header
 
 
@@ -37,10 +38,12 @@ class InventoryPage(BasePage):
         """Product prices in display order, parsed from '$29.99' to 29.99."""
         return [float(p.replace("$", "")) for p in self.item_prices.all_inner_texts()]
 
+    @step("Sort products by {option_value}")
     def sort_by(self, option_value: str) -> None:
         """Choose a sort order: ``az``, ``za``, ``lohi`` (price low to high) or ``hilo``."""
         self.sort_select.select_option(option_value)
 
+    @step("Add '{product_name}' to cart")
     def add_to_cart(self, product_name: str) -> None:
         """Click 'Add to cart' on the card whose text contains ``product_name``."""
         item = self.items.filter(has_text=product_name)

@@ -25,7 +25,7 @@ TESTS_ROOT = Path(__file__).parent / "tests"
 #   * fixture usage  -> anything needing Ollama gets `live`, a judge gets `judge`,
 #                       the opt-in 7B judge also gets `strong_judge`
 # --------------------------------------------------------------------------- #
-LIVE_FIXTURES = {"ollama_models"}
+LIVE_FIXTURES = {"ollama_models", "require_ollama_model"}
 JUDGE_FIXTURES = {"judge", "strong_metrics", "ragas_llm"}
 STRONG_JUDGE_FIXTURES = {"strong_metrics", "ragas_llm"}
 
@@ -46,6 +46,18 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.judge)
         if fixtures & STRONG_JUDGE_FIXTURES:
             item.add_marker(pytest.mark.strong_judge)
+
+
+def pytest_configure(config):
+    """Seed the data factories once per run so failures can be replayed with FAKER_SEED."""
+    from data import seed_factories
+
+    config._faker_seed = seed_factories()
+
+
+def pytest_report_header(config):
+    """Print the factory seed at the top of every run."""
+    return f"test data seed: FAKER_SEED={getattr(config, '_faker_seed', '?')}"
 
 
 @pytest.fixture(scope="session")
@@ -166,6 +178,43 @@ def order_repo(db) -> OrderRepository:
 def booking_repo(db) -> BookingRepository:
     """Repository for bookings mirrored from the API."""
     return BookingRepository(db)
+
+
+# --------------------------------------------------------------------------- #
+# Ollama (local LLMs): shared by every layer that needs a model
+# (AI suites, self-healing locators, vision checks). Missing server or model -> skip.
+# --------------------------------------------------------------------------- #
+@pytest.fixture(scope="session")
+def ollama_request(playwright: Playwright, settings):
+    """Playwright request context pointed at the Ollama server."""
+    ctx = playwright.request.new_context(base_url=settings.ollama_host)
+    yield ctx
+    ctx.dispose()
+
+
+@pytest.fixture(scope="session")
+def ollama_models(ollama_request) -> set[str]:
+    """Names of pulled models; skips the test when Ollama is unreachable."""
+    try:
+        response = ollama_request.get("/api/tags", timeout=5_000)
+        models = {m["name"] for m in response.json().get("models", [])} if response.ok else set()
+    except Exception:  # noqa: BLE001 - any failure means "not available"
+        models = set()
+    if not models:
+        pytest.skip("Ollama is not reachable; start `ollama serve` to run live AI tests")
+    return models
+
+
+@pytest.fixture(scope="session")
+def require_ollama_model(ollama_models):
+    """Factory: ``require_ollama_model("qwen2.5:7b")`` skips the test unless that model is pulled."""
+
+    def _require(name: str) -> None:
+        """Skip the current test if ``name`` is not pulled."""
+        if name not in ollama_models:
+            pytest.skip(f"Model '{name}' not pulled; run `ollama pull {name}`")
+
+    return _require
 
 
 # --------------------------------------------------------------------------- #

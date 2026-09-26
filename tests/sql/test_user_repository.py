@@ -4,6 +4,8 @@ import sqlite3
 
 import pytest
 
+from data import UserFactory
+
 
 @pytest.mark.smoke
 def test_seeded_user_lookup(user_repo):
@@ -21,18 +23,25 @@ def test_locked_users_match_ui_fixture(user_repo, settings):
 
 
 def test_create_and_lock_user(user_repo):
-    """Creating and then locking a user updates count and flag."""
+    """Creating and then locking a factory-generated user updates count and flag."""
+    user = UserFactory.build()
     before = user_repo.count()
-    user_repo.create("new_user", "new@example.com")
-    user_repo.lock("new_user")
+    user_repo.create(**user)
+    user_repo.lock(user["username"])
 
     assert user_repo.count() == before + 1
-    assert user_repo.find_by_username("new_user")["is_locked"] == 1
+    assert user_repo.find_by_username(user["username"])["is_locked"] == 1
+
+
+def test_bulk_users_are_unique(user_repo):
+    """Five generated users insert cleanly: the factory never repeats a username or email."""
+    for user in UserFactory.build_batch(5):
+        user_repo.create(**user)
 
 
 def test_changes_are_rolled_back_between_tests(user_repo):
-    """Isolation: the previous test's ``new_user`` does not leak into this one."""
-    assert user_repo.find_by_username("new_user") is None
+    """Isolation: only the three seeded users exist, whatever earlier tests inserted."""
+    assert user_repo.count() == 3
 
 
 def test_username_must_be_unique(user_repo):

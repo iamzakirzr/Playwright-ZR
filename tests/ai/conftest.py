@@ -2,7 +2,7 @@
 
 Dependency graph (every arrow is fixture injection)::
 
-    ollama_request ─▶ ollama_models ─▶ chatbot ─▶ guarded_chatbot
+    ollama_request ─▶ ollama_models ─▶ chatbot ─▶ guarded_chatbot   (Ollama fixtures: root conftest.py)
                                    ├─▶ judge ─▶ metrics (MetricFactory)
                                    └─▶ strong_metrics (opt-in 7B judge)
     documents ─▶ bm25 / semantic ─▶ hybrid ─▶ rag_pipeline(chatbot)
@@ -17,6 +17,7 @@ import os
 import pytest
 
 from ai.chatbot import ChatResponse, GuardedChatbot, OllamaChatbot
+from reporting import attach_llm_exchange
 from ai.search import BM25Retriever, HybridRetriever, RagPipeline, SemanticRetriever, load_corpus, load_documents
 
 
@@ -27,42 +28,12 @@ def _deepeval_timeouts(settings):
 
 
 # --------------------------------------------------------------------------- #
-# Ollama plumbing
-# --------------------------------------------------------------------------- #
-@pytest.fixture(scope="session")
-def ollama_request(playwright, settings):
-    """Playwright request context pointed at the Ollama server."""
-    ctx = playwright.request.new_context(base_url=settings.ollama_host)
-    yield ctx
-    ctx.dispose()
-
-
-@pytest.fixture(scope="session")
-def ollama_models(ollama_request) -> set[str]:
-    """Names of pulled models; skips the test when Ollama is unreachable."""
-    try:
-        response = ollama_request.get("/api/tags", timeout=5_000)
-        models = {m["name"] for m in response.json().get("models", [])} if response.ok else set()
-    except Exception:  # noqa: BLE001 - any failure means "not available"
-        models = set()
-    if not models:
-        pytest.skip("Ollama is not reachable; start `ollama serve` to run live AI tests")
-    return models
-
-
-def require_model(models: set[str], name: str) -> None:
-    """Skip the current test unless ``name`` has been pulled into Ollama."""
-    if name not in models:
-        pytest.skip(f"Model '{name}' not pulled; run `ollama pull {name}`")
-
-
-# --------------------------------------------------------------------------- #
 # Chatbots
 # --------------------------------------------------------------------------- #
 @pytest.fixture(scope="session")
-def chatbot(ollama_request, ollama_models, settings) -> OllamaChatbot:
+def chatbot(ollama_request, require_ollama_model, settings) -> OllamaChatbot:
     """The raw chatbot under test (no guard rails)."""
-    require_model(ollama_models, settings.chatbot_model)
+    require_ollama_model(settings.chatbot_model)
     return OllamaChatbot(
         ollama_request,
         model=settings.chatbot_model,
@@ -74,9 +45,9 @@ def chatbot(ollama_request, ollama_models, settings) -> OllamaChatbot:
 
 
 @pytest.fixture(scope="session")
-def moderator(ollama_request, ollama_models, settings) -> OllamaChatbot:
+def moderator(ollama_request, require_ollama_model, settings) -> OllamaChatbot:
     """A separate chatbot instance that runs the input-moderation prompt."""
-    require_model(ollama_models, settings.effective_moderator_model)
+    require_ollama_model(settings.effective_moderator_model)
     return OllamaChatbot(ollama_request, model=settings.effective_moderator_model, timeout_s=settings.chatbot_timeout_s)
 
 
@@ -96,7 +67,16 @@ def ask(chatbot):
         key = (question, tuple(context or ()))
         if key not in cache:
             cache[key] = chatbot.ask(question, context)
-        return cache[key]
+        response = cache[key]
+        attach_llm_exchange(
+            question,
+            response.text,
+            model=response.model,
+            context=context,
+            latency_ms=round(response.latency_ms),
+            completion_tokens=response.completion_tokens,
+        )
+        return response
 
     return _ask
 
@@ -105,11 +85,11 @@ def ask(chatbot):
 # Judges and metrics
 # --------------------------------------------------------------------------- #
 @pytest.fixture(scope="session")
-def judge(ollama_models, settings):
+def judge(require_ollama_model, settings):
     """DeepEval judge LLM for quality metrics."""
     from ai.evaluators import deepeval_judge
 
-    require_model(ollama_models, settings.judge_model)
+    require_ollama_model(settings.judge_model)
     return deepeval_judge(settings.judge_model, settings.ollama_host)
 
 
@@ -122,7 +102,7 @@ def metrics(judge, settings):
 
 
 @pytest.fixture(scope="session")
-def strong_metrics(ollama_models, settings):
+def strong_metrics(require_ollama_model, settings):
     """:class:`MetricFactory` bound to the stronger judge (opt-in: skips if not pulled).
 
     Used for metrics the default 3B judge failed to calibrate on: answer relevancy
@@ -131,16 +111,16 @@ def strong_metrics(ollama_models, settings):
     """
     from ai.evaluators import MetricFactory, deepeval_judge
 
-    require_model(ollama_models, settings.strong_judge_model)
+    require_ollama_model(settings.strong_judge_model)
     return MetricFactory(deepeval_judge(settings.strong_judge_model, settings.ollama_host), threshold=settings.quality_threshold)
 
 
 @pytest.fixture(scope="session")
-def ragas_llm(ollama_models, settings):
+def ragas_llm(require_ollama_model, settings):
     """Ragas-wrapped judge (opt-in: needs a model of 7B or more)."""
     from ai.evaluators import ragas_judge
 
-    require_model(ollama_models, settings.ragas_judge_model)
+    require_ollama_model(settings.ragas_judge_model)
     return ragas_judge(settings.ragas_judge_model, settings.ollama_host)
 
 
