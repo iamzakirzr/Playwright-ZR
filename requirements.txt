@@ -19,6 +19,9 @@ mcp>=2,<3
 # --- Visual testing ---
 pillow>=10,<13
 
+# --- Mobile native (Appium 2 client; tests skip without an Appium server) ---
+Appium-Python-Client>=4,<7
+
 # --- AI evaluation (open source) ---
 deepeval>=3.0,<5
 ragas>=0.3,<0.5

@@ -1,37 +1,46 @@
 # Playwright-ZR
 
-A layered, object-oriented **Playwright (Python)** test framework covering:
+A layered, object-oriented **Playwright (Python)** test framework for UI, API, SQL, mobile and AI,
+built to be learned from as much as used.
 
 | Layer | What it tests | Target |
 |---|---|---|
-| **UI** | Page Object Model flows | [saucedemo.com](https://www.saucedemo.com) |
+| **UI** | Page Object Model flows, visual baselines, self-healing locators | [saucedemo.com](https://www.saucedemo.com) |
 | **API** | CRUD + contract (schema) validation | [restful-booker](https://restful-booker.herokuapp.com) |
 | **SQL** | Repositories, constraints, integrity | Seeded SQLite |
 | **Hybrid** | API ↔ DB consistency | both |
-| **AI** | RAG quality, AI search, prompts, prompt chains, red teaming, GenAI validation, chat UI | Open-source LLM served locally by [Ollama](https://ollama.com) |
+| **BDD** | Gherkin scenarios over the same page objects | saucedemo + AI assistant |
+| **Mobile** | Device emulation (Pixel, iPhone) and Appium on an Android emulator | saucedemo |
+| **AI** | RAG quality, AI search, prompts, chains, agents & tool calls, MCP servers, red teaming, GenAI validation, chat UI | Open-source LLMs served locally by [Ollama](https://ollama.com) |
 
 Everything is open source and runs locally. No paid API keys are needed.
+
+> **New here? Start with the [learning path](docs/learning-path/README.md):** 12 short chapters,
+> one per layer, each with files to read, a command to run, an exercise and a quiz.
 
 ---
 
 ## 1. Quick start
 
-**Prerequisites:** Python 3.11+, and about 8 GB of free disk space for the models.
+**Prerequisites:** Python 3.11+, `make`, and about 8 GB of free disk space for the models.
 
 ```bash
-# 1. Python environment
-python -m venv .venv
-source .venv/bin/activate                    # Windows: .venv\Scripts\activate
-pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU-only torch (~200 MB, not ~2 GB)
-pip install -r requirements.txt
-playwright install chromium
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
+make setup            # CPU-only torch, requirements, Chromium, pre-commit hook
+make help             # every command, one line each
 
-# 2. Functional suites (no AI). Takes about 15 s.
-pytest -m "ui or api or sql or hybrid" -n auto
-
-# 3. Offline AI suites (embeddings, classifiers, scripted models; no LLM server). Takes about 40 s.
-pytest -m "ai and not live"
+make test-functional  # UI + API + SQL + BDD, no AI              (~30 s)
+make test-ai-offline  # embeddings, classifiers, stubs, MCP      (~40 s)
+make test-mobile-web  # phones emulated by Playwright            (~15 s)
+make lint             # ruff, same as CI
+make report-open      # Allure HTML report of the last run (needs Node.js)
 ```
+
+Every `make` target is a plain `pytest -m ...` call; open the [`Makefile`](Makefile) to see and copy it.
+No `make` (Windows)? Run the pytest line from the Makefile directly.
+
+**Docker instead:** `docker compose up --abort-on-container-exit --exit-code-from tests` starts
+Ollama, pulls the models and runs the suites in containers ([`docker-compose.yml`](docker-compose.yml)).
 
 ### Live AI suites (need Ollama)
 
@@ -42,12 +51,12 @@ ollama serve &                   # leave running
 ollama pull qwen2.5:1.5b         # chatbot under test (~1 GB)
 ollama pull llama3.2:3b          # judge for quality metrics (~2 GB)
 
-pytest -m "ai and live and not judge"     # model behaviour, no judge
-pytest -m "ai and judge and not strong_judge"   # metrics the 3B judge is calibrated for (slow on CPU)
+make test-ai-live      # model behaviour, no judge
+make test-ai-judged    # metrics the 3B judge is calibrated for (slow on CPU)
 
 # Optional: strong judge for relevancy, correctness, hallucination, judged safety and Ragas
 ollama pull qwen2.5:7b           # ~4.7 GB, ~1-2 min per judged call on CPU
-pytest -m strong_judge
+make test-ai-strong
 ```
 
 Tests that need a missing server or model **skip** with a message telling you what to pull. They never fail for that reason.
@@ -58,17 +67,22 @@ Tests that need a missing server or model **skip** with a message telling you wh
 
 ```
 tests/                         ← WHAT is asserted (thin, readable, one behaviour per test)
-  ui/ api/ sql/ hybrid/
-  ai/{rag,search,prompts,chains,redteam,validation,chat_ui}/
+  ui/ (visual/) api/ sql/ hybrid/ bdd/ mobile/{web,native}/
+  ai/{rag,search,prompts,chains,redteam,validation,chat_ui,agent,mcp,healing}/
         │  fixtures (conftest.py) inject ↓
 pages/        api/          db/               ai/
 Page Objects  Service       Repositories      chatbot/   ChatbotClient + adapters
-              objects                         prompts/   versioned PromptTemplate + registry
+(+ healing/)  objects                         prompts/   versioned PromptTemplate + registry
                                               chains/    Chain + ChainStep pipeline
                                               search/    Retriever strategies, IR metrics, RAG
                                               evaluators/ metrics (rule, classifier, LLM-judged)
                                               redteam/   attack library + runner
                                               chat_ui/   chat widget served via page.route
+mobile/       Appium driver factory + screen objects
+visual/       screenshot comparator + opt-in vision judge
+data/         Faker factories (seeded, replayable)
+reporting/    Allure steps and attachments
+apps/         apps under test: shop_assistant (FastAPI agent), store_mcp (MCP server)
 config/settings.py             ← every URL, model, threshold and budget (env-overridable)
 ```
 
@@ -90,6 +104,9 @@ config/settings.py             ← every URL, model, threshold and budget (env-o
 | **Pipeline / Chain of Responsibility** | `ai/chains/base.py` | Multi-step LLM flows with per-step traces |
 | **Registry** | `ai/prompts/registry.py` | Versioned prompts, fetched by name |
 | **Dependency Injection** | pytest fixtures (`conftest.py`, `tests/ai/conftest.py`) | Tests ask for objects, never build them |
+| **Builder / Factory** (test data) | `data/factories.py` `BookingFactory.build(totalprice=0)` | Fresh realistic data; pin only the field the test cares about |
+| **Screen Object** | `mobile/screens/` → `MobileLoginScreen` | The Page Object idea for Appium |
+| **Proxy (self-healing)** | `pages/healing/self_healing.py` `SelfHealingLocator` | Stands in for a locator; falls back to cache, then an LLM, and validates the fix |
 | **Value Objects** (frozen dataclasses) | `ChatResponse`, `PromptTemplate`, `Attack`, `SearchResult` | Immutable, comparable, safe to cache |
 
 Every module, class and function has a docstring. Start reading at `ai/chatbot/base.py`, then `tests/ai/conftest.py`.
@@ -169,7 +186,34 @@ Reproducibility at temperature 0, semantic stability across seeds, latency and *
 - Stubbed: render order, **request-payload contract**, typing indicator and disabled input, friendly 500 error, **XSS: model HTML rendered as text**, blank input.
 - Live: `UiChatbot` (a `ChatbotClient`) runs the **same metrics** through the browser as the API adapter does.
 
-### 3.8 Metric catalogue
+### 3.8 Agents and tool calls: `tests/ai/agent/`
+`apps/shop_assistant/` is a FastAPI app with a tool-calling agent (`add_to_cart`, `remove_from_cart`,
+`view_cart`) plus retrieval over the store policies over Ollama; `api/shop_assistant_client.py` is its service object.
+- **Unit (scripted model)**: tool routing, argument normalisation, the "claimed an action without
+  calling a tool" guard, the scope guard, the tool-round limit.
+- **Live**: DeepEval `ToolCorrectnessMetric` on the tool trajectory, cart **state verified through the
+  API** (never trust the reply text), multi-turn memory, off-topic refusal, a golden
+  `EvaluationDataset`, and the same flows as Gherkin (`test_assistant_feature.py`).
+- The tests found four real agent defects (fake action claims, lost context, off-topic answers,
+  descriptions passed as product names); each fix is in `agent.py` with a regression test.
+
+### 3.9 MCP server testing: `tests/ai/mcp/`
+`apps/store_mcp/` exposes the store as an MCP server. Tests check the tool list and schemas, typed
+structured results, `ToolError` on bad input, and run over **two transports**: in-process (fast) and
+a **stdio subprocess** (`python -m apps.store_mcp`, what Claude Desktop or Cursor launch).
+
+### 3.10 Self-healing locators: `tests/ai/healing/`
+`BasePage.healable(name, selector, description)` returns a locator that, when the selector breaks,
+tries the JSON cache, then asks an LLM for candidates from trimmed page HTML, and accepts only a
+candidate matching **exactly one visible element**. Offline tests use a fake healer; the live test
+heals a renamed login form with the local model.
+
+### 3.11 Visual testing: `tests/ui/visual/`
+`visual/comparator.py`: per-browser-and-OS baselines, masked dynamic regions, a pixel tolerance, and
+a diff image on failure (`UPDATE_SNAPSHOTS=1` accepts changes). `visual/vision_judge.py` adds an
+opt-in vision-LLM description of a side-by-side composite; it is **advisory**, pixels decide.
+
+### 3.12 Metric catalogue
 | Kind | Metrics | Where |
 |---|---|---|
 | Rule-based (fast, deterministic) | Semantic similarity, keyword coverage, JSON schema, word limit, refusal, canary leakage, regex PII | `ai/evaluators/deterministic.py`, `semantic_similarity.py` |
@@ -194,9 +238,12 @@ pytest -m search                         # AI search only
 pytest -m "chains or prompts"
 pytest tests/ai/chat_ui -v --headed      # watch the chat widget being driven
 pytest -m "ai and not judge" -n 4        # parallel (safe except for judge-heavy runs on small CPUs)
+pytest -m "agent or mcp"                 # the AI app and its MCP server
+FAKER_SEED=1234 pytest tests/api         # replay the exact test data of a failed run (seed is in the header)
 ```
 
-On failure, Playwright saves a screenshot and trace in `test-results/` (`playwright show-trace <zip>`).
+On failure, Playwright saves a screenshot and trace in `test-results/` (`playwright show-trace <zip>`),
+and every run writes Allure results to `reports/allure-results` (`make report-open`).
 
 ---
 
@@ -218,6 +265,10 @@ All settings live in `config/settings.py`. Override any of them with an environm
 | `MAX_LATENCY_MS`, `MAX_COMPLETION_TOKENS` | 60000 / 150 | Non-functional budgets |
 | `BROWSER_EXECUTABLE_PATH` | unset | Use a pre-installed Chromium |
 | `JUDGE_TIMEOUT_S` | 600 | DeepEval per-call timeout (CPU is slow) |
+| `VISION_MODEL` | `qwen2.5vl:3b` | Opt-in visual judge |
+| `APPIUM_SERVER_URL`, `ANDROID_DEVICE_NAME` | `http://127.0.0.1:4723` / `emulator-5554` | Appium tests |
+| `FAKER_SEED` | random (printed) | Replay test data |
+| `UPDATE_SNAPSHOTS`, `UPDATE_PROMPT_SNAPSHOTS` | unset | Accept new visual / prompt baselines |
 
 ---
 
@@ -235,23 +286,41 @@ All settings live in `config/settings.py`. Override any of them with an environm
 | A prompt | Add it to `ai/prompts/library.json`, then refresh snapshots |
 | A red-team attack | Add it to `ai/redteam/attacks.json` with its `checks` |
 | A golden QA case | Add it to `ai/datasets/golden_qa.json` (with `required_facts`) |
+| Test data | Subclass `Factory`, set `model`, implement `defaults()` |
+| A BDD scenario | Add it to a `.feature` file in `tests/bdd/features/`; reuse or add steps in `test_ui_features.py` |
+| A mobile screen | Subclass `BaseScreen` in `mobile/screens/` |
+| A healable element | `self.healable("name", "selector", "plain-English description")` in a page object |
+| A visual check | `comparator.compare("name", locator.screenshot(mask=[...]))` |
 
 ---
 
-## 7. CI
+## 7. CI/CD
 
-`.github/workflows/tests.yml` runs four jobs:
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs on every push and PR, **nightly**,
+and on demand (`workflow_dispatch` with `suite` and `browser` inputs):
 
-| Job | Selects | Needs |
+| Job | Selects | Matrix |
 |---|---|---|
-| `functional` | `ui or api or sql or hybrid` | Chromium |
-| `ai-offline` | `ai and not live` | Chromium + Hugging Face models (cached) |
-| `ai-live (model behaviour)` | `ai and live and not judge` | Ollama + 1.5B/3B models (cached) |
-| `ai-live (judged metrics)` | `ai and judge and not strong_judge` | same |
+| `lint` | `ruff check` + `ruff format --check` | |
+| `api-sql` | `api or sql or hybrid` | |
+| `ui` | `(ui or bdd) and not ai and not live` | chromium, firefox, webkit |
+| `mobile-web` | `mobile_web` | chromium, webkit |
+| `mobile-native` | `mobile_native` on an Android emulator with Appium 2 | |
+| `ai-offline` | `ai and not live and not judge` | |
+| `ai-live` | `ai and live and not judge` / `ai and judge and not strong_judge` | two tiers |
+| `docker` | builds the image, validates `docker-compose.yml` | |
+| `report` | merges every job's Allure results into one HTML report (artifact) | |
 
-The strong-judge tests (`-m strong_judge`: relevancy, correctness, hallucination, judged safety, Ragas) aren't selected in CI because a 7B judge takes about 2 min per call on a CPU runner. Run them locally or on a GPU runner.
+Shared install steps live in the composite action [`.github/actions/setup`](.github/actions/setup/action.yml).
+Publishing the Allure report to GitHub Pages is opt-in: enable Pages (source: GitHub Actions) and set
+the repository variable `DEPLOY_ALLURE_PAGES=true`.
 
----
+The strong-judge tests (`-m strong_judge`) aren't selected in CI because a 7B judge takes about
+2 min per call on a CPU runner. Run them locally or on a GPU runner.
+
+**Other CI servers:** [`ci-templates/Jenkinsfile`](ci-templates/Jenkinsfile) and
+[`ci-templates/azure-pipelines.yml`](ci-templates/azure-pipelines.yml) mirror the same stages.
+They are templates, not executed by this repository.
 
 ## 8. Known limitations (read before trusting a green run)
 
@@ -273,3 +342,6 @@ The strong-judge tests (`-m strong_judge`: relevancy, correctness, hallucination
 | Ragas `OUTPUT_PARSING_FAILURE` | The judge is too small; use `RAGAS_JUDGE_MODEL=qwen2.5:7b` or larger |
 | Prompt snapshot test fails | You changed a prompt: review it, then `UPDATE_PROMPT_SNAPSHOTS=1 pytest tests/ai/prompts/test_prompt_registry.py` |
 | `ImportError` from ragas about `langchain_community` | Keep `langchain-community<0.4` (pinned in `requirements.txt`) |
+| Mobile-native tests all **skipped** | No Appium server at `APPIUM_SERVER_URL`; see [chapter 10](docs/learning-path/10-mobile.md) |
+| Visual test fails after an intended style change | Check the diff image, then rerun with `UPDATE_SNAPSHOTS=1` |
+| Pre-commit hook rewrote files | That's ruff formatting them; `git add` and commit again |

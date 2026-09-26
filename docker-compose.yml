@@ -1,0 +1,42 @@
+# Full stack in containers: an Ollama server, a one-shot model pull, and the test runner.
+#   docker compose up --abort-on-container-exit --exit-code-from tests
+# Change the suite with SUITE, e.g.  SUITE="live and not judge" docker compose up ...
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  models:
+    # Pulls the bot and judge once; the named volume keeps them between runs.
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["sh", "-c", "ollama pull ${CHATBOT_MODEL:-qwen2.5:1.5b} && ollama pull ${JUDGE_MODEL:-llama3.2:3b}"]
+
+  tests:
+    build: .
+    depends_on:
+      models:
+        condition: service_completed_successfully
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      CHATBOT_MODEL: ${CHATBOT_MODEL:-qwen2.5:1.5b}
+      JUDGE_MODEL: ${JUDGE_MODEL:-llama3.2:3b}
+    command: ["python", "-m", "pytest", "-m", "${SUITE:-not judge and not strong_judge and not mobile_native}"]
+    volumes:
+      - ./reports:/app/reports
+      - ./test-results:/app/test-results
+      - hf-cache:/root/.cache/huggingface
+
+volumes:
+  ollama-models:
+  hf-cache:

@@ -17,3 +17,5 @@ allure-results/
 .deepeval/
 .deepeval-cache.json
 *.db
+.ruff_cache/
+allure-report/

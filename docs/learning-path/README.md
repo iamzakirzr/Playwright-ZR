@@ -1,0 +1,38 @@
+# Learning path
+
+A course through this repository, one chapter per layer. Each chapter follows the same shape:
+
+1. **Why**: the problem the layer solves, in two or three sentences.
+2. **Read**: the files to open, in order.
+3. **Run**: one command that proves it works.
+4. **Try it**: a small exercise that changes the code.
+5. **Test your knowledge**: a short quiz, answers folded underneath.
+
+Work through them in order; each chapter uses what the previous one built.
+
+| # | Chapter | Needs Ollama? | Command |
+|---|---|---|---|
+| 01 | [Setup and your first test](01-setup-and-first-test.md) | no | `make setup && make smoke` |
+| 02 | [Page Object Model](02-page-object-model.md) | no | `make test-ui` |
+| 03 | [API testing with service objects](03-api-testing.md) | no | `make test-api` |
+| 04 | [Database and cross-layer tests](04-database-and-hybrid.md) | no | `make test-sql` |
+| 05 | [Test data, BDD and reporting](05-data-bdd-reporting.md) | no | `make bdd && make report` |
+| 06 | [AI evaluation fundamentals](06-ai-evals-fundamentals.md) | yes | `make test-ai-live` |
+| 07 | [AI search, prompts and chains](07-ai-search-prompts-chains.md) | partly | `make test-ai-offline` |
+| 08 | [Agents and MCP servers](08-agents-and-mcp.md) | partly | `pytest -m "agent or mcp"` |
+| 09 | [Red teaming and guardrails](09-red-teaming.md) | partly | `pytest -m redteam` |
+| 10 | [Mobile: emulation and Appium](10-mobile.md) | no | `make test-mobile-web` |
+| 11 | [Self-healing locators and visual testing](11-healing-and-visual.md) | partly | `pytest -m "healing or visual"` |
+| 12 | [CI/CD pipelines](12-ci-cd.md) | no | `make lint` |
+
+"Partly" means the chapter has an offline tier that runs anywhere and a live tier that skips
+cleanly without Ollama.
+
+## Three rules the whole framework follows
+
+- **Tests say *what*, objects say *how*.** A test never contains a selector, a URL or SQL.
+  Those live in page objects, service clients and repositories.
+- **Configuration comes from one place.** Every URL, credential, model name and threshold is a
+  field in [`config/settings.py`](../../config/settings.py), overridable by an environment variable.
+- **Every AI threshold is calibrated.** Before a metric judges the bot, a test proves the metric
+  itself can tell a good answer from a bad one ([`tests/ai/validation/test_metric_calibration.py`](../../tests/ai/validation/test_metric_calibration.py)).
