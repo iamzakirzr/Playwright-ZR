@@ -1,0 +1,27 @@
+name: Set up test environment
+description: Python, CPU-only torch, project requirements and the requested Playwright browsers.
+
+inputs:
+  browsers:
+    description: Space-separated Playwright browsers to install ("" for none)
+    default: chromium
+  python-version:
+    description: Python version
+    default: "3.11"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+    - name: Install Python dependencies
+      shell: bash
+      run: |
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install -r requirements.txt
+    - name: Install Playwright browsers
+      if: inputs.browsers != ''
+      shell: bash
+      run: python -m playwright install --with-deps ${{ inputs.browsers }}

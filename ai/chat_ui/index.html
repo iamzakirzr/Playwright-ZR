@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sauce Support Chat</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    #messages { list-style: none; padding: 0; min-height: 8rem; }
+    .bubble { padding: .5rem .75rem; border-radius: .75rem; margin: .25rem 0; max-width: 85%; }
+    .user { background: #e0ecff; margin-left: auto; }
+    .bot { background: #f1f1f1; }
+    [hidden] { display: none !important; }
+    [role=alert] { color: #a00; }
+    form { display: flex; gap: .5rem; }
+    input { flex: 1; padding: .5rem; }
+  </style>
+</head>
+<body>
+  <h1>Sauce Support</h1>
+  <ul id="messages" data-testid="messages" aria-live="polite"></ul>
+  <p data-testid="typing" hidden>Assistant is typing…</p>
+  <p data-testid="error" role="alert" hidden></p>
+  <form data-testid="chat-form">
+    <input data-testid="chat-input" aria-label="Message" autocomplete="off" placeholder="Ask about orders, shipping, returns…">
+    <button data-testid="send" type="submit">Send</button>
+  </form>
+  <script>
+    // Test hooks: the UiChatbot adapter sets these before each message.
+    window.chatConfig = { model: "qwen2.5:1.5b", system: "You are a helpful store assistant." };
+
+    const form = document.querySelector("[data-testid=chat-form]");
+    const input = document.querySelector("[data-testid=chat-input]");
+    const send = document.querySelector("[data-testid=send]");
+    const list = document.querySelector("[data-testid=messages]");
+    const typing = document.querySelector("[data-testid=typing]");
+    const error = document.querySelector("[data-testid=error]");
+
+    function addBubble(role, text) {
+      const li = document.createElement("li");
+      li.className = `bubble ${role}`;
+      li.dataset.role = role;
+      li.textContent = text;            // textContent, never innerHTML: model output is untrusted
+      list.appendChild(li);
+    }
+
+    function setBusy(busy) {
+      input.disabled = busy;
+      send.disabled = busy;
+      typing.hidden = !busy;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      error.hidden = true;
+      addBubble("user", text);
+      input.value = "";
+      setBusy(true);
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: window.chatConfig.model,
+            stream: false,
+            options: { temperature: 0, seed: 42 },
+            messages: [
+              { role: "system", content: window.chatConfig.system },
+              { role: "user", content: text },
+            ],
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = await res.json();
+        addBubble("bot", body.message.content.trim());
+      } catch (e) {
+        error.textContent = "Sorry, something went wrong. Please try again.";
+        error.hidden = false;
+      } finally {
+        setBusy(false);
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>

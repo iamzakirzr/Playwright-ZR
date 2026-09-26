@@ -1,0 +1,107 @@
+{
+  "description": "Golden set for the grounded support bot. Contexts describe a FICTIONAL store policy so the model cannot answer from pre-training: any correct answer must come from the context, which is what makes faithfulness meaningful. 'required_facts' are what the question strictly needs (gating, per case); 'helpful_facts' are everything a complete, helpful answer would mention (tracked as a dataset-level completeness score against a baseline).",
+  "cases": [
+    {
+      "id": "returns-window",
+      "question": "How many days do I have to return an item?",
+      "context": [
+        "Sauce Demo Store accepts returns within 45 days of delivery.",
+        "Returned items must be unused and in original packaging.",
+        "Refunds are issued to the original payment method within 5 business days of receiving the return."
+      ],
+      "expected_answer": "You can return an item within 45 days of delivery, as long as it is unused and in its original packaging.",
+      "helpful_facts": [
+        "45 days",
+        "unused",
+        "original packaging"
+      ],
+      "required_facts": [
+        "45 days"
+      ]
+    },
+    {
+      "id": "shipping-cost",
+      "question": "Is shipping free?",
+      "context": [
+        "Standard shipping costs $4.99 for orders under $75.",
+        "Orders of $75 or more ship free with standard shipping.",
+        "Express shipping costs $14.99 regardless of order size."
+      ],
+      "expected_answer": "Standard shipping is free for orders of $75 or more; otherwise it costs $4.99. Express shipping is always $14.99.",
+      "helpful_facts": [
+        "$4.99",
+        "$75",
+        "$14.99"
+      ],
+      "required_facts": [
+        "$75"
+      ]
+    },
+    {
+      "id": "warranty",
+      "question": "What does the Bike Light warranty cover?",
+      "context": [
+        "The Sauce Labs Bike Light has a 2-year limited warranty.",
+        "The warranty covers manufacturing defects and battery failure.",
+        "The warranty does not cover water damage or accidental drops."
+      ],
+      "expected_answer": "The Bike Light has a 2-year limited warranty covering manufacturing defects and battery failure, but not water damage or accidental drops.",
+      "helpful_facts": [
+        "2-year",
+        "manufacturing defects",
+        "battery",
+        "water damage"
+      ],
+      "required_facts": [
+        "manufacturing defects",
+        "battery",
+        "water damage"
+      ]
+    },
+    {
+      "id": "support-hours",
+      "question": "When can I reach customer support?",
+      "context": [
+        "Customer support is available Monday to Friday, 8am to 6pm Central European Time.",
+        "Support is closed on weekends and public holidays.",
+        "Urgent order issues can be reported any time via the in-app chat and are answered next business day."
+      ],
+      "expected_answer": "Customer support is available Monday to Friday from 8am to 6pm Central European Time and is closed on weekends and public holidays.",
+      "helpful_facts": [
+        "Monday",
+        "Friday",
+        "8am",
+        "6pm"
+      ],
+      "required_facts": [
+        "Monday",
+        "Friday",
+        "8am",
+        "6pm"
+      ]
+    }
+  ],
+  "unanswerable": [
+    {
+      "id": "no-info-loyalty",
+      "question": "How many loyalty points do I earn per dollar?",
+      "context": [
+        "Sauce Demo Store accepts returns within 45 days of delivery.",
+        "Standard shipping costs $4.99 for orders under $75."
+      ],
+      "expected_answer": "I don't know based on the provided information."
+    }
+  ],
+  "counterfactual": [
+    {
+      "id": "counterfactual-boiling-point",
+      "question": "According to the lab manual, at what temperature does water boil in Lab 7?",
+      "context": [
+        "Lab 7 manual: in the pressurised chamber used for Lab 7, water boils at 121 degrees Celsius.",
+        "Students must wear heat-resistant gloves in Lab 7."
+      ],
+      "must_contain": "121",
+      "must_not_contain": "100"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><style>
+  body { margin: 0; padding: 24px; background: #ffffff; font-family: sans-serif; }
+  .card { width: 320px; border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
+  .title { font-size: 20px; color: #18583a; margin: 0 0 8px; }
+  .price { font-size: 24px; color: #132322; font-weight: bold; }
+  button { margin-top: 12px; background: #3ddc91; color: #132322; border: 0; border-radius: 4px; padding: 10px 16px; font-size: 16px; }
+  .stamp { color: #888; font-size: 12px; margin-top: 12px; }
+</style></head>
+<body>
+  <div class="card" data-testid="card">
+    <p class="title">Sauce Labs Backpack</p>
+    <div class="price" data-testid="price">$29.99</div>
+    <button data-testid="add">Add to cart</button>
+    <div class="stamp" data-testid="stamp">Rendered at <span id="now"></span></div>
+  </div>
+  <script>document.getElementById('now').textContent = new Date().toISOString();</script>
+</body></html>

@@ -1,0 +1,13 @@
+<!doctype html>
+<html><body>
+  <h1>Store login</h1>
+  <form id="login-form" onsubmit="event.preventDefault(); document.querySelector('#result').textContent = 'Welcome, ' + document.querySelector('form input[type=text]').value;">
+    <label for="user-name">Username</label>
+    <input id="user-name" data-test="username" type="text" placeholder="Username">
+    <label for="password">Password</label>
+    <input id="password" data-test="password" type="password" placeholder="Password">
+    <button id="login-button" data-test="login-button" type="submit">Login</button>
+  </form>
+  <a href="#forgot" data-test="forgot-link">Forgot password?</a>
+  <p id="result" data-test="result"></p>
+</body></html>

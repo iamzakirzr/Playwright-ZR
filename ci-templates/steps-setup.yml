@@ -1,0 +1,20 @@
+# TEMPLATE (Azure DevOps step template used by azure-pipelines.yml): Python, deps, browsers.
+parameters:
+  - name: browsers
+    type: string
+    default: chromium
+
+steps:
+  - task: UsePythonVersion@0
+    inputs: { versionSpec: "3.11" }
+  - task: Cache@2
+    inputs:
+      key: 'pip | "$(Agent.OS)" | requirements.txt'
+      path: $(PIP_CACHE_DIR)
+  - script: |
+      pip install torch --index-url https://download.pytorch.org/whl/cpu
+      pip install -r requirements.txt
+    displayName: Install dependencies
+  - ${{ if ne(parameters.browsers, '') }}:
+      - script: python -m playwright install --with-deps ${{ parameters.browsers }}
+        displayName: Install browsers

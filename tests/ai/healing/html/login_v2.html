@@ -1,0 +1,15 @@
+<!doctype html>
+<!-- v2: a front-end refactor renamed every id and data-test attribute. Visible text is unchanged. -->
+<html><body>
+  <h1>Store login</h1>
+  <form id="signin-form" onsubmit="event.preventDefault(); document.querySelector('#outcome').textContent = 'Welcome, ' + document.querySelector('form input[type=text]').value;">
+    <label for="login-email">Username</label>
+    <input id="login-email" data-testid="signin-username" name="username" type="text" placeholder="Username">
+    <label for="login-secret">Password</label>
+    <input id="login-secret" data-testid="signin-password" name="password" type="password" placeholder="Password">
+    <button id="signin-submit" data-testid="signin-submit" type="submit">Login</button>
+    <button id="signin-cancel" data-testid="signin-cancel" type="reset">Cancel</button>
+  </form>
+  <a href="#forgot" data-testid="forgot-link">Forgot password?</a>
+  <p id="outcome" data-testid="signin-result"></p>
+</body></html>

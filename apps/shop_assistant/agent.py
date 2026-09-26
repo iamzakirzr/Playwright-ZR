@@ -1,0 +1,283 @@
+"""The shop assistant agent: RAG for policy questions, tools for cart actions.
+
+Flow for one user message::
+
+    retrieve policy passages ─▶ LLM (with tools) ─┬─ tool calls? ─▶ run tools ─▶ LLM again (max N rounds)
+                                                   └─ text ─────────▶ reply
+
+Two guards against the classic agent failure (claiming an action it never took):
+
+* the session history keeps the *full trajectory* (tool calls and tool results),
+  so the model sees that cart changes happen through tools, not through prose;
+* :func:`claims_cart_action` detects replies like "I've added..." made without a
+  tool call, and the agent re-prompts once, telling the model to call the tool.
+
+A **hybrid scope guard** keeps the agent on topic. Store vocabulary (cart,
+basket, product names, policy words) is allowed by a regex without any LLM
+call; only messages with none of it go to a small classifier prompt, and
+anything but a clear OUT_OF_SCOPE is allowed (fail open). Measured on
+qwen2.5:1.5b, the classifier alone refused "put a bike light in my basket",
+which is why the allow-list comes first.
+
+Small models sometimes echo the JSON schema instead of plain values, e.g.
+``{"quantity": {"type": "integer", "value": 2}}``. :func:`normalise_arguments`
+repairs that before a tool runs. Defensive parsing like this is part of any
+real agent, and the test suite pins it.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass, field
+from typing import Any
+
+import httpx
+
+from ai.prompts import default_registry
+from ai.search import Retriever
+from apps.shop_assistant.catalog import PRODUCTS, Cart, UnknownProductError, resolve_product
+
+MAX_TOOL_ROUNDS = 3
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "add_to_cart",
+            "description": "Add a product to the shopping cart",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "product": {"type": "string", "description": "Product name"},
+                    "quantity": {"type": "integer", "minimum": 1},
+                },
+                "required": ["product", "quantity"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "remove_from_cart",
+            "description": "Remove a product from the shopping cart",
+            "parameters": {"type": "object", "properties": {"product": {"type": "string"}}, "required": ["product"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "view_cart",
+            "description": "Show what is in the shopping cart and its total",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+]
+
+SYSTEM_PROMPT = (
+    "You are the Sauce Demo Store shopping assistant.\n"
+    "Products: {products}.\n"
+    "Use the tools to add, remove or show cart items. Every cart change needs a tool call in THIS turn, "
+    "even if a similar change happened earlier in the conversation.\n"
+    "Politely refuse anything unrelated to shopping at the Sauce Demo Store (poems, code, general knowledge).\n"
+    "For policy questions answer ONLY from the POLICY CONTEXT. If it doesn't contain the answer, reply exactly: "
+    '"I don\'t know based on the provided information."\n'
+    "Be concise: at most three sentences.\n\nPOLICY CONTEXT:\n{context}"
+)
+
+
+OFF_TOPIC_REPLY = "I can only help with shopping at the Sauce Demo Store: products, your cart, orders and store policies."
+_STORE_VOCABULARY = re.compile(
+    r"\b(cart|basket|order|buy|add|remove|checkout|price|cost|ship|shipping|deliver|delivery|return|refund|"
+    r"warranty|pay|payment|paypal|card|support|account|product|backpack|bike|light|t-?shirt|shirt|jacket|fleece|onesie|"
+    r"hi|hello|hey|thanks|thank)\w*\b",
+    re.I,
+)
+
+
+def mentions_store_vocabulary(text: str) -> bool:
+    """True if ``text`` contains any store word; such messages skip the LLM scope check."""
+    return bool(_STORE_VOCABULARY.search(text))
+
+
+NO_TOOL_NUDGE = (
+    "You described a cart change but did not call a tool, so nothing changed. "
+    "Call the correct tool now (add_to_cart, remove_from_cart or view_cart)."
+)
+_ACTION_CLAIM = re.compile(r"\b(added|removed|put|placed|increased|updated|deleted)\b.*\b(cart|basket)\b", re.I | re.S)
+
+
+def claims_cart_action(text: str) -> bool:
+    """True if ``text`` says the cart was changed ("I've added 2 backpacks to your cart")."""
+    return bool(_ACTION_CLAIM.search(text or ""))
+
+
+@dataclass
+class ToolCall:
+    """One executed tool call, as reported to the client (and to DeepEval's ToolCorrectnessMetric)."""
+
+    name: str
+    arguments: dict[str, Any]
+    output: dict[str, Any]
+
+
+@dataclass
+class AgentReply:
+    """What the agent returns for one user message."""
+
+    reply: str
+    tools_called: list[ToolCall] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
+
+
+def normalise_arguments(arguments: Any) -> dict[str, Any]:
+    """Repair common small-model tool-argument mistakes.
+
+    Handles a JSON string instead of an object, and schema-shaped values
+    (``{"type": "integer", "value": 2}`` or ``{"description": "Backpack"}``).
+    """
+    if isinstance(arguments, str):
+        try:
+            arguments = json.loads(arguments)
+        except json.JSONDecodeError:
+            return {}
+    if not isinstance(arguments, dict):
+        return {}
+    fixed = {}
+    for key, value in arguments.items():
+        if isinstance(value, dict):
+            value = value.get("value", value.get("description", value.get("default")))
+        fixed[key] = value
+    return fixed
+
+
+class ShopAgent:
+    """Stateful agent: one conversation history and one cart per session id.
+
+    Args:
+        retriever: Search over the policy knowledge base.
+        ollama_host: Ollama base URL.
+        model: Tool-capable Ollama model.
+        k: Policy passages to retrieve per message.
+    """
+
+    def __init__(self, retriever: Retriever, ollama_host: str, model: str, k: int = 3) -> None:
+        """Create the ShopAgent; arguments are described in the class docstring."""
+        self.retriever = retriever
+        self.ollama_host = ollama_host.rstrip("/")
+        self.model = model
+        self.k = k
+        self.histories: dict[str, list[dict]] = {}
+        self.carts: dict[str, Cart] = {}
+
+    # -- session state ------------------------------------------------------
+    def cart(self, session_id: str) -> Cart:
+        """The cart for ``session_id``, created on first use."""
+        return self.carts.setdefault(session_id, Cart())
+
+    def reset(self, session_id: str) -> None:
+        """Forget a session's history and cart."""
+        self.histories.pop(session_id, None)
+        self.carts.pop(session_id, None)
+
+    # -- tools --------------------------------------------------------------
+    def run_tool(self, session_id: str, name: str, raw_arguments: Any) -> ToolCall:
+        """Execute one tool call against the session's cart; errors become tool output, not crashes."""
+        args = normalise_arguments(raw_arguments)
+        cart = self.cart(session_id)
+        try:
+            if name == "add_to_cart":
+                product = resolve_product(str(args.get("product", "")))
+                quantity = int(args.get("quantity") or 1)
+                cart.add(product, quantity)
+                args = {"product": product, "quantity": quantity}
+                output = {"ok": True, "cart": cart.as_dict()}
+            elif name == "remove_from_cart":
+                product = resolve_product(str(args.get("product", "")))
+                args = {"product": product}
+                output = {"ok": cart.remove(product), "cart": cart.as_dict()}
+            elif name == "view_cart":
+                output = {"ok": True, "cart": cart.as_dict()}
+            else:
+                output = {"ok": False, "error": f"unknown tool {name}"}
+        except (UnknownProductError, ValueError) as exc:
+            output = {"ok": False, "error": str(exc)}
+        return ToolCall(name=name, arguments=args, output=output)
+
+    # -- scope guard ----------------------------------------------------------
+    def is_out_of_scope(self, message: str) -> bool:
+        """Hybrid guard: store vocabulary means in scope; otherwise ask the classifier (fail open)."""
+        if mentions_store_vocabulary(message):
+            return False
+        prompt = default_registry().get("scope_guard").render(message=message)
+        verdict = self._chat(
+            [{"role": "system", "content": prompt.system}, {"role": "user", "content": prompt.user}], tools=False
+        )
+        return "OUT_OF_SCOPE" in (verdict.get("content") or "").upper()
+
+    # -- LLM ----------------------------------------------------------------
+    def _chat(self, messages: list[dict], tools: bool = True) -> dict:
+        """One non-streaming call to Ollama, offering the cart tools unless ``tools`` is False."""
+        payload = {"model": self.model, "stream": False, "options": {"temperature": 0, "seed": 42}, "messages": messages}
+        if tools:
+            payload["tools"] = TOOLS
+        response = httpx.post(f"{self.ollama_host}/api/chat", json=payload, timeout=300)
+        response.raise_for_status()
+        return response.json()["message"]
+
+    def handle(self, session_id: str, message: str) -> AgentReply:
+        """Answer one user message, running tools as the model requests (bounded by MAX_TOOL_ROUNDS)."""
+        if self.is_out_of_scope(message):
+            return AgentReply(reply=OFF_TOPIC_REPLY)
+        results = self.retriever.search(message, k=self.k)
+        system = SYSTEM_PROMPT.format(
+            products=", ".join(f"{p} (${price})" for p, price in PRODUCTS.items()),
+            context="\n".join(f"- {r.document.text}" for r in results),
+        )
+        history = self.histories.setdefault(session_id, [])
+        history.append({"role": "user", "content": message})
+        calls: list[ToolCall] = []
+        nudged = False
+        false_claim = None
+
+        for _ in range(MAX_TOOL_ROUNDS):
+            reply = self._chat([{"role": "system", "content": system}, *history])
+            tool_requests = reply.get("tool_calls") or []
+            if not tool_requests:
+                if not calls and not nudged and claims_cart_action(reply.get("content", "")):
+                    # Guard: the model narrated an action without doing it. Ask once more.
+                    nudged = True
+                    false_claim = reply.get("content", "")
+                    history.append({"role": "assistant", "content": reply.get("content", "")})
+                    history.append({"role": "user", "content": NO_TOOL_NUDGE})
+                    continue
+                break
+            history.append({"role": "assistant", "content": reply.get("content", ""), "tool_calls": tool_requests})
+            for request in tool_requests:
+                fn = request["function"]
+                call = self.run_tool(session_id, fn["name"], fn.get("arguments", {}))
+                calls.append(call)
+                history.append({"role": "tool", "content": json.dumps(call.output)})
+        text = (reply.get("content") or "").strip() or self._summarise(calls)
+        if nudged:
+            # Drop the false claim and the nudge from future turns; keep the real trajectory.
+            history[:] = [
+                m
+                for m in history
+                if m.get("content") != NO_TOOL_NUDGE
+                and not (m["role"] == "assistant" and m.get("content") == false_claim and "tool_calls" not in m)
+            ]
+        history.append({"role": "assistant", "content": text})
+        return AgentReply(reply=text, tools_called=calls, sources=[r.document.id for r in results])
+
+    @staticmethod
+    def _summarise(calls: list[ToolCall]) -> str:
+        """Fallback text when the model returns tool calls but no words."""
+        if not calls:
+            return "Sorry, I couldn't process that."
+        last = calls[-1]
+        if not last.output.get("ok"):
+            return f"Sorry, I couldn't do that: {last.output.get('error', 'unknown error')}."
+        cart = last.output["cart"]
+        lines = ", ".join(f"{i['quantity']} x {i['product']}" for i in cart["items"]) or "empty"
+        return f"Your cart: {lines}. Total ${cart['total']:.2f}."

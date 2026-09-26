@@ -1,0 +1,4 @@
+# Contributor tooling (not needed to run the tests)
+-r requirements.txt
+ruff==0.16.9
+pre-commit>=3.7,<5

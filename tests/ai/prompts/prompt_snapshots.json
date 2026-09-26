@@ -1,0 +1,15 @@
+{
+  "constrained_answer@v1": "7083ca211dd3f70e",
+  "grounded_qa@v1": "9de491cc3a92037f",
+  "grounded_qa@v2": "b3386f33e24f3cc2",
+  "input_moderator@v1": "2e76379be73c9f36",
+  "intent_classifier@v1": "5be8928e83d11546",
+  "intent_classifier@v2": "f3ccd1cce59796ed",
+  "json_extractor@v1": "bc1c9b50d4498e86",
+  "locator_healer@v1": "c9f2acc2c4352180",
+  "open_qa@v1": "d686d1ac59def9ac",
+  "query_rewriter@v1": "1fbac35abefc5ac2",
+  "scope_guard@v1": "2f95c5dd6d1bbc5e",
+  "summarizer@v1": "5c7f334914802f56",
+  "yes_no@v1": "b8bb9171976f8133"
+}
