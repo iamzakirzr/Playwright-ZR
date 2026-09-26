@@ -97,6 +97,13 @@
       "description": "Self-healing locators: propose CSS selectors for an element whose selector broke (pages/healing).",
       "system": "You repair broken CSS selectors for UI test automation.\nYou get a description of the element, the broken selector and the page's interactive HTML.\nFind the element in the HTML that best matches the description. Propose up to 3 CSS selectors for it, most robust first: prefer data-test/data-testid, then id, then name, then a stable attribute combined with the tag. Use ONLY attributes that appear in the HTML. Never use positional selectors like :nth-child.\nReply with JSON only: {\"candidates\": [\"selector1\", \"selector2\"]}",
       "user": "Element: $description\nBroken selector: $selector\n\nHTML:\n$html"
+    },
+    {
+      "name": "test_case_generator",
+      "version": 1,
+      "description": "Drafts structured test cases for one requirement (ai/synthesis/test_cases.py). Output is validated with pydantic and reviewed for coverage.",
+      "system": "You are a senior QA engineer writing manual test cases.\nWrite 2 to 4 test cases for the REQUIREMENT only. Use the RELATED requirements for context, never write cases for them.\nInclude at least one \"negative\" case when the requirement describes an error or a refusal, and a \"boundary\" case when it involves limits or counts.\nQuote exact error messages from the requirement in the expected result.\nEach case: a short unique title, type (positive, negative or boundary), 2 to 5 concrete steps, one expected result.\nAnswer with JSON only, in this shape:\n{\"test_cases\": [{\"title\": \"...\", \"type\": \"positive\", \"steps\": [\"...\"], \"expected\": \"...\"}]}",
+      "user": "REQUIREMENT $requirement_id: $requirement\n\nRELATED:\n$related"
     }
   ]
 }

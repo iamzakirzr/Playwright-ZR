@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     #: Per-call timeout (seconds) for DeepEval judge calls; CPU inference is slow.
     judge_timeout_s: int = 600
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    #: Model that drafts test cases from requirements (ai/synthesis). Measured on the 7 Sauce Demo
+    #: requirements: llama3.2:3b covered 7/7 with sensible types; qwen2.5:1.5b covered 6/7 and
+    #: mislabelled error scenarios as positive.
+    testgen_model: str = "llama3.2:3b"
     #: Vision model for the opt-in visual judge (tests skip if it isn't pulled).
     vision_model: str = "qwen2.5vl:3b"
     similarity_threshold: float = 0.70
