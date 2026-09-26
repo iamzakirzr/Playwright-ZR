@@ -42,11 +42,12 @@ def test_net_cart_state_after_the_conversation(assistant, conversation):
     assert assistant.quantity_of(session, BACKPACK) == 1
 
 
-def test_last_reply_remembers_the_cart(conversation):
-    """The final answer names the product (rule-based, no judge)."""
+def test_last_reply_states_the_remaining_quantity(conversation):
+    """The final answer says one backpack is left (rule-based, no judge)."""
     _, case = conversation
+    one = ("1 x", "1 sauce", "one sauce", "one backpack", "1 backpack")
 
-    assert_test(case, [RetentionProbeMetric(["backpack"])])
+    assert_test(case, [RetentionProbeMetric([one, "backpack"])])
 
 
 def test_conversation_is_complete_and_in_role(conversation, judge, settings):

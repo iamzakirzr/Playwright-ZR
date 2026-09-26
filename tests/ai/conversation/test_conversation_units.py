@@ -56,3 +56,12 @@ def test_retention_probe_can_target_an_earlier_turn(good_conversation):
     metric.measure(good_conversation)
 
     assert metric.is_successful()
+
+
+def test_retention_probe_accepts_alternative_spellings(good_conversation):
+    """A tuple lists acceptable spellings of one fact ("4471" or "four four seven one")."""
+    metric = RetentionProbeMetric([("four four seven one", "4471")])
+
+    metric.measure(good_conversation)
+
+    assert metric.is_successful()

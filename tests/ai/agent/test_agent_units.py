@@ -14,8 +14,8 @@ from apps.shop_assistant.agent import (
     NO_TOOL_NUDGE,
     OFF_TOPIC_REPLY,
     ShopAgent,
-    asks_about_cart,
     claims_cart_action,
+    describe_cart,
     mentions_store_vocabulary,
     normalise_arguments,
 )
@@ -58,8 +58,13 @@ class TestArgumentRepair:
             ('{"product": "Onesie"}', {"product": "Onesie"}),
             ("not json", {}),
             (None, {}),
+            (
+                {"product": {"quantity": 3, "type": "Sauce Labs Backpack"}, "quantity": 1},
+                {"product": "Sauce Labs Backpack", "quantity": 1},
+            ),
+            ({"product": {"type": "string"}}, {"product": None}),
         ],
-        ids=["clean", "schema-value", "schema-description", "json-string", "garbage", "none"],
+        ids=["clean", "schema-value", "schema-description", "json-string", "garbage", "none", "cart-line-copy", "bare-schema"],
     )
     def test_normalise_arguments(self, raw, expected):
         """Each malformed shape seen from qwen2.5:1.5b is mapped to plain values."""
@@ -177,63 +182,63 @@ class TestAgentLoop:
 
         assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
 
-    @pytest.mark.parametrize(
-        ("message", "left"),
-        [("remove one backpack", 2), ("please take out 2 backpacks", 1), ("remove the backpack", 0), ("remove a backpack", 2)],
-    )
-    def test_removal_count_falls_back_to_the_users_words(self, message, left):
-        """Regression: the 1.5B model omits quantity, so "remove one" removed all three."""
-        agent = ScriptedShopAgent([tool_reply("remove_from_cart", {"product": "backpack"}), {"content": "ok"}])
-        agent.cart("s1").add("Sauce Labs Backpack", 3)
+    def test_live_cart_is_in_every_system_prompt(self):
+        """Regression: without it the model invented cart contents ("1 backpack, 1 bike light, 1 t-shirt")."""
+        agent = ScriptedShopAgent([{"content": "You have 2 backpacks."}])
+        agent.cart("s1").add("Sauce Labs Backpack", 2)
 
-        agent.handle("s1", message)
+        agent.handle("s1", "What's in my cart now?")
 
-        assert agent.cart("s1").items.get("Sauce Labs Backpack", 0) == left
+        system = agent.sent[-1][0]["content"]
+        assert "CURRENT CART:\n- 2 x Sauce Labs Backpack\nTotal: $59.98" in system
 
-    def test_count_applies_only_to_the_product_it_names(self):
-        """In "remove one backpack and the jacket", only the backpack has a count."""
+    def test_describe_cart(self):
+        """Empty and filled carts render the way the model sees them."""
+        cart = Cart()
+        assert describe_cart(cart) == "(empty)"
+        cart.add("Sauce Labs Onesie", 2)
+        assert describe_cart(cart) == "- 2 x Sauce Labs Onesie\nTotal: $15.98"
+
+    def test_remove_without_quantity_is_an_error_the_model_can_fix(self):
+        """Regression: a missing quantity used to mean "remove all", so "remove one" emptied the line."""
         agent = ScriptedShopAgent(
             [
-                {
-                    "content": "",
-                    "tool_calls": [
-                        {"function": {"name": "remove_from_cart", "arguments": {"product": "backpack"}}},
-                        {"function": {"name": "remove_from_cart", "arguments": {"product": "fleece jacket"}}},
-                    ],
-                },
-                {"content": "ok"},
+                IN_SCOPE,
+                tool_reply("remove_from_cart", {"product": "backpack"}),
+                tool_reply("remove_from_cart", {"product": "backpack", "quantity": 1}),
+                {"content": "Removed one."},
             ]
         )
         agent.cart("s1").add("Sauce Labs Backpack", 3)
-        agent.cart("s1").add("Sauce Labs Fleece Jacket", 2)
 
-        agent.handle("s1", "remove one backpack and the jacket")
+        result = agent.handle("s1", "take away one")
 
+        assert [c.output["ok"] for c in result.tools_called] == [False, True]
+        assert "quantity is required" in result.tools_called[0].output["error"]
         assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
 
-    def test_cart_question_is_answered_from_the_real_cart(self):
-        """Regression: asked "what's in my cart now?", the model invented three items without a tool."""
-        agent = ScriptedShopAgent([{"content": "You have 1 backpack, 1 bike light and 1 t-shirt ($49.98)."}])
-        agent.cart("s1").add("Sauce Labs Backpack", 1)
+    def test_removal_without_product_uses_the_only_item_in_the_cart(self):
+        """Measured: for "remove the backpack" the model sent only {"quantity": 3}. With one kind of
+        item in the cart there is exactly one possible meaning."""
+        agent = ScriptedShopAgent([tool_reply("remove_from_cart", {"quantity": 3}), {"content": "Done."}])
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
 
-        result = agent.handle("s1", "What's in my cart now?")
+        agent.handle("s1", "remove the backpack")
 
-        assert [c.name for c in result.tools_called] == ["view_cart"]
-        assert result.reply == "Your cart: 1 x Sauce Labs Backpack. Total $29.99."
+        assert agent.cart("s1").items == {}
 
-    @pytest.mark.parametrize(
-        ("message", "is_cart_question"),
-        [
-            ("What's in my cart now?", True),
-            ("show me my basket", True),
-            ("how many items are in my cart", True),
-            ("add 2 backpacks to my cart", False),
-            ("What is your return policy?", False),
-        ],
-    )
-    def test_cart_question_detection(self, message, is_cart_question):
-        """Only questions about cart contents trigger the grounded answer."""
-        assert asks_about_cart(message) is is_cart_question
+    def test_missing_product_error_names_the_fix(self):
+        """With several kinds of item, a call without a product is an error telling the model what to resend."""
+        agent = ScriptedShopAgent([IN_SCOPE, tool_reply("remove_from_cart", {"quantity": 3}), {"content": "sorry"}])
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+        agent.cart("s1").add("Sauce Labs Onesie", 1)
+
+        call = agent.handle("s1", "take them away").tools_called[0]
+
+        assert call.output == {
+            "ok": False,
+            "error": "product is required: call remove_from_cart again with the product name from the catalogue",
+        }
 
     def test_missing_product_adds_nothing(self):
         """Regression: a tool call without a product used to add a Sauce Labs Backpack."""

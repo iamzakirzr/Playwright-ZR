@@ -212,6 +212,15 @@ class TestGoldenGate:
 
         assert gate.review([golden])[0].problems == ["question copied from the context"]
 
+    def test_question_copied_from_one_sentence_of_a_long_context_is_rejected(self, gate):
+        """Regression: F-measure against the whole context hid a copy of one sentence (F ~0.5)."""
+        context = [
+            "Returns are accepted within 45 days of delivery. Items must be unused and in original packaging. Refunds take 5-7 days."
+        ]
+        golden = Golden(input="Items must be unused and in original packaging?", expected_output="Yes.", context=context)
+
+        assert gate.review([golden])[0].problems == ["question copied from the context"]
+
     def test_near_duplicate_of_an_accepted_question_is_rejected(self, gate):
         """Only the first of two paraphrased questions is kept."""
         first = Golden(input="Can I return an item after 45 days?", expected_output="No.", context=self.CONTEXT)

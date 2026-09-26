@@ -94,6 +94,8 @@ class StaticSite:
         self.root = Path(root)
         self.origin = origin.rstrip("/")
         self.requests: list[RecordedRequest] = []
+        #: Exceptions raised by API handlers (each answered with HTTP 500); assert this is empty.
+        self.errors: list[str] = []
         self._api: dict[tuple[str, str], Handler] = {}
 
     # -- configuration -------------------------------------------------------
@@ -128,7 +130,12 @@ class StaticSite:
 
         handler = self._api.get((request.method, parts.path))
         if handler is not None:
-            self._fulfil(route, handler(recorded))
+            try:
+                response = handler(recorded)
+            except Exception as error:  # noqa: BLE001 - fail the request fast instead of hanging the page
+                self.errors.append(f"{request.method} {parts.path}: {error!r}")
+                response = ApiResponse({"error": repr(error)}, status=500)
+            self._fulfil(route, response)
             return
         file = self.root / (parts.path.lstrip("/") or "index.html")
         if file.is_file() and self.root.resolve() in file.resolve().parents:

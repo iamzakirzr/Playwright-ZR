@@ -79,7 +79,7 @@ class GoldenQualityGate:
         embedding_model: Sentence-transformers model for duplicate detection.
         judge: Optional DeepEval model; when given, expected answers must be faithful to the context.
         duplicate_similarity: Questions at least this similar count as duplicates.
-        copy_rouge: Questions whose ROUGE-L against the context reaches this are "copied".
+        copy_rouge: Questions whose ROUGE-L precision against the context reaches this are "copied".
         faithfulness_threshold: Minimum faithfulness of the expected answer.
     """
 
@@ -129,7 +129,9 @@ class GoldenQualityGate:
             problems.append("no source context")
         if not problems:
             context = " ".join(golden.context)
-            if rouge_scores(golden.input, context)["rougeL"] >= self.copy_rouge:
+            # Precision, not F-measure: a question lifted from one sentence of a long context has
+            # low recall against the whole context, so F would hide the copy.
+            if rouge_scores(golden.input, context, measure="precision")["rougeL"] >= self.copy_rouge:
                 problems.append("question copied from the context")
         return problems
 

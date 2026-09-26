@@ -36,12 +36,13 @@ class RetentionProbeMetric(BaseConversationalMetric):
     """Scores the share of ``facts`` that a chosen assistant turn repeats (case-insensitive).
 
     Args:
-        facts: Strings the user gave earlier, e.g. ``["4471"]`` for an order number.
+        facts: What must be repeated, e.g. ``["4471"]``. A tuple lists acceptable spellings of
+            one fact: ``("1 x", "one")`` passes on "1 x Backpack" or "one backpack".
         turn: Index into the assistant turns to check; ``-1`` is the last reply.
         threshold: Share of facts required to pass (default: all of them).
     """
 
-    def __init__(self, facts: list[str], turn: int = -1, threshold: float = 1.0) -> None:
+    def __init__(self, facts: list[str | tuple[str, ...]], turn: int = -1, threshold: float = 1.0) -> None:
         """Create the RetentionProbeMetric; arguments are described in the class docstring."""
         self.facts = facts
         self.turn = turn
@@ -55,7 +56,8 @@ class RetentionProbeMetric(BaseConversationalMetric):
         """Score the chosen assistant turn; sets ``score``, ``reason`` and ``success``."""
         replies = [t.content for t in test_case.turns if t.role == "assistant"]
         text = replies[self.turn].lower() if replies else ""
-        missing = [fact for fact in self.facts if fact.lower() not in text]
+        spellings = [fact if isinstance(fact, tuple) else (fact,) for fact in self.facts]
+        missing = [options for options in spellings if not any(o.lower() in text for o in options)]
         self.score = (len(self.facts) - len(missing)) / len(self.facts) if self.facts else 1.0
         self.reason = f"missing {missing}" if missing else "all facts retained"
         self.success = self.score >= self.threshold

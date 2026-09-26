@@ -46,6 +46,19 @@ class TestCalibration:
         assert scores["rouge2"] <= scores["rouge1"]
 
 
+def test_local_backends_match_hugging_face_evaluate():
+    """The offline scorers give exactly what ``evaluate.load("rouge"/"sacrebleu")`` reports (needs the Hub once)."""
+    from ai.evaluators.reference_metrics import load_hf_metric
+
+    hf_rouge = load_hf_metric("rouge").compute(predictions=[PARAPHRASE], references=[REFERENCE])
+    hf_bleu = load_hf_metric("sacrebleu").compute(predictions=[PARAPHRASE], references=[[REFERENCE]])["score"] / 100
+    local = rouge_scores(PARAPHRASE, REFERENCE)
+
+    for key in ("rouge1", "rouge2", "rougeL"):
+        assert local[key] == pytest.approx(hf_rouge[key])
+    assert bleu_score(PARAPHRASE, REFERENCE) == pytest.approx(hf_bleu)
+
+
 class TestAsDeepEvalMetrics:
     """The wrappers plug into ``assert_test`` like any other metric."""
 

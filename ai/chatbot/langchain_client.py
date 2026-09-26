@@ -25,6 +25,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 
@@ -74,9 +75,9 @@ class LangChainChatbot(ChatbotClient):
 
     # -- chain steps -----------------------------------------------------------
     def _retrieve(self, inputs: dict) -> dict:
-        """Keep caller-supplied context, else fetch ``k`` passages from the retriever."""
+        """Keep caller-supplied context (even ``[]``: "answer without context"); for None, retrieve ``k`` passages."""
         context = inputs.get("context")
-        if not context and self.retriever is not None:
+        if context is None and self.retriever is not None:
             context = [hit.document.text for hit in self.retriever.search(inputs["question"], k=self.k)]
         self.last_context = list(context or [])
         return {**inputs, "context": self.last_context}
@@ -106,7 +107,8 @@ class LangChainChatbot(ChatbotClient):
 
     def complete(self, system: str, user: str, *, json_mode: bool = False) -> ChatResponse:
         """One system + user exchange straight to the model (used by prompt and chain tests)."""
-        llm = self.llm.bind(format="json") if json_mode and hasattr(self.llm, "bind") else self.llm
+        # Only chat models understand format="json"; plain Runnables (test doubles) are used as is.
+        llm = self.llm.bind(format="json") if json_mode and isinstance(self.llm, BaseChatModel) else self.llm
         return self._timed(lambda: llm.invoke([SystemMessage(system), HumanMessage(user)]))
 
     def _timed(self, call) -> ChatResponse:
@@ -114,7 +116,12 @@ class LangChainChatbot(ChatbotClient):
         started = time.perf_counter()
         message = call()
         latency_ms = (time.perf_counter() - started) * 1000
-        text = message.content if isinstance(message, AIMessage) else str(message)
+        if isinstance(message, AIMessage):
+            # Content is a string, or a list of blocks for some providers ([{"type": "text", ...}]).
+            text_attr = getattr(message, "text", None)  # a method in langchain-core 1.x, a property before
+            text = text_attr() if callable(text_attr) else text_attr if isinstance(text_attr, str) else str(message.content)
+        else:
+            text = str(message)
         usage = getattr(message, "usage_metadata", None) or {}
         return ChatResponse(
             text=text.strip(),

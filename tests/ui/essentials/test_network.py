@@ -84,3 +84,17 @@ def test_wait_for_the_api_response(page, site, base_url_playground):
     response = response_info.value
     assert response.ok
     assert [p["name"] for p in response.json()] == ["Backpack", "Bike Light"]
+
+
+def test_crashing_endpoint_answers_500_instead_of_hanging(page, site, base_url_playground):
+    """A broken fake endpoint fails fast (HTTP 500) and is recorded, so the test fails for the right reason."""
+
+    def broken(_request):
+        raise KeyError("boom")
+
+    site.api("GET", "/api/products", broken)
+
+    products = ProductsPage(page, base_url_playground).open()
+
+    expect(products.status).to_have_text("Could not load products")
+    assert site.errors == ["GET /api/products: KeyError('boom')"]

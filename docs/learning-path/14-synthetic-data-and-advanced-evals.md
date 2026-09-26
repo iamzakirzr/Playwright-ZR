@@ -35,8 +35,14 @@ catches: **generated cases are drafts for a human reviewer**.
   on both**, so the rule-based probe replaces it.
 - [`tests/ai/agent/test_agent_conversation.py`](../../tests/ai/agent/test_agent_conversation.py)
   found three real agent defects on its first run: "remove one backpack" removed all of them,
-  the 1.5B model ignored the new `quantity` argument, and it invented cart contents instead of
-  calling `view_cart`. Each has a guard and a regression test now.
+  the 1.5B model ignored an optional `quantity` argument, and it invented cart contents instead of
+  calling `view_cart`.
+- **The lesson in the fix**: the first attempt parsed the user's words with regexes ("remove
+  *one*", "what's in my *cart*"). Code review showed each new phrasing broke it ("is shipping free
+  if my cart total is over $50?" got a cart summary). The fix that held changed the *system*:
+  the live cart is in the prompt every turn, `quantity` is required, and a missing product is
+  inferred only when the cart holds one kind of item. Prefer fixing what the model sees over
+  post-processing what the user said.
 
 ## Reference metrics: [`ai/evaluators/reference_metrics.py`](../../ai/evaluators/reference_metrics.py)
 BLEU and ROUGE via Hugging Face `evaluate`. The calibration test is the lesson: a correct

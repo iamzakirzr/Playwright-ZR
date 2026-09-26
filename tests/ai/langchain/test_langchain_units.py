@@ -63,3 +63,25 @@ def test_complete_sends_system_and_user_messages(app, recorded):
     app.complete("be brief", "hello")
 
     assert [m.content for m in recorded[0]] == ["be brief", "hello"]
+
+
+def test_explicit_empty_context_means_no_context(app, recorded):
+    """Regression: ``context=[]`` used to trigger retrieval; it means "answer without context", like the other clients."""
+    app.ask("Tell me a fact", context=[])
+
+    assert app.last_context == []
+    assert "Tell me a fact" in recorded[0][1].content
+
+
+def test_list_form_message_content_is_joined():
+    """Some providers return content blocks; the reply is still plain text."""
+    app = LangChainChatbot(RunnableLambda(lambda _m: AIMessage(content=[{"type": "text", "text": "block answer"}])))
+
+    assert app.complete("s", "u").text == "block answer"
+
+
+def test_json_mode_with_a_plain_runnable_does_not_crash(app, recorded):
+    """``format="json"`` is only bound onto real chat models; test doubles are called as is."""
+    app.complete("s", "u", json_mode=True)
+
+    assert len(recorded) == 1

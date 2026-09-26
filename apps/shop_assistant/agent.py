@@ -60,11 +60,18 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "remove_from_cart",
-            "description": "Remove a product from the shopping cart. Pass quantity to remove only some; omit it to remove all.",
+            "description": "Remove some or all of a product from the shopping cart",
             "parameters": {
                 "type": "object",
-                "properties": {"product": {"type": "string"}, "quantity": {"type": "integer", "minimum": 1}},
-                "required": ["product"],
+                "properties": {
+                    "product": {"type": "string"},
+                    "quantity": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "How many to remove; to remove all, use the quantity shown in CURRENT CART",
+                    },
+                },
+                "required": ["product", "quantity"],
             },
         },
     },
@@ -83,12 +90,12 @@ SYSTEM_PROMPT = (
     "Products: {products}.\n"
     "Use the tools to add, remove or show cart items. Every cart change needs a tool call in THIS turn, "
     "even if a similar change happened earlier in the conversation.\n"
-    'When the user removes only some of a product ("remove one backpack"), pass quantity to remove_from_cart; '
-    "omit quantity only when they want all of it removed.\n"
+    "CURRENT CART below is the live cart: answer questions about the cart from it, and use its quantities "
+    "when the user asks to remove everything of a product.\n"
     "Politely refuse anything unrelated to shopping at the Sauce Demo Store (poems, code, general knowledge).\n"
     "For policy questions answer ONLY from the POLICY CONTEXT. If it doesn't contain the answer, reply exactly: "
     '"I don\'t know based on the provided information."\n'
-    "Be concise: at most three sentences.\n\nPOLICY CONTEXT:\n{context}"
+    "Be concise: at most three sentences.\n\nCURRENT CART:\n{cart}\n\nPOLICY CONTEXT:\n{context}"
 )
 
 
@@ -120,42 +127,16 @@ _ACTION_CLAIM = re.compile(r"\b(added|removed|put|placed|increased|updated|delet
 _NEGATION = re.compile(r"\b(not|no|nothing|never|yet|n't|cannot)\b|n't\b", re.I)
 
 
-_NUMBER_WORDS = {"a": 1, "an": 1, "one": 1, "single": 1, "two": 2, "three": 3, "four": 4, "five": 5}
-_REMOVE_COUNT = re.compile(
-    r"\b(?:remove|take out|delete|drop)\s+(\d+|a|an|one|single|two|three|four|five)\s+([a-z][\w\s-]*?)(?=\s+and\b|[,.!?]|$)",
-    re.I,
-)
+def describe_cart(cart: Cart) -> str:
+    """One line per item plus the total, as the model sees it in CURRENT CART.
 
-
-def requested_removal_quantity(message: str, product: str) -> int | None:
-    """The count the user attached to ``product`` ("remove one backpack"), or None.
-
-    Small models often omit the optional ``quantity`` argument even when told to pass it, which
-    turned "remove one backpack" into "remove every backpack". The count must sit next to *this*
-    product: in "remove one backpack and the jacket" the jacket gets no count, so it is removed
-    entirely.
+    Giving the model the live cart every turn means it never has to remember or guess it:
+    before this, asked "what's in my cart now?", it invented three items and a total.
     """
-    for match in _REMOVE_COUNT.finditer(message or ""):
-        word, phrase = match.group(1).lower(), match.group(2)
-        try:
-            named = resolve_product(phrase)
-        except UnknownProductError:
-            continue
-        if named == product:
-            return int(word) if word.isdigit() else _NUMBER_WORDS[word]
-    return None
-
-
-_CART_QUESTION = re.compile(
-    r"\b(what'?s|what is|show|view|see|list|check)\b.*\b(my )?(cart|basket)\b|\b(cart|basket)\b.*\b(now|contain|total)\b|"
-    r"\bhow many\b.*\bin (my|the) (cart|basket)\b",
-    re.I,
-)
-
-
-def asks_about_cart(message: str) -> bool:
-    """True for questions about the cart's contents ("what's in my cart now?", "show my basket")."""
-    return bool(_CART_QUESTION.search(message or ""))
+    if not cart.items:
+        return "(empty)"
+    lines = [f"- {quantity} x {product}" for product, quantity in sorted(cart.items.items())]
+    return "\n".join([*lines, f"Total: ${cart.total:.2f}"])
 
 
 def claims_cart_action(text: str) -> bool:
@@ -191,8 +172,10 @@ class AgentReply:
 def normalise_arguments(arguments: Any) -> dict[str, Any]:
     """Repair common small-model tool-argument mistakes.
 
-    Handles a JSON string instead of an object, and schema-shaped values
-    (``{"type": "integer", "value": 2}`` or ``{"description": "Backpack"}``).
+    Handles a JSON string instead of an object, and object-shaped values seen from
+    qwen2.5:1.5b: schema echoes (``{"type": "integer", "value": 2}``,
+    ``{"description": "Backpack"}``) and cart-line copies (``{"quantity": 3, "type":
+    "Sauce Labs Backpack"}``). The first plain value wins, skipping JSON-schema type names.
     """
     if isinstance(arguments, str):
         try:
@@ -201,12 +184,22 @@ def normalise_arguments(arguments: Any) -> dict[str, Any]:
             return {}
     if not isinstance(arguments, dict):
         return {}
-    fixed = {}
-    for key, value in arguments.items():
-        if isinstance(value, dict):
-            value = value.get("value", value.get("description", value.get("default")))
-        fixed[key] = value
-    return fixed
+    return {key: _plain_value(value) for key, value in arguments.items()}
+
+
+_SCHEMA_TYPES = {"string", "integer", "number", "boolean", "object", "array", "null"}
+_VALUE_KEYS = ("value", "description", "default", "name", "product", "type")
+
+
+def _plain_value(value: Any) -> Any:
+    """The usable value inside an object-shaped argument, or the value itself."""
+    if not isinstance(value, dict):
+        return value
+    for key in _VALUE_KEYS:
+        candidate = value.get(key)
+        if candidate is not None and not (isinstance(candidate, str) and candidate.lower() in _SCHEMA_TYPES):
+            return candidate
+    return None
 
 
 class ShopAgent:
@@ -239,14 +232,16 @@ class ShopAgent:
         self.carts.pop(session_id, None)
 
     # -- tools --------------------------------------------------------------
-    def run_tool(self, session_id: str, name: str, raw_arguments: Any, user_message: str = "") -> ToolCall:
-        """Execute one tool call against the session's cart; errors become tool output, not crashes.
-
-        ``user_message`` lets a removal without ``quantity`` fall back to the count the user stated.
-        """
+    def run_tool(self, session_id: str, name: str, raw_arguments: Any) -> ToolCall:
+        """Execute one tool call against the session's cart; errors become tool output, not crashes."""
         args = normalise_arguments(raw_arguments)
         cart = self.cart(session_id)
         try:
+            if name == "remove_from_cart" and not args.get("product") and len(cart.items) == 1:
+                # Unambiguous from state, not from parsing words: the cart holds one kind of item.
+                args["product"] = next(iter(cart.items))
+            if name in {"add_to_cart", "remove_from_cart"} and not args.get("product"):
+                raise ValueError(f"product is required: call {name} again with the product name from the catalogue")
             if name == "add_to_cart":
                 product = resolve_product(str(args.get("product", "")))
                 raw_quantity = args.get("quantity")
@@ -256,11 +251,12 @@ class ShopAgent:
                 output = {"ok": True, "cart": cart.as_dict()}
             elif name == "remove_from_cart":
                 product = resolve_product(str(args.get("product", "")))
-                raw_quantity = args.get("quantity")
-                # No quantity from the model: fall back to the count the user attached to this product.
-                missing = raw_quantity in (None, "")
-                quantity = requested_removal_quantity(user_message, product) if missing else int(raw_quantity)
-                args = {"product": product} | ({"quantity": quantity} if quantity is not None else {})
+                if args.get("quantity") in (None, ""):
+                    # Required by the schema; an explicit error lets the model correct itself next round
+                    # instead of the agent guessing "all" or "one".
+                    raise ValueError("quantity is required: how many to remove (see CURRENT CART)")
+                quantity = int(args["quantity"])
+                args = {"product": product, "quantity": quantity}
                 output = {"ok": cart.remove(product, quantity), "cart": cart.as_dict()}
             elif name == "view_cart":
                 output = {"ok": True, "cart": cart.as_dict()}
@@ -314,6 +310,7 @@ class ShopAgent:
         results = self.retriever.search(message, k=self.k)
         system = SYSTEM_PROMPT.format(
             products=", ".join(f"{p} (${price})" for p, price in PRODUCTS.items()),
+            cart=describe_cart(self.cart(session_id)),
             context="\n".join(f"- {r.document.text}" for r in results),
         )
         history = self.histories.setdefault(session_id, [])
@@ -337,16 +334,10 @@ class ShopAgent:
             history.append({"role": "assistant", "content": reply.get("content", ""), "tool_calls": tool_requests})
             for request in tool_requests:
                 fn = request["function"]
-                call = self.run_tool(session_id, fn["name"], fn.get("arguments", {}), user_message=message)
+                call = self.run_tool(session_id, fn["name"], fn.get("arguments", {}))
                 calls.append(call)
                 history.append({"role": "tool", "content": json.dumps(call.output)})
-        if not calls and asks_about_cart(message):
-            # Guard: never let the model describe the cart from memory (measured: it invented
-            # three items and a total). Answer from the real cart instead.
-            calls.append(self.run_tool(session_id, "view_cart", {}))
-            text = self._summarise(calls)
-        else:
-            text = (reply.get("content") or "").strip() or self._summarise(calls)
+        text = (reply.get("content") or "").strip() or self._summarise(calls)
         if nudged:
             # Drop the false claim and the nudge from future turns; keep the real trajectory.
             history[:] = [

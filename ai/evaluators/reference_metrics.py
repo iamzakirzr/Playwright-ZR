@@ -10,7 +10,9 @@ Use them when the wording itself is the requirement (templated messages, extract
 summaries, regression against a previous model's output). For free-form LLM answers, prefer
 semantic similarity and the judged metrics.
 
-Metric scripts are downloaded from the Hugging Face Hub on first use and then cached.
+Scores are computed with the same backends Hugging Face ``evaluate`` wraps (``rouge_score``,
+``sacrebleu``), so they work offline; ``load_hf_metric`` gives the ``evaluate`` API itself, and a
+test checks both agree.
 """
 
 from __future__ import annotations
@@ -25,21 +27,40 @@ from ai.evaluators.base import DeterministicMetric
 
 @cache
 def load_hf_metric(name: str) -> Any:
-    """Load (once per process) a metric from Hugging Face ``evaluate``, e.g. ``"rouge"``."""
+    """Load (once per process) a metric from Hugging Face ``evaluate``, e.g. ``"rouge"``.
+
+    Needs the Hub on first use. The functions below call the same backends (``rouge_score``,
+    ``sacrebleu``) directly so scoring works offline; a test proves the numbers are identical.
+    """
     import evaluate
 
     return evaluate.load(name)
 
 
-def rouge_scores(prediction: str, reference: str) -> dict[str, float]:
-    """ROUGE-1, ROUGE-2 and ROUGE-L F-measures (0 to 1) for one prediction."""
-    result = load_hf_metric("rouge").compute(predictions=[prediction], references=[reference])
-    return {key: float(result[key]) for key in ("rouge1", "rouge2", "rougeL")}
+@cache
+def _rouge_scorer():
+    """The ``rouge_score`` scorer that Hugging Face's ``rouge`` metric wraps (same defaults)."""
+    from rouge_score import rouge_scorer
+
+    return rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=False)
+
+
+def rouge_scores(prediction: str, reference: str, measure: str = "fmeasure") -> dict[str, float]:
+    """ROUGE-1, ROUGE-2 and ROUGE-L (0 to 1) for one prediction.
+
+    Args:
+        measure: ``"fmeasure"`` (what HF ``evaluate`` reports), ``"precision"`` (share of the
+            prediction found in the reference) or ``"recall"``.
+    """
+    scores = _rouge_scorer().score(reference, prediction)
+    return {key: float(getattr(scores[key], measure)) for key in ("rouge1", "rouge2", "rougeL")}
 
 
 def bleu_score(prediction: str, reference: str) -> float:
-    """SacreBLEU score scaled to 0 to 1 (SacreBLEU reports 0 to 100)."""
-    return float(load_hf_metric("sacrebleu").compute(predictions=[prediction], references=[[reference]])["score"]) / 100
+    """SacreBLEU score scaled to 0 to 1 (SacreBLEU reports 0 to 100); same backend as HF ``sacrebleu``."""
+    import sacrebleu
+
+    return float(sacrebleu.sentence_bleu(prediction, [reference]).score) / 100
 
 
 class _ReferenceMetric(DeterministicMetric):
