@@ -55,9 +55,20 @@ class ChatHost:
         self._backend(route, request)
 
     # -- backend modes ------------------------------------------------------
+    #: Browser-only headers stripped before forwarding. Ollama answers 403 to any
+    #: request whose Origin isn't on its allow-list, and a real reverse proxy
+    #: would drop these too.
+    BROWSER_ONLY_HEADERS = frozenset({"origin", "referer", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest"})
+
+    @classmethod
+    def forward_headers(cls, headers: dict[str, str]) -> dict[str, str]:
+        """The subset of browser request headers that is safe to forward to the model server."""
+        return {k: v for k, v in headers.items() if k.lower() not in cls.BROWSER_ONLY_HEADERS}
+
     def _proxy(self, route: Route, request: Request) -> None:
-        """Forward to the real Ollama ``/api/chat`` and relay its response to the page."""
-        response = route.fetch(url=f"{self.ollama_host}/api/chat", timeout=180_000)
+        """Forward to the real Ollama ``/api/chat`` (minus browser-only headers) and relay the response."""
+        headers = self.forward_headers(request.headers)
+        response = route.fetch(url=f"{self.ollama_host}/api/chat", headers=headers, timeout=180_000)
         route.fulfill(response=response)
 
     def use_proxy(self) -> "ChatHost":

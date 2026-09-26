@@ -4,7 +4,12 @@ The LLM is replaced with canned responses, so these tests check the *UI*
 contract deterministically: rendering, request payload, loading state, error
 handling, and safe rendering of untrusted model output.
 """
+import time
+
+import pytest
 from playwright.sync_api import expect
+
+from ai.chat_ui import ChatHost
 
 
 def test_user_message_and_bot_reply_render_in_order(chat_host, chat_page):
@@ -83,3 +88,24 @@ def test_blank_message_is_not_sent(chat_host, chat_page):
 
     expect(chat_page.user_bubbles).to_have_count(0)
     assert chat_host.requests == []
+
+
+def test_send_and_wait_fails_fast_on_backend_error(chat_host, chat_page):
+    """The page object surfaces the error banner immediately instead of waiting out the timeout."""
+    chat_host.use_stub(status=403)
+    started = time.perf_counter()
+
+    with pytest.raises(AssertionError, match="error instead of a reply"):
+        chat_page.send_and_wait("hello", timeout_ms=30_000)
+    assert time.perf_counter() - started < 10
+
+
+def test_proxy_strips_browser_only_headers():
+    """Proxy mode must not forward Origin: Ollama rejects unknown origins with 403.
+
+    Tested as a pure function because ``route.fetch`` goes through Playwright's
+    HTTP client, which page and context routes can't intercept.
+    """
+    browser_headers = {"Origin": "http://chatbot.local", "Referer": "http://chatbot.local/", "Content-Type": "application/json"}
+
+    assert ChatHost.forward_headers(browser_headers) == {"Content-Type": "application/json"}

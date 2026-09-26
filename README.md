@@ -105,7 +105,7 @@ The chatbot is `qwen2.5:1.5b`, grounded on a **fictional** store policy, so a co
 |---|---|---|
 | `test_semantic_similarity.py` | Embedding cosine (custom DeepEval metric) | Meaning drifts from the reference |
 | `test_faithfulness.py` | DeepEval `FaithfulnessMetric` | Claims not supported by the context |
-| `test_production_metrics.py` | Required-fact coverage (gating), helpful-fact coverage and G-Eval completeness (dataset baselines), contextual precision/recall/relevancy; answer relevancy, correctness and hallucination (strong judge) | Wrong, incomplete, off-topic or contradicting answers; poor retrieval |
+| `test_production_metrics.py` | Required-fact coverage (gating), helpful-fact coverage and G-Eval completeness (dataset baselines); answer relevancy, correctness, hallucination, contextual precision/recall/relevancy (strong judge) | Wrong, incomplete, off-topic or contradicting answers; poor retrieval |
 | `test_grounding_guardrails.py` | Refusal detector, counterfactual context | Inventing answers; pre-training beating context |
 | `test_ragas_crosscheck.py` | Ragas `Faithfulness` (opt-in) | Second, independent implementation |
 
@@ -115,7 +115,8 @@ The chatbot is `qwen2.5:1.5b`, grounded on a **fictional** store policy, so a co
 |---|---|---|
 | Faithfulness | faithful 1.0, contradicting 0.0 ✅ | default |
 | G-Eval completeness | complete 0.8–0.9, incomplete 0.4–0.6 ✅ (threshold 0.7) | default |
-| Contextual precision / recall / relevancy | ✅ on live retrieval | default |
+| Contextual precision / recall / relevancy | ❌ recall 0.33 on a *perfect* retrieval; passed locally, failed in CI on identical input | strong judge (7B); retrieval is gated by IR metrics |
+| Prompt alignment | ❌ claimed lists and markdown in a one-sentence answer | strong judge (7B); word limit is gated deterministically |
 | Answer relevancy | ❌ scored a perfectly on-topic answer 0.25 | strong judge (7B) |
 | G-Eval correctness | ❌ flat 0.6 for right and wrong answers | strong judge (7B) |
 | Hallucination | ❌ **inverted**: correct answer 1.0, wrong answer 0.0 | strong judge (7B) |
@@ -133,7 +134,7 @@ The chatbot is `qwen2.5:1.5b`, grounded on a **fictional** store policy, so a co
 
 ### 3.3 Prompt testing: `tests/ai/prompts/`
 - **Offline**: rendering, missing or unexpected variables, template-injection safety, version pinning, security-rule lint, and **prompt-drift snapshots** (a wording change fails until it is reviewed: `UPDATE_PROMPT_SNAPSHOTS=1 pytest tests/ai/prompts/test_prompt_registry.py`).
-- **Live**: classifier accuracy, JSON-schema adherence (`JsonSchemaMetric` + DeepEval `JsonCorrectnessMetric`), word limits, Yes/No closed form, DeepEval `PromptAlignmentMetric`, **A/B regression** (new prompt version must not cover fewer facts than v1), paraphrase robustness, summariser fact retention.
+- **Live**: classifier accuracy (few-shot `intent_classifier` v2 routes 14/14 vs v1's 10/14), JSON-schema adherence (`JsonSchemaMetric` + DeepEval `JsonCorrectnessMetric`), word limits, Yes/No closed form, DeepEval `PromptAlignmentMetric` (strong judge), **A/B regression** (new prompt version must not cover fewer facts than v1), paraphrase robustness, summariser fact retention.
 
 ### 3.4 Prompt chaining: `tests/ai/chains/`
 Chain: `intent → handoff (out_of_scope stops here) → rewrite → retrieve → answer`.

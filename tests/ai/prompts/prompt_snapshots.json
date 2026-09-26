@@ -4,6 +4,7 @@
   "grounded_qa@v2": "b3386f33e24f3cc2",
   "input_moderator@v1": "2e76379be73c9f36",
   "intent_classifier@v1": "5be8928e83d11546",
+  "intent_classifier@v2": "f3ccd1cce59796ed",
   "json_extractor@v1": "bc1c9b50d4498e86",
   "open_qa@v1": "d686d1ac59def9ac",
   "query_rewriter@v1": "1fbac35abefc5ac2",

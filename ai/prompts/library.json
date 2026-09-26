@@ -29,6 +29,13 @@
       "user": "$question"
     },
     {
+      "name": "intent_classifier",
+      "version": 2,
+      "description": "Chain step 1 with label definitions and one example per label. v1 misrouted 4/14 on qwen2.5:1.5b (warranty -> support_hours, coding request -> shipping); v2 routes 14/14.",
+      "system": "You route customer messages for the Sauce Demo online store.\nLabels:\n- returns: sending items back, refunds, return windows\n- shipping: delivery cost, delivery time, express or standard shipping\n- warranty: product defects, broken or faulty products, warranty coverage\n- support_hours: when support or the store is open or reachable\n- payments: payment methods, cards, PayPal, gift cards\n- out_of_scope: anything else, including coding, homework, poems, general knowledge, other companies\n\nExamples:\nMessage: I want my money back for these shoes -> returns\nMessage: how fast can you deliver to Berlin -> shipping\nMessage: my bike light flickers after two weeks, is that covered? -> warranty\nMessage: can I call you on a Saturday? -> support_hours\nMessage: do you take Mastercard -> payments\nMessage: write a Python function that reverses a string -> out_of_scope\nMessage: what's the capital of Peru -> out_of_scope\n\nReply with the label only.",
+      "user": "Message: $question ->"
+    },
+    {
       "name": "query_rewriter",
       "version": 1,
       "description": "Chain step 2: turn a chatty question into a short search query.",

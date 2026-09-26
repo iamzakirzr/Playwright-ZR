@@ -41,15 +41,21 @@ class ChatPage(BasePage):
         self.input.press("Enter")
 
     def send_and_wait(self, text: str, timeout_ms: float = 180_000) -> str:
-        """Send ``text`` and wait for one new bot bubble; return its text.
+        """Send ``text`` and wait for a new bot bubble *or* the error banner; return the reply text.
+
+        Waiting on either outcome with ``Locator.or_`` makes a backend failure
+        fail fast with the banner text, instead of hanging until the timeout.
 
         Raises:
-            AssertionError: If no reply appears within ``timeout_ms`` (for example, the error banner shows instead).
+            AssertionError: If the error banner appears, or nothing appears within ``timeout_ms``.
         """
         before = self.bot_bubbles.count()
         self.send(text)
-        expect(self.bot_bubbles).to_have_count(before + 1, timeout=timeout_ms)
-        return self.bot_bubbles.last.inner_text()
+        new_reply = self.bot_bubbles.nth(before)
+        expect(new_reply.or_(self.error.filter(visible=True))).to_be_visible(timeout=timeout_ms)
+        if self.error.is_visible():
+            raise AssertionError(f"Chat widget showed an error instead of a reply: {self.error.inner_text()!r}")
+        return new_reply.inner_text()
 
     def transcript(self) -> list[tuple[str, str]]:
         """Every bubble as ``(role, text)``, in display order."""

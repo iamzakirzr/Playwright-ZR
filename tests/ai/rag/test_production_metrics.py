@@ -4,12 +4,16 @@ Three tiers, decided by **judge calibration** (a judged metric is only trusted
 with a judge that passes calibration for it):
 
 1. Deterministic, per case (gating): the facts the question strictly needs.
-2. Default 3B judge: G-Eval completeness and contextual precision / recall /
-   relevancy. Each is calibrated below.
-3. Strong 7B judge (opt-in): answer relevancy, correctness and hallucination.
-   With the 3B judge these failed calibration: an on-topic answer scored 0.25
-   on relevancy, correctness gave a flat 0.6 to right and wrong answers, and
-   hallucination was inverted (correct 1.0, wrong 0.0).
+2. Default 3B judge: G-Eval completeness (calibrated below). Faithfulness
+   lives in ``test_faithfulness.py``.
+3. Strong 7B judge (opt-in): answer relevancy, correctness, hallucination and
+   contextual precision / recall / relevancy. With the 3B judge these failed
+   calibration: an on-topic answer scored 0.25 on relevancy; correctness gave a
+   flat 0.6 to right and wrong answers; hallucination was inverted (correct
+   1.0, wrong 0.0); and contextual recall scored 0.33 on a *perfect* retrieval
+   (all three shipping passages in the top 3), passing locally and failing in
+   CI on identical inputs. Retrieval quality is gated deterministically by the
+   IR metrics in ``tests/ai/search``.
 
 Helpfulness (mentioning *every* useful fact, not just the essential one) is
 tracked at the **dataset level** against a recorded baseline. The 1.5B model
@@ -100,17 +104,6 @@ def test_judged_completeness_within_baseline(ask, metrics, settings):
     assert mean >= settings.min_mean_completeness, f"mean completeness {mean:.2f}: {rows}"
 
 
-@pytest.mark.parametrize("case", GOLDEN[:2], ids=IDS[:2])
-def test_retrieval_context_quality_end_to_end(rag_pipeline, metrics, case):
-    """Contextual precision, recall and relevancy on passages the live search really retrieved."""
-    result = rag_pipeline.answer(case["question"])
-
-    assert_test(
-        _case(case, result.text, result.contexts),
-        [metrics.contextual_precision(), metrics.contextual_recall(), metrics.contextual_relevancy(threshold=0.3)],
-    )
-
-
 # --------------------------------------------------------------------------- #
 # Tier 3: strong judge (opt-in: needs STRONG_JUDGE_MODEL, e.g. qwen2.5:7b)
 # --------------------------------------------------------------------------- #
@@ -145,4 +138,15 @@ def test_answer_relevancy_correctness_hallucination(ask, strong_metrics, case):
     assert_test(
         _case(case, answer),
         [strong_metrics.answer_relevancy(), strong_metrics.correctness(), strong_metrics.hallucination()],
+    )
+
+
+@pytest.mark.parametrize("case", GOLDEN[:2], ids=IDS[:2])
+def test_retrieval_context_quality_end_to_end(rag_pipeline, strong_metrics, case):
+    """Contextual precision, recall and relevancy on passages the live search really retrieved."""
+    result = rag_pipeline.answer(case["question"])
+
+    assert_test(
+        _case(case, result.text, result.contexts),
+        [strong_metrics.contextual_precision(), strong_metrics.contextual_recall(), strong_metrics.contextual_relevancy(threshold=0.3)],
     )

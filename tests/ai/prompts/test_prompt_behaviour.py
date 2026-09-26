@@ -110,14 +110,19 @@ def test_yes_no_prompt_is_closed_form_and_correct(chatbot, question, expected):
     assert word == expected
 
 
-def test_prompt_alignment_judge(chatbot, metrics):
-    """LLM-judged instruction following on the constrained-answer prompt."""
+def test_prompt_alignment_judge(chatbot, strong_metrics):
+    """LLM-judged instruction following on the constrained-answer prompt (strong judge).
+
+    The 3B judge failed here in CI, claiming lists and markdown in a one-line
+    answer, so this uses the opt-in strong judge. The deterministic word-limit
+    test above covers the hard constraint in every run.
+    """
     case = golden_case("support-hours")
     reply = chatbot.run_prompt(
         REGISTRY.get("constrained_answer"), max_words=20, context="\n".join(case["context"]), question=case["question"]
     ).text
 
-    metric = metrics.prompt_alignment(["Reply in a single sentence.", "Do not use lists or markdown."])
+    metric = strong_metrics.prompt_alignment(["Reply in a single sentence.", "Do not use lists or markdown."])
     assert_test(LLMTestCase(input=case["question"], actual_output=reply), [metric])
 
 
