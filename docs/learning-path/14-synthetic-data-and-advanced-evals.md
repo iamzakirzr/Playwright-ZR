@@ -1,0 +1,70 @@
+# 14 · Synthetic data and advanced AI evals
+
+## Why
+Hand-written goldens and test cases don't scale, so teams generate them with an LLM. But a
+generator LLM hallucinates too. This chapter generates data **and** gates it, then adds the
+evaluation types the earlier chapters didn't: multi-turn conversations, traditional
+reference metrics, and a LangChain app.
+
+## Synthetic goldens: [`ai/synthesis/goldens.py`](../../ai/synthesis/goldens.py)
+DeepEval's `Synthesizer` writes question/answer pairs from your documents with a local model.
+Measured here: of the first two goldens, one had an expected answer claiming items are
+"eligible for a refund or exchange", which the source never says. A faithful bot would *fail*
+against it. `GoldenQualityGate` rejects:
+- incomplete goldens (no question, answer or context),
+- questions copied from the context (they test nothing),
+- near-duplicates (embedding similarity),
+- expected answers not grounded in the context (calibrated faithfulness judge).
+
+## AI-generated test cases: [`ai/synthesis/test_cases.py`](../../ai/synthesis/test_cases.py)
+Requirements in [`requirements.json`](../../ai/synthesis/requirements.json) go to the model one at
+a time, with related requirements retrieved as context (RAG), in JSON mode. Every case is
+validated with pydantic, and `review_suite` reports:
+uncovered requirements, missing negative cases, duplicates, and quoted error messages that no
+expected result checks.
+Measured: llama3.2:3b covered 7/7 requirements; qwen2.5:1.5b covered 6/7 and labelled error
+scenarios as "positive". It also invented a "maximum login attempts" rule, which no automated check
+catches: **generated cases are drafts for a human reviewer**.
+
+## Multi-turn conversations
+- [`ai/evaluators/conversation.py`](../../ai/evaluators/conversation.py): `run_conversation` turns
+  any chat function into DeepEval's `ConversationalTestCase`; `RetentionProbeMetric` checks
+  memory without a judge.
+- Calibration ([`tests/ai/conversation`](../../tests/ai/conversation)): completeness and role
+  adherence work on the 3B judge; turn relevancy needs the 7B judge; **knowledge retention failed
+  on both**, so the rule-based probe replaces it.
+- [`tests/ai/agent/test_agent_conversation.py`](../../tests/ai/agent/test_agent_conversation.py)
+  found three real agent defects on its first run: "remove one backpack" removed all of them,
+  the 1.5B model ignored the new `quantity` argument, and it invented cart contents instead of
+  calling `view_cart`. Each has a guard and a regression test now.
+
+## Reference metrics: [`ai/evaluators/reference_metrics.py`](../../ai/evaluators/reference_metrics.py)
+BLEU and ROUGE via Hugging Face `evaluate`. The calibration test is the lesson: a correct
+paraphrase scores ROUGE-L 0.32 and BLEU 0.08. Use them for wording-sensitive output
+(templates, extractive summaries), not for free-form answers. On the golden set the live bot
+averages ROUGE-L 0.535 against similarity 0.850.
+
+## A LangChain app under test: [`ai/chatbot/langchain_client.py`](../../ai/chatbot/langchain_client.py)
+An LCEL chain (retrieve, then messages, then `ChatOllama`) behind the `ChatbotClient` interface, so
+every existing metric runs against it. Unit tests swap the model for a recording
+`RunnableLambda`; live tests check golden meaning, faithfulness to `last_context`, and the
+canary.
+
+## Run
+```bash
+pytest tests/ai/synthesis tests/ai/conversation tests/ai/langchain -m "not live"   # offline
+pytest tests/ai/synthesis tests/ai/conversation tests/ai/langchain                 # with Ollama
+```
+
+## Test your knowledge
+1. Why does the golden gate check the *expected answer's* faithfulness, not the question's?
+2. When is ROUGE the right metric?
+3. Why keep `KnowledgeRetentionMetric` in the factory if it failed calibration?
+
+<details><summary>Answers</summary>
+
+1. The expected answer is the oracle. If it is wrong, correct bots fail and wrong bots pass.
+2. When the exact wording is the requirement: templated messages, extractive summaries, or
+   regression against a known-good output.
+3. For stronger judges later, and as a reported (not gating) signal; the docstring says so.
+</details>

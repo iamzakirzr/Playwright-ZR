@@ -31,6 +31,19 @@ pytest -m "agent and live"          # needs Ollama
 pytest -m mcp
 ```
 
+## Using MCP servers from an AI client
+[`mcp.example.json`](../../mcp.example.json) registers three servers with Claude Desktop, Cursor or
+Claude Code:
+- **ExecuteAutomation's Playwright MCP server** (`@executeautomation/playwright-mcp-server`) and
+  **Microsoft's** (`@playwright/mcp`): the assistant drives a real browser from plain-English
+  instructions ("open saucedemo, log in as standard_user, add the backpack"), and can draft
+  Playwright code from what it did. Treat that code like `codegen` output: move locators into
+  page objects before it joins the suite.
+- **This repo's store server** (`python -m apps.store_mcp`): the server these tests verify.
+
+A good exercise is to let the assistant explore a flow through Playwright MCP, then write the
+test yourself with the page objects from chapter 2 and compare.
+
 ## The key idea: verify the side effect
 "I've added it to your cart!" proves nothing. The tests read `/cart/{session}` and assert the
 quantity changed. Trust state, not words.

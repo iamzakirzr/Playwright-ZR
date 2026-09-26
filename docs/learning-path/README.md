@@ -24,6 +24,11 @@ Work through them in order; each chapter uses what the previous one built.
 | 10 | [Mobile: emulation and Appium](10-mobile.md) | no | `make test-mobile-web` |
 | 11 | [Self-healing locators and visual testing](11-healing-and-visual.md) | partly | `pytest -m "healing or visual"` |
 | 12 | [CI/CD pipelines](12-ci-cd.md) | no | `make lint` |
+| 13 | [Playwright essentials](13-playwright-essentials.md) | no | `pytest tests/ui/essentials` |
+| 14 | [Synthetic data and advanced AI evals](14-synthetic-data-and-advanced-evals.md) | partly | `pytest tests/ai/synthesis tests/ai/conversation tests/ai/langchain` |
+
+Chapter 13 fits right after chapter 2 if you prefer to learn every browser technique first.
+[Course coverage](../course-coverage.md) maps ExecuteAutomation course topics to these chapters.
 
 "Partly" means the chapter has an offline tier that runs anywhere and a live tier that skips
 cleanly without Ollama.

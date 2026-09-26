@@ -6,17 +6,20 @@ built to be learned from as much as used.
 | Layer | What it tests | Target |
 |---|---|---|
 | **UI** | Page Object Model flows, visual baselines, self-healing locators | [saucedemo.com](https://www.saucedemo.com) |
+| **Playwright essentials** | Network mocking, dialogs, frames, tabs, files, auth state, emulation | Local playground app ([`apps/playground`](apps/playground)) |
 | **API** | CRUD + contract (schema) validation | [restful-booker](https://restful-booker.herokuapp.com) |
 | **SQL** | Repositories, constraints, integrity | Seeded SQLite |
 | **Hybrid** | API ↔ DB consistency | both |
 | **BDD** | Gherkin scenarios over the same page objects | saucedemo + AI assistant |
 | **Mobile** | Device emulation (Pixel, iPhone) and Appium on an Android emulator | saucedemo |
-| **AI** | RAG quality, AI search, prompts, chains, agents & tool calls, MCP servers, red teaming, GenAI validation, chat UI | Open-source LLMs served locally by [Ollama](https://ollama.com) |
+| **AI** | RAG quality, AI search, prompts, chains, agents & tool calls, multi-turn conversations, MCP servers, red teaming, GenAI validation, LangChain apps, synthetic data, chat UI | Open-source LLMs served locally by [Ollama](https://ollama.com) |
 
 Everything is open source and runs locally. No paid API keys are needed.
 
-> **New here? Start with the [learning path](docs/learning-path/README.md):** 12 short chapters,
+> **New here? Start with the [learning path](docs/learning-path/README.md):** 14 short chapters,
 > one per layer, each with files to read, a command to run, an exercise and a quiz.
+> [Course coverage](docs/course-coverage.md) maps ExecuteAutomation (Karthik KK) course topics to
+> the code that practises them.
 
 ---
 
@@ -213,11 +216,33 @@ heals a renamed login form with the local model.
 a diff image on failure (`UPDATE_SNAPSHOTS=1` accepts changes). `visual/vision_judge.py` adds an
 opt-in vision-LLM description of a side-by-side composite; it is **advisory**, pixels decide.
 
-### 3.12 Metric catalogue
+### 3.12 Multi-turn conversations: `tests/ai/conversation/`, `tests/ai/agent/test_agent_conversation.py`
+`run_conversation` builds DeepEval `ConversationalTestCase`s from any bot. Calibration decides
+which judged metrics may gate: completeness and role adherence (3B judge), turn relevancy (7B
+judge only), knowledge retention (failed on both, so the rule-based `RetentionProbeMetric` is used
+instead). The first run of the shopping conversation found three agent defects (partial removal,
+ignored `quantity`, invented cart contents); each now has a guard and a regression test.
+
+### 3.13 LangChain app under test: `tests/ai/langchain/`
+`LangChainChatbot` is an LCEL RAG chain (retrieve, then messages, then `ChatOllama`) behind the same
+`ChatbotClient` interface, so the golden-set, faithfulness and canary checks run against a
+LangChain app unchanged. Unit tests swap the model for a recording `RunnableLambda`.
+
+### 3.14 Synthetic data: `tests/ai/synthesis/`
+- **Goldens**: DeepEval's `Synthesizer` with a local model, then `GoldenQualityGate` (complete,
+  not copied, not duplicate, expected answer grounded). It rejects the hallucinated golden the
+  synthesizer actually produced during development.
+- **Test cases from requirements**: JSON drafts per requirement with related requirements as RAG
+  context, pydantic validation, and a coverage review (uncovered, missing negatives, duplicates,
+  unchecked error messages). llama3.2:3b covers 7/7 Sauce Demo requirements.
+
+### 3.15 Metric catalogue
 | Kind | Metrics | Where |
 |---|---|---|
-| Rule-based (fast, deterministic) | Semantic similarity, keyword coverage, JSON schema, word limit, refusal, canary leakage, regex PII | `ai/evaluators/deterministic.py`, `semantic_similarity.py` |
+| Rule-based (fast, deterministic) | Semantic similarity, keyword coverage, JSON schema, word limit, refusal, canary leakage, regex PII, retention probe | `ai/evaluators/deterministic.py`, `semantic_similarity.py`, `conversation.py` |
+| Reference overlap (Hugging Face `evaluate`) | ROUGE-1/2/L, BLEU (for wording-sensitive output only) | `ai/evaluators/reference_metrics.py` |
 | Classifier | Toxicity (`unitary/toxic-bert`) | `ai/evaluators/classifiers.py` |
+| LLM-judged conversational (DeepEval) | Conversation completeness, role adherence, turn relevancy, knowledge retention | `ai/evaluators/factory.py` |
 | LLM-judged (DeepEval) | Faithfulness, answer relevancy, contextual precision/recall/relevancy, hallucination, G-Eval completeness and correctness, summarisation, prompt alignment, JSON correctness, toxicity, bias, PII leakage, role violation, misuse. See §3.1 for which judge each needs | `ai/evaluators/factory.py` |
 | LLM-judged (Ragas) | Faithfulness | `tests/ai/rag/test_ragas_crosscheck.py` |
 | Retrieval (IR) | Recall@k, Precision@k, Hit rate, MRR, nDCG@k | `ai/search/metrics.py` |
@@ -267,7 +292,8 @@ All settings live in `config/settings.py`. Override any of them with an environm
 | `JUDGE_TIMEOUT_S` | 600 | DeepEval per-call timeout (CPU is slow) |
 | `VISION_MODEL` | `qwen2.5vl:3b` | Opt-in visual judge |
 | `APPIUM_SERVER_URL`, `ANDROID_DEVICE_NAME` | `http://127.0.0.1:4723` / `emulator-5554` | Appium tests |
-| `FAKER_SEED` | random (printed) | Replay test data |
+| `FAKER_SEED` | random (printed) | Replay test data (each test is reseeded from seed + test id) |
+| `TESTGEN_MODEL` | `llama3.2:3b` | Model that drafts test cases from requirements |
 | `UPDATE_SNAPSHOTS`, `UPDATE_PROMPT_SNAPSHOTS` | unset | Accept new visual / prompt baselines |
 
 ---
@@ -291,6 +317,9 @@ All settings live in `config/settings.py`. Override any of them with an environm
 | A mobile screen | Subclass `BaseScreen` in `mobile/screens/` |
 | A healable element | `self.healable("name", "selector", "plain-English description")` in a page object |
 | A visual check | `comparator.compare("name", locator.screenshot(mask=[...]))` |
+| A page served inside Playwright | `StaticSite(context, folder).json("GET", "/api/x", data).install()` ([`pages/support`](pages/support)) |
+| A conversation eval | `run_conversation(send, turns, chatbot_role=...)` then `assert_test(case, [factory.conversation_completeness()])` |
+| A requirement for AI test design | Add it to `ai/synthesis/requirements.json` (quote exact error messages) |
 
 ---
 

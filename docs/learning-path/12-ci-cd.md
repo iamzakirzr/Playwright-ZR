@@ -9,8 +9,8 @@ and everything nightly.
 | Job | What | Matrix |
 |---|---|---|
 | `lint` | `ruff check` + `ruff format --check` | |
-| `api-sql` | API, SQL and hybrid tests, parallel with `-n auto` | |
-| `ui` | UI pages, visual baselines, BDD scenarios | chromium, firefox, webkit |
+| `api-sql` | API, SQL, hybrid and framework unit tests, parallel with `-n auto` | |
+| `ui` | UI pages, Playwright essentials, visual baselines, BDD scenarios | chromium, firefox, webkit |
 | `mobile-web` | phones emulated by Playwright | chromium, webkit |
 | `mobile-native` | Android emulator (API 33) + Appium 2 + Chrome | |
 | `ai-offline` | embeddings, classifiers, prompts, chains, guards, MCP | |
