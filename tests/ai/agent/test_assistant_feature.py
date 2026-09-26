@@ -1,11 +1,15 @@
-"""Step definitions for the AI assistant feature: Gherkin over the live agent API.
+"""Step definitions for the AI assistant feature (``tests/bdd/features/ai_assistant.feature``).
 
-Reuses the ``assistant`` (service object) and ``session_id`` fixtures from
-``tests/ai/agent/conftest.py``, registered here as a plugin.
+Lives next to the agent fixtures (``assistant``, ``session_id`` in this folder's
+conftest) rather than in ``tests/bdd``. Importing a conftest as a plugin from
+another folder breaks full-tree collection ("Plugin already registered").
 """
+import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-pytest_plugins = ["tests.ai.agent.conftest"]
+# pytest-bdd requests fixtures inside steps, so collection-time auto-marking
+# can't see the Ollama dependency; mark it explicitly or CI would skip it silently.
+pytestmark = [pytest.mark.bdd, pytest.mark.live]
 
 scenarios("ai_assistant.feature")
 
