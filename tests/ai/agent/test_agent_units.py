@@ -3,6 +3,7 @@
 The LLM is replaced with a scripted one (overriding ``_chat``), so the tool
 loop, argument repair and fallbacks are tested deterministically in milliseconds.
 """
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -44,7 +45,7 @@ class TestArgumentRepair:
     """Small models often send malformed tool arguments; the agent must repair them."""
 
     @pytest.mark.parametrize(
-        "raw, expected",
+        ("raw", "expected"),
         [
             ({"product": "Backpack", "quantity": 2}, {"product": "Backpack", "quantity": 2}),
             ({"quantity": {"type": "integer", "value": 2}}, {"quantity": 2}),
@@ -64,7 +65,7 @@ class TestCatalog:
     """Product matching and cart arithmetic."""
 
     @pytest.mark.parametrize(
-        "loose, exact",
+        ("loose", "exact"),
         [
             ("backpack", "Sauce Labs Backpack"),
             ("Bike Lights", "Sauce Labs Bike Light"),
@@ -108,7 +109,9 @@ class TestAgentLoop:
         result = agent.handle("s1", "add 2 backpacks")
 
         assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
-        assert [(c.name, c.arguments) for c in result.tools_called] == [("add_to_cart", {"product": "Sauce Labs Backpack", "quantity": 2})]
+        assert [(c.name, c.arguments) for c in result.tools_called] == [
+            ("add_to_cart", {"product": "Sauce Labs Backpack", "quantity": 2})
+        ]
         assert result.reply == "Added."
 
     def test_tool_result_is_fed_back_to_the_model(self):
@@ -158,7 +161,7 @@ class TestActionClaimGuard:
     """The agent must not claim a cart change it never made."""
 
     @pytest.mark.parametrize(
-        "text, claims",
+        ("text", "claims"),
         [
             ("I've added 2 backpacks to your cart.", True),
             ("The onesie has been removed from your cart.", True),
@@ -247,7 +250,9 @@ class TestHttpContract:
     @pytest.fixture
     def client(self, monkeypatch):
         """TestClient whose agent is scripted to add one onesie."""
-        agent = ScriptedShopAgent([tool_reply("add_to_cart", {"product": "onesie", "quantity": 1}), {"content": "Added a onesie."}])
+        agent = ScriptedShopAgent(
+            [tool_reply("add_to_cart", {"product": "onesie", "quantity": 1}), {"content": "Added a onesie."}]
+        )
         monkeypatch.setattr(main, "get_agent", lambda: agent)
         return TestClient(main.app)
 
@@ -263,7 +268,9 @@ class TestHttpContract:
         assert client.delete("/session/s1").status_code == 204
         assert client.get("/cart/s1").json()["items"] == []
 
-    @pytest.mark.parametrize("payload", [{"session_id": "", "message": "hi"}, {"session_id": "s", "message": ""}, {"message": "hi"}])
+    @pytest.mark.parametrize(
+        "payload", [{"session_id": "", "message": "hi"}, {"session_id": "s", "message": ""}, {"message": "hi"}]
+    )
     def test_invalid_requests_are_rejected(self, client, payload):
         """Empty or missing fields are 422s, validated before reaching the model."""
         assert client.post("/chat", json=payload).status_code == 422

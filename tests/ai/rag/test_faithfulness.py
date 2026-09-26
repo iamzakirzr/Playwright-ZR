@@ -7,6 +7,7 @@ Tier 1 (judge calibration) runs the metric on hand-written answers, so we know t
 judge can tell a faithful answer from a hallucinated one BEFORE we trust it on
 live output. A judge that passes everything is worse than no test.
 """
+
 import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
@@ -41,8 +42,7 @@ class TestJudgeCalibration:
             )
         )
         assert not faithfulness_metric.is_successful(), (
-            f"Judge failed to flag a contradiction (score={faithfulness_metric.score}): "
-            f"{faithfulness_metric.reason}"
+            f"Judge failed to flag a contradiction (score={faithfulness_metric.score}): {faithfulness_metric.reason}"
         )
 
 

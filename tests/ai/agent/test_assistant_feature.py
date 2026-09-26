@@ -4,6 +4,7 @@ Lives next to the agent fixtures (``assistant``, ``session_id`` in this folder's
 conftest) rather than in ``tests/bdd``. Importing a conftest as a plugin from
 another folder breaks full-tree collection ("Plugin already registered").
 """
+
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 

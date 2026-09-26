@@ -9,6 +9,7 @@ Concrete adapters (Ollama over HTTP, a browser-driven chat widget, a scripted
 fake for unit tests, a guard-rail decorator) only implement ``complete`` and
 ``is_available``. Tests depend on this interface, never on a vendor.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

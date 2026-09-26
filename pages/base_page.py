@@ -11,6 +11,7 @@ Page Object Model rules used in this framework
 * Optional **self-healing**: pass a ``healer`` and ``cache`` and declare elements
   with :meth:`BasePage.healable`. Without them the page behaves exactly as before.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -36,9 +37,7 @@ class BasePage:
     #: Path relative to ``base_url``. Subclasses override.
     path: str = "/"
 
-    def __init__(
-        self, page: Page, base_url: str, healer: "LocatorHealer | None" = None, cache: "HealingCache | None" = None
-    ) -> None:
+    def __init__(self, page: Page, base_url: str, healer: LocatorHealer | None = None, cache: HealingCache | None = None) -> None:
         """Store the page, normalise the base URL (no trailing slash) and keep optional healing support."""
         self.page = page
         self.base_url = base_url.rstrip("/")
@@ -62,7 +61,7 @@ class BasePage:
         """Locate by Sauce Demo's ``data-test`` attribute (not Playwright's default ``data-testid``)."""
         return self.page.locator(f"[data-test='{test_id}']")
 
-    def healable(self, name: str, selector: str, description: str) -> "SelfHealingLocator":
+    def healable(self, name: str, selector: str, description: str) -> SelfHealingLocator:
         """Declare an element that heals itself if ``selector`` breaks.
 
         Args:

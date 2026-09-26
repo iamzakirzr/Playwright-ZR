@@ -4,6 +4,7 @@ Runs offline: embeddings and BM25 only, no LLM. Every retriever strategy is
 held to the same bar, and the hybrid (production) retriever must be at least
 as good as its best component, which is the reason it exists.
 """
+
 import pytest
 
 from ai.search import metrics as ir
@@ -80,7 +81,7 @@ def test_results_are_ranked_and_deduplicated(hybrid):
     results = hybrid.search("shipping cost", k=5)
 
     assert [r.rank for r in results] == list(range(1, len(results) + 1))
-    assert all(a.score >= b.score for a, b in zip(results, results[1:]))
+    assert all(a.score >= b.score for a, b in zip(results, results[1:], strict=False))
     assert len({r.document.id for r in results}) == len(results)
 
 

@@ -4,6 +4,7 @@ Prompts are code: they are versioned, validated and fingerprinted so a test
 can detect an unreviewed prompt change the same way a snapshot test detects
 an unreviewed UI change.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -78,9 +79,7 @@ class PromptTemplate:
         missing = self.variables - provided
         unexpected = provided - self.variables
         if missing or unexpected:
-            raise PromptError(
-                f"{self.name} v{self.version}: missing={sorted(missing)} unexpected={sorted(unexpected)}"
-            )
+            raise PromptError(f"{self.name} v{self.version}: missing={sorted(missing)} unexpected={sorted(unexpected)}")
         as_text = {k: str(v) for k, v in values.items()}
         return RenderedPrompt(
             system=string.Template(self.system).substitute(as_text),

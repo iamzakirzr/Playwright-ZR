@@ -1,4 +1,5 @@
 """Page object for the chat widget (``ai/chat_ui/index.html``)."""
+
 from __future__ import annotations
 
 from playwright.sync_api import expect

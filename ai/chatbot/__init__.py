@@ -1,4 +1,5 @@
 """Chatbot adapters. Every class here is a :class:`ChatbotClient`."""
+
 from ai.chatbot.base import ChatbotClient, ChatResponse
 from ai.chatbot.guarded_client import REFUSAL_MESSAGE, GuardedChatbot
 from ai.chatbot.ollama_client import OllamaChatbot

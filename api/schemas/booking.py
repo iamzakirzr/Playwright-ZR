@@ -3,6 +3,7 @@
 ``Booking.model_validate(response.json())`` fails loudly if the API drops,
 renames or re-types a field. That makes it a contract test for free.
 """
+
 from __future__ import annotations
 
 from datetime import date

@@ -18,13 +18,14 @@ Two rules keep this safe:
 Every heal is recorded in the cache file. Treat it as a to-do list: a healed
 locator means the page object needs updating, not that the problem is gone.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import re
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -201,7 +202,7 @@ class SelfHealingLocator:
                         original=self.selector,
                         healed=candidate,
                         url=self.page.url,
-                        healed_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                        healed_at=datetime.now(UTC).isoformat(timespec="seconds"),
                     )
                 )
                 log.warning("Self-healed %s: %r -> %r (update the page object)", self.key, self.selector, candidate)

@@ -3,6 +3,7 @@
 Each intermediate output is checked against its own contract, then the final
 answer is scored. The chain trace makes a failure point at the broken link.
 """
+
 import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
@@ -11,7 +12,12 @@ from ai.chains import HANDOFF_MESSAGE, build_support_chain
 from ai.evaluators import KeywordCoverageMetric
 
 CASES = [
-    ("Hi! I got a bike light as a gift, what does its warranty actually cover?", "warranty", "warranty-2", ["manufacturing defects"]),
+    (
+        "Hi! I got a bike light as a gift, what does its warranty actually cover?",
+        "warranty",
+        "warranty-2",
+        ["manufacturing defects"],
+    ),
     ("how much would express delivery cost me", "shipping", "shipping-3", ["$14.99"]),
     ("can i pay with paypal?", "payments", "payments-1", ["PayPal"]),
 ]
@@ -23,7 +29,7 @@ def support_chain(chatbot, hybrid, settings):
     return build_support_chain(chatbot, hybrid, k=settings.retrieval_k)
 
 
-@pytest.mark.parametrize("question, intent, doc_id, facts", CASES, ids=[c[1] for c in CASES])
+@pytest.mark.parametrize(("question", "intent", "doc_id", "facts"), CASES, ids=[c[1] for c in CASES])
 def test_each_link_meets_its_contract(support_chain, question, intent, doc_id, facts):
     """Right intent → concise query → right passage retrieved → answer holds the key fact."""
     state = support_chain.run(question)

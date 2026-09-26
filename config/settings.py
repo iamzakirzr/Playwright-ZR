@@ -4,6 +4,7 @@ Every field can be overridden by an environment variable of the same name
 (upper-case) or a ``.env`` file (see ``.env.example``). Tests never hard-code
 URLs, credentials, model names or thresholds; they read them from here.
 """
+
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +21,10 @@ class Settings(BaseSettings):
     ui_locked_user: str = "locked_out_user"
     ui_password: str = "secret_sauce"
     browser_executable_path: str | None = None
+
+    # --- Mobile (Appium) ---
+    appium_server_url: str = "http://127.0.0.1:4723"
+    android_device_name: str = "emulator-5554"
 
     # --- API (Restful Booker) ---
     api_base_url: str = "https://restful-booker.herokuapp.com"

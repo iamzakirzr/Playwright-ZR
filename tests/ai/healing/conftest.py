@@ -1,4 +1,5 @@
 """Fixtures for self-healing locator tests."""
+
 from __future__ import annotations
 
 import pytest

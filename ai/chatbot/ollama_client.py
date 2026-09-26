@@ -3,11 +3,13 @@
 Traffic goes through Playwright's ``APIRequestContext``, so chatbot calls are
 traced exactly like the API suite's HTTP calls.
 """
+
 from __future__ import annotations
 
 import time
 
-from playwright.sync_api import APIRequestContext, Error as PlaywrightError
+from playwright.sync_api import APIRequestContext
+from playwright.sync_api import Error as PlaywrightError
 
 from ai.chatbot.base import ChatbotClient, ChatResponse
 
@@ -51,7 +53,7 @@ class OllamaChatbot(ChatbotClient):
             return False
         return self.model in {m["name"] for m in response.json().get("models", [])}
 
-    def with_options(self, *, temperature: float | None = None, seed: int | None = None) -> "OllamaChatbot":
+    def with_options(self, *, temperature: float | None = None, seed: int | None = None) -> OllamaChatbot:
         """Return a copy with different sampling options (used by consistency tests).
 
         Args:

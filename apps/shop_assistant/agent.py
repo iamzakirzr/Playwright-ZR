@@ -24,6 +24,7 @@ Small models sometimes echo the JSON schema instead of plain values, e.g.
 repairs that before a tool runs. Defensive parsing like this is part of any
 real agent, and the test suite pins it.
 """
+
 from __future__ import annotations
 
 import json
@@ -80,7 +81,7 @@ SYSTEM_PROMPT = (
     "even if a similar change happened earlier in the conversation.\n"
     "Politely refuse anything unrelated to shopping at the Sauce Demo Store (poems, code, general knowledge).\n"
     "For policy questions answer ONLY from the POLICY CONTEXT. If it doesn't contain the answer, reply exactly: "
-    "\"I don't know based on the provided information.\"\n"
+    '"I don\'t know based on the provided information."\n'
     "Be concise: at most three sentences.\n\nPOLICY CONTEXT:\n{context}"
 )
 
@@ -209,7 +210,9 @@ class ShopAgent:
         if mentions_store_vocabulary(message):
             return False
         prompt = default_registry().get("scope_guard").render(message=message)
-        verdict = self._chat([{"role": "system", "content": prompt.system}, {"role": "user", "content": prompt.user}], tools=False)
+        verdict = self._chat(
+            [{"role": "system", "content": prompt.system}, {"role": "user", "content": prompt.user}], tools=False
+        )
         return "OUT_OF_SCOPE" in (verdict.get("content") or "").upper()
 
     # -- LLM ----------------------------------------------------------------
@@ -259,8 +262,10 @@ class ShopAgent:
         if nudged:
             # Drop the false claim and the nudge from future turns; keep the real trajectory.
             history[:] = [
-                m for m in history
-                if m.get("content") != NO_TOOL_NUDGE and not (m["role"] == "assistant" and m.get("content") == false_claim and "tool_calls" not in m)
+                m
+                for m in history
+                if m.get("content") != NO_TOOL_NUDGE
+                and not (m["role"] == "assistant" and m.get("content") == false_claim and "tool_calls" not in m)
             ]
         history.append({"role": "assistant", "content": text})
         return AgentReply(reply=text, tools_called=calls, sources=[r.document.id for r in results])

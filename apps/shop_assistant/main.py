@@ -10,6 +10,7 @@ Endpoints:
     GET    /cart/{session_id}    the session's cart
     DELETE /session/{session_id} reset history and cart
 """
+
 from __future__ import annotations
 
 from dataclasses import asdict

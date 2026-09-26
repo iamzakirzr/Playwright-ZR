@@ -5,6 +5,7 @@ Ollama, so evaluation needs no paid API. Swap the judge by changing
 `JUDGE_MODEL` — a larger judge (e.g. llama3.1:8b, qwen2.5:7b) gives more
 reliable claim extraction at the cost of CI time.
 """
+
 from __future__ import annotations
 
 from deepeval.models import OllamaModel

@@ -13,6 +13,7 @@ identical pages. Its written ``differences`` still contained hallucinations
 (it described the separator bar as a background change), so treat the verdict
 as advisory and the prose as a hint, never as a gate.
 """
+
 from __future__ import annotations
 
 import base64

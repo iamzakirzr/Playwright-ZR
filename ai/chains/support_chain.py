@@ -1,10 +1,11 @@
 """A four-step customer-support chain: classify → rewrite → retrieve → answer.
 
-    question ─▶ IntentStep ─▶ (out_of_scope? ─▶ HandoffStep, stop)
-                    │
-                    ▼
-              RewriteStep ─▶ RetrieveStep ─▶ AnswerStep ─▶ answer
+question ─▶ IntentStep ─▶ (out_of_scope? ─▶ HandoffStep, stop)
+                │
+                ▼
+          RewriteStep ─▶ RetrieveStep ─▶ AnswerStep ─▶ answer
 """
+
 from __future__ import annotations
 
 import re

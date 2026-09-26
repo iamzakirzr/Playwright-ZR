@@ -7,6 +7,7 @@ every link on its own, not only the final answer. In multi-step LLM systems
 most bugs sit between steps: a misrouted intent, a lossy query rewrite, an
 empty retrieval.
 """
+
 from __future__ import annotations
 
 import time

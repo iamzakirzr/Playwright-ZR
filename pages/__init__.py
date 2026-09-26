@@ -1,4 +1,5 @@
 """UI page objects. One class per page; shared widgets live in ``pages/components``."""
+
 from pages.cart_page import CartPage
 from pages.chat_page import ChatPage
 from pages.checkout_page import CheckoutPage

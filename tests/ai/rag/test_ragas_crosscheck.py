@@ -4,6 +4,7 @@ Two frameworks agreeing is stronger evidence than one. Ragas' structured
 prompts need a judge of 7B or more, so this test is opt-in: it skips unless
 RAGAS_JUDGE_MODEL has been pulled into Ollama.
 """
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 

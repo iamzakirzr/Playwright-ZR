@@ -5,6 +5,7 @@ objects (**Strategy** registry) and runs them all on the response. Adding a
 new detector means adding one entry to :meth:`RedTeamRunner._detector`, not
 editing any test.
 """
+
 from __future__ import annotations
 
 import json

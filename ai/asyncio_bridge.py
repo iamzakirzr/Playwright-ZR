@@ -5,6 +5,7 @@ Playwright's sync API keeps an event loop running on the main thread, so
 Running the coroutine on a short-lived worker thread (with its own loop)
 works in every context: pytest, Playwright tests, notebooks.
 """
+
 from __future__ import annotations
 
 import asyncio

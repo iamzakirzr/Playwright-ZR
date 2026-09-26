@@ -3,6 +3,7 @@
 ``Retriever`` is an abstract **Strategy**: keyword, semantic and hybrid search
 are interchangeable, so the same retrieval-quality tests run against each one.
 """
+
 from __future__ import annotations
 
 import json

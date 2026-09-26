@@ -43,7 +43,7 @@ def test_checkout_requires_customer_info(logged_in, cart_page, checkout_page):
 
 
 @pytest.mark.parametrize(
-    "option, key, reverse",
+    ("option", "key", "reverse"),
     [("lohi", "prices", False), ("hilo", "prices", True), ("az", "names", False), ("za", "names", True)],
 )
 def test_inventory_sorting(logged_in, option, key, reverse):

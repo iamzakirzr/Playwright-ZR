@@ -8,6 +8,7 @@ Covers the families of prompt tests used in production:
 * prompt regression (A/B): a new prompt version must not score worse than the old one
 * robustness: paraphrased questions get semantically consistent answers
 """
+
 import itertools
 
 import pytest
@@ -46,7 +47,10 @@ class OrderDetails(BaseModel):
 
 EXTRACTION_CASES = [
     ("Order #A1234: my Sauce Labs Backpack arrived with a torn strap.", {"order_id": "A1234", "issue": "damaged"}),
-    ("It's been three weeks and order B-777 with the Fleece Jacket still hasn't arrived!", {"order_id": "B-777", "issue": "late"}),
+    (
+        "It's been three weeks and order B-777 with the Fleece Jacket still hasn't arrived!",
+        {"order_id": "B-777", "issue": "late"},
+    ),
     ("I ordered a Onesie but got a Bike Light instead. Order 555.", {"order_id": "555", "issue": "wrong_item"}),
 ]
 
@@ -62,7 +66,7 @@ def test_intent_classifier_accuracy(chatbot):
     assert accuracy >= 0.75, f"accuracy={accuracy:.2f} misses={misses}"
 
 
-@pytest.mark.parametrize("message, expected", EXTRACTION_CASES, ids=["damaged", "late", "wrong-item"])
+@pytest.mark.parametrize(("message", "expected"), EXTRACTION_CASES, ids=["damaged", "late", "wrong-item"])
 def test_json_extractor_output_matches_schema(chatbot, message, expected):
     """JSON mode plus a strict schema: output parses, validates, and the key fields are right."""
     reply = chatbot.run_prompt(REGISTRY.get("json_extractor"), json_mode=True, message=message).text
@@ -96,7 +100,7 @@ def test_constrained_answer_respects_word_limit(chatbot, max_words):
 
 
 @pytest.mark.parametrize(
-    "question, expected",
+    ("question", "expected"),
     [("Is water damage covered?", "no"), ("Is battery failure covered?", "yes")],
     ids=["no", "yes"],
 )
@@ -138,7 +142,10 @@ def test_new_prompt_version_is_not_a_regression(chatbot, settings):
         return sum(scores) / len(scores)
 
     v1_bot = OllamaChatbot(
-        chatbot.request, chatbot.model, seed=settings.chatbot_seed, canary=settings.canary_token,
+        chatbot.request,
+        chatbot.model,
+        seed=settings.chatbot_seed,
+        canary=settings.canary_token,
         grounded_prompt=REGISTRY.get("grounded_qa", version=1),
     )
     latest, baseline = coverage(chatbot), coverage(v1_bot)

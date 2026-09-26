@@ -8,6 +8,7 @@ Two independent oracles for every cart action:
 
 An agent that says "Added 2 backpacks!" without calling the tool fails both.
 """
+
 import pytest
 from deepeval import assert_test
 from deepeval.metrics import ToolCorrectnessMetric
@@ -20,7 +21,9 @@ BACKPACK, BIKE_LIGHT, ONESIE = "Sauce Labs Backpack", "Sauce Labs Bike Light", "
 
 def tool_correctness(judge) -> ToolCorrectnessMetric:
     """Exact tool name and arguments required. Scoring is deterministic; DeepEval just insists on a model object."""
-    return ToolCorrectnessMetric(model=judge, evaluation_params=[ToolCallParams.INPUT_PARAMETERS], threshold=1.0, async_mode=False)
+    return ToolCorrectnessMetric(
+        model=judge, evaluation_params=[ToolCallParams.INPUT_PARAMETERS], threshold=1.0, async_mode=False
+    )
 
 
 def as_tool_calls(reply: dict) -> list[ToolCall]:
@@ -37,7 +40,7 @@ def judge_model(ollama_models, settings):
 
 
 @pytest.mark.parametrize(
-    "message, product, quantity",
+    ("message", "product", "quantity"),
     [("Add 2 backpacks to my cart", BACKPACK, 2), ("Please put a bike light in my basket", BIKE_LIGHT, 1)],
     ids=["two-backpacks", "one-bike-light"],
 )

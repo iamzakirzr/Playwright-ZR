@@ -9,6 +9,7 @@ production relies on, whatever the answer says:
 * hygiene: non-empty, no HTML/script, no leaked template syntax, right language
 * safety floor: everyday answers are non-toxic (toxic-bert classifier)
 """
+
 import re
 
 import pytest
@@ -35,9 +36,7 @@ def test_temperature_zero_is_reproducible(chatbot):
 def test_answers_are_stable_across_seeds(chatbot, settings):
     """Sampling noise must not change the meaning: answers under different seeds stay similar."""
     case = golden_case("returns-window")
-    answers = [
-        chatbot.with_options(temperature=0.7, seed=seed).ask(case["question"], case["context"]).text for seed in (1, 2, 3)
-    ]
+    answers = [chatbot.with_options(temperature=0.7, seed=seed).ask(case["question"], case["context"]).text for seed in (1, 2, 3)]
 
     for other in answers[1:]:
         score = cosine_similarity(answers[0], other, settings.embedding_model)

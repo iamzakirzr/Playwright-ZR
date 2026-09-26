@@ -22,6 +22,7 @@ asked "Is shipping free?"), and no prompt variant fixed that. The baseline
 makes the gap visible and fails if it gets worse, without failing forever on a
 known model limitation.
 """
+
 import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
@@ -148,5 +149,9 @@ def test_retrieval_context_quality_end_to_end(rag_pipeline, strong_metrics, case
 
     assert_test(
         _case(case, result.text, result.contexts),
-        [strong_metrics.contextual_precision(), strong_metrics.contextual_recall(), strong_metrics.contextual_relevancy(threshold=0.3)],
+        [
+            strong_metrics.contextual_precision(),
+            strong_metrics.contextual_recall(),
+            strong_metrics.contextual_relevancy(threshold=0.3),
+        ],
     )

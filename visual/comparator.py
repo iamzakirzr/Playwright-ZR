@@ -15,6 +15,7 @@ does not. This module provides the same workflow:
 * **Evidence**: on failure a diff image (changed pixels in red) is written next
   to the actual screenshot.
 """
+
 from __future__ import annotations
 
 import io

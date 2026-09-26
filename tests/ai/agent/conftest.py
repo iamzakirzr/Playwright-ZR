@@ -3,6 +3,7 @@
 The FastAPI app runs in-process on a background thread (uvicorn), so tests
 talk to it over real HTTP exactly like a front end would. No Docker needed.
 """
+
 from __future__ import annotations
 
 import socket

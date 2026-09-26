@@ -3,6 +3,7 @@
 ``UiChatbot`` is a ``ChatbotClient``, so the exact metrics used on the API
 adapter apply unchanged. That is the payoff of the abstraction.
 """
+
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
 

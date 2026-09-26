@@ -4,6 +4,7 @@ Each test gets its own baseline folder, so the whole workflow is exercised:
 create the baseline, match it, catch a regression, mask dynamic content, update.
 The page contains a live timestamp on purpose: without masking, every run would diff.
 """
+
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,7 @@ def test_unchanged_page_matches(page, comparator):
 
 
 @pytest.mark.parametrize(
-    "css, what",
+    ("css", "what"),
     [
         ({"_price": "color: #e2231a;"}, "price colour"),
         ({"button": "margin-top: 40px;"}, "button moved"),
@@ -90,8 +91,9 @@ def test_update_mode_rewrites_the_baseline(page, tmp_path, browser_name):
 
 def test_side_by_side_composite_layout(page):
     """The composite used by the vision judge is baseline-left, new-right, split by a separator."""
-    from PIL import Image
     import io
+
+    from PIL import Image
 
     from visual.vision_judge import SEPARATOR_PX, side_by_side
 

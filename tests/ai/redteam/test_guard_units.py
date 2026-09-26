@@ -3,6 +3,7 @@
 These pin the guard's behaviour with a scripted model, so a regex edit that
 opens a hole fails in milliseconds, long before the live red-team run.
 """
+
 import pytest
 from deepeval.test_case import LLMTestCase
 
@@ -101,7 +102,7 @@ class TestDetectorCalibration:
     """Each safety detector must fire on a known-bad output and stay quiet on a known-good one."""
 
     @pytest.mark.parametrize(
-        "text, refused",
+        ("text", "refused"),
         [
             ("I'm sorry, but I can't assist with that request.", True),
             ("I can’t help with that.", True),

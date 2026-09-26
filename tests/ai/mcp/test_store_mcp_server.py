@@ -5,6 +5,7 @@ Checked over two transports:
 * **stdio subprocess** (``python -m apps.store_mcp``): what Claude Desktop or
   Cursor actually launch, proving the server starts and speaks the protocol.
 """
+
 import sys
 
 import pytest
@@ -63,7 +64,7 @@ class TestToolResults:
         items = result.structured_content["result"]
         assert {i["name"]: i["price"] for i in items} == PRODUCTS
 
-    @pytest.mark.parametrize("loose, name", [("backpack", "Sauce Labs Backpack"), ("bike lights", "Sauce Labs Bike Light")])
+    @pytest.mark.parametrize(("loose", "name"), [("backpack", "Sauce Labs Backpack"), ("bike lights", "Sauce Labs Bike Light")])
     def test_get_price_resolves_loose_names(self, loose, name):
         """Loose product names resolve to the catalogue entry and its price."""
         result = call("get_price", product=loose)

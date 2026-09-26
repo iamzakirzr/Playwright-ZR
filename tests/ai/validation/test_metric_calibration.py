@@ -3,6 +3,7 @@
 A metric is a test oracle. If the oracle is wrong, every test built on it is
 wrong. Each metric gets one known-good and one known-bad input.
 """
+
 import pytest
 from deepeval.test_case import LLMTestCase
 from pydantic import BaseModel
@@ -41,8 +42,12 @@ class TestJsonSchemaMetric:
         assert m.is_successful(), m.reason
 
     @pytest.mark.parametrize(
-        "bad, reason",
-        [("not json", "invalid JSON"), ('{"name": "light"}', "schema violation"), ('{"name": 1, "qty": "x"}', "schema violation")],
+        ("bad", "reason"),
+        [
+            ("not json", "invalid JSON"),
+            ('{"name": "light"}', "schema violation"),
+            ('{"name": 1, "qty": "x"}', "schema violation"),
+        ],
     )
     def test_invalid_json_fails_with_reason(self, bad, reason):
         """Unparseable or off-schema output scores 0 with a useful reason."""
@@ -90,7 +95,9 @@ ALL_CUSTOM_METRICS = [
 ]
 
 
-@pytest.mark.parametrize("build", ALL_CUSTOM_METRICS, ids=["similarity", "keywords", "json", "words", "pii", "no-refusal", "canary", "toxicity"])
+@pytest.mark.parametrize(
+    "build", ALL_CUSTOM_METRICS, ids=["similarity", "keywords", "json", "words", "pii", "no-refusal", "canary", "toxicity"]
+)
 def test_metric_survives_deepeval_cloning(settings, build):
     """``assert_test`` clones metrics through their constructors; every custom metric must round-trip.
 

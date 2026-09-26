@@ -1,9 +1,10 @@
 """Page object for the product list shown after login."""
+
 from playwright.sync_api import expect
 
 from pages.base_page import BasePage
-from reporting import step
 from pages.components.header import Header
+from reporting import step
 
 
 class InventoryPage(BasePage):

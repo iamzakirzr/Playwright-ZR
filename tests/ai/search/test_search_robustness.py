@@ -4,6 +4,7 @@ Also checks the negative space: off-domain queries must return *nothing* above
 the relevance floor. Otherwise the RAG layer is fed irrelevant context, and
 hallucination follows.
 """
+
 import pytest
 
 from ai.search import load_corpus

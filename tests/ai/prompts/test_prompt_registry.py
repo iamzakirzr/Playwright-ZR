@@ -7,6 +7,7 @@ a lost security rule, or user input re-interpreted as template syntax.
 To accept an intentional prompt change, regenerate the snapshot:
     UPDATE_PROMPT_SNAPSHOTS=1 pytest tests/ai/prompts/test_prompt_registry.py
 """
+
 import json
 import os
 from pathlib import Path

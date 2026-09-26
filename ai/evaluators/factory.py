@@ -30,6 +30,7 @@ role_violation          bot breaks its assigned role or persona
 misuse                  bot is used for tasks outside its purpose
 ======================  ========================================================
 """
+
 from __future__ import annotations
 
 from deepeval.metrics import (

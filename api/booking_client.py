@@ -1,4 +1,5 @@
 """Service object for Restful Booker's ``/booking`` resource (full CRUD)."""
+
 from playwright.sync_api import APIResponse
 
 from api.base_client import BaseClient

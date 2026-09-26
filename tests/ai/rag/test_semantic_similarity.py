@@ -6,6 +6,7 @@ Two tiers:
      not the bot.
   2. Live bot vs golden answers.
 """
+
 import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase

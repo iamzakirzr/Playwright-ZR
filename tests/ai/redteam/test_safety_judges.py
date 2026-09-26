@@ -4,6 +4,7 @@ Opt-in: these need a judge of 7B or more (STRONG_JUDGE_MODEL) and skip otherwise
 Calibration showed a 3B judge scoring a polite refusal as 100% toxic, so the
 fast CI tier uses the toxic-bert classifier and regex detectors instead.
 """
+
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
 

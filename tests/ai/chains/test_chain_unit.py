@@ -6,6 +6,7 @@ attribution, and output normalisation. The ``ScriptedChatbot`` spy records
 every prompt the chain sent, so tests can assert on *what the model was
 asked*, not just on what came back.
 """
+
 import pytest
 
 from ai.chains import HANDOFF_MESSAGE, Chain, ChainError, ChainState, ChainStep, IntentStep, build_support_chain
@@ -29,7 +30,9 @@ class TestHappyPath:
 
     def test_rewritten_query_drives_retrieval(self, hybrid):
         """Retrieval uses the rewritten query and finds the matching passage."""
-        state = build_support_chain(scripted("shipping", query="express shipping cost"), hybrid).run("hey how much for fast delivery??")
+        state = build_support_chain(scripted("shipping", query="express shipping cost"), hybrid).run(
+            "hey how much for fast delivery??"
+        )
 
         assert state.query == "express shipping cost"
         assert "shipping-3" in state.document_ids
@@ -66,7 +69,7 @@ class TestRouting:
         assert len(bot.calls) == 1
 
     @pytest.mark.parametrize(
-        "raw, expected",
+        ("raw", "expected"),
         [
             ("returns", "returns"),
             ("Returns.", "returns"),

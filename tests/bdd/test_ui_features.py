@@ -4,6 +4,7 @@ Steps are thin: each one calls a page-object method. The Gherkin reads like a
 specification; the page objects hold the automation. Fixtures (``login_page``,
 ``logged_in`` ...) are the same ones the plain pytest UI tests use.
 """
+
 import pytest
 from playwright.sync_api import expect
 from pytest_bdd import given, parsers, scenarios, then, when

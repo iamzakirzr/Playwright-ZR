@@ -5,6 +5,7 @@ every call, so chain-routing and prompt-rendering tests run in milliseconds
 and never flake. Because it is a real ``ChatbotClient`` subclass, any code
 that works with the live bot works with this one (Liskov substitution).
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

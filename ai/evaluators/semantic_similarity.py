@@ -9,6 +9,7 @@ Known limitation: embeddings are weak on negation ("X is refundable" vs
 "X is not refundable" can score above 0.8) and on missing facts. Always pair
 this with faithfulness and completeness.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache

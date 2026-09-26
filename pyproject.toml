@@ -1,0 +1,32 @@
+[project]
+name = "playwright-zr"
+version = "2.0.0"
+description = "Layered Playwright (Python) framework: UI, API, SQL, mobile, BDD, visual and AI/LLM evaluation."
+requires-python = ">=3.11"
+
+# Test configuration lives in pytest.ini; dependencies in requirements.txt.
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+extend-exclude = [".venv", "reports", "test-results"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I isort, UP pyupgrade, B bugbear, SIM simplify, PT pytest style
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "PT"]
+ignore = [
+    "PT011",  # broad pytest.raises: several tests assert on message text via match= instead
+    "B017",   # pytest.raises(Exception) used deliberately for "any failure" guards
+    "SIM105", # contextlib.suppress is less readable for learners than try/except/pass
+    "PT018",  # composite asserts like `assert a and b` read naturally in these tests
+    "E501",   # long lines are handled by the formatter; long strings (prompts, messages) are allowed
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ai", "api", "apps", "config", "data", "db", "mobile", "pages", "reporting", "visual"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B018"]  # bare expressions used as readable assertions in a few places
+
+[tool.ruff.format]
+quote-style = "double"

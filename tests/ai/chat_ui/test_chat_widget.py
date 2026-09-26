@@ -4,6 +4,7 @@ The LLM is replaced with canned responses, so these tests check the *UI*
 contract deterministically: rendering, request payload, loading state, error
 handling, and safe rendering of untrusted model output.
 """
+
 import time
 
 import pytest

@@ -1,4 +1,5 @@
 """Product catalogue and in-memory carts for the shop assistant."""
+
 from __future__ import annotations
 
 import difflib

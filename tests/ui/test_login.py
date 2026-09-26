@@ -23,7 +23,7 @@ def test_locked_out_user_sees_error(login_page, settings):
 
 
 @pytest.mark.parametrize(
-    "username, password, expected_error",
+    ("username", "password", "expected_error"),
     [
         ("", "secret_sauce", "Username is required"),
         ("standard_user", "", "Password is required"),

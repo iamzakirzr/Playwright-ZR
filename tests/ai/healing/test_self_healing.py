@@ -5,13 +5,14 @@ refactor (v2) renamed every id and data-test attribute. Without healing, every
 test on the page breaks; with healing, the LLM maps each element to its new
 selector, the fix is validated, cached, and logged for the page-object owner.
 """
+
 import json
 
 import pytest
 
 from ai.chatbot import ScriptedChatbot
-from pages.healing import HealingCache, LlmLocatorHealer, LocatorHealingError
 from pages.demo_login_page import DemoLoginPage
+from pages.healing import HealingCache, LlmLocatorHealer, LocatorHealingError
 
 
 class FakeHealer:
@@ -120,7 +121,7 @@ class TestLlmHealerParsing:
     """The LLM healer tolerates bad model output."""
 
     @pytest.mark.parametrize(
-        "reply, expected",
+        ("reply", "expected"),
         [
             ('{"candidates": ["#a", "#b"]}', ["#a", "#b"]),
             ('{"candidates": ["#a", "", 3]}', ["#a"]),

@@ -10,6 +10,7 @@ Dependency graph (every arrow is fixture injection)::
 Tests that need Ollama *skip* (never fail) when it or a model is missing,
 so ``pytest -m "ai and not live"`` still runs the offline AI tests anywhere.
 """
+
 from __future__ import annotations
 
 import os
@@ -17,8 +18,8 @@ import os
 import pytest
 
 from ai.chatbot import ChatResponse, GuardedChatbot, OllamaChatbot
-from reporting import attach_llm_exchange
 from ai.search import BM25Retriever, HybridRetriever, RagPipeline, SemanticRetriever, load_corpus, load_documents
+from reporting import attach_llm_exchange
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -16,6 +16,7 @@ Run it for a real client (stdio)::
 
     python -m apps.store_mcp
 """
+
 from __future__ import annotations
 
 from mcp.server.mcpserver import MCPServer

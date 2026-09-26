@@ -5,6 +5,7 @@ red-team attack written for the API adapter runs unchanged through the real
 chat widget. That catches bugs that only exist in the UI layer: truncation,
 escaping, lost messages.
 """
+
 from __future__ import annotations
 
 import time

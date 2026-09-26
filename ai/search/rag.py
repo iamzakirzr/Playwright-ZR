@@ -1,4 +1,5 @@
 """Retrieval-Augmented Generation: search, then answer from what was found."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

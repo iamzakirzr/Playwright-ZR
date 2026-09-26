@@ -3,6 +3,7 @@
 All functions take ``retrieved``, a ranked list of ids with the best first,
 and ``relevant``, the set of ids a human judged relevant.
 """
+
 from __future__ import annotations
 
 import math

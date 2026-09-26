@@ -1,4 +1,5 @@
 """Prompt registry: the single source of truth for every prompt the app sends."""
+
 from __future__ import annotations
 
 import json
@@ -30,7 +31,7 @@ class PromptRegistry:
             self._templates[key] = template
 
     @classmethod
-    def from_file(cls, path: Path = LIBRARY_FILE) -> "PromptRegistry":
+    def from_file(cls, path: Path = LIBRARY_FILE) -> PromptRegistry:
         """Load templates from a JSON file shaped like ``library.json``."""
         data = json.loads(path.read_text())
         return cls([PromptTemplate(**entry) for entry in data["prompts"]])

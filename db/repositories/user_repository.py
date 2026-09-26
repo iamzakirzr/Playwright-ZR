@@ -1,4 +1,5 @@
 """Repository for the ``users`` table."""
+
 from db.repositories.base_repository import BaseRepository
 
 

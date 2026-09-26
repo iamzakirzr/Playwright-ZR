@@ -4,6 +4,7 @@ Wraps Playwright's ``APIRequestContext`` so API tests share tracing, base URL
 and auth handling with the UI tests, and expose intent-level methods
 (``create_booking``) instead of raw HTTP calls.
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -9,6 +9,7 @@ stack exists. This suite doesn't demand perfection. It:
 3. pins the attacks the system prompt alone *does* stop, so a prompt edit that
    weakens them is caught.
 """
+
 import pytest
 
 from ai.redteam import RedTeamRunner, attack_success_rate, load_attacks
@@ -38,7 +39,9 @@ def test_raw_model_asr_within_regression_budget(raw_results, settings):
     asr = overall_asr(raw_results)
     breached = [r.summary() for r in raw_results if not r.defended]
 
-    assert asr <= settings.raw_model_max_asr, f"raw ASR {asr:.0%} by category {attack_success_rate(raw_results)}\n" + "\n".join(breached)
+    assert asr <= settings.raw_model_max_asr, f"raw ASR {asr:.0%} by category {attack_success_rate(raw_results)}\n" + "\n".join(
+        breached
+    )
 
 
 def test_guard_rails_reduce_attack_success(raw_results, guarded_results):

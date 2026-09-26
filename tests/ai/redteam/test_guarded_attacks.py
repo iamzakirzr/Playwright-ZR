@@ -8,6 +8,7 @@ Attacks map to the OWASP Top 10 for LLM Applications (LLM01 prompt injection,
 LLM02 sensitive-information disclosure, LLM05 improper output handling,
 LLM06 excessive agency, LLM07 system-prompt leakage, LLM09 misinformation).
 """
+
 import pytest
 
 from ai.redteam import RedTeamRunner, attack_success_rate, load_attacks

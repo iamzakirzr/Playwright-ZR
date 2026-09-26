@@ -13,6 +13,7 @@ defences, and ``GuardedChatbot`` implements the three common layers:
 It has the same interface as the bot it wraps, so the red-team suite runs
 identical attacks against the raw and the guarded model and compares them.
 """
+
 from __future__ import annotations
 
 import re

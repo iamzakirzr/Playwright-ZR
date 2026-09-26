@@ -4,6 +4,7 @@ Checks the seam between search and generation: the answer must be supported
 by the passages that were *actually retrieved*, and the pipeline must abstain
 without calling the LLM when search finds nothing relevant.
 """
+
 import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
@@ -19,7 +20,7 @@ CASES = [
 ]
 
 
-@pytest.mark.parametrize("question, expected_doc, facts", CASES, ids=[c[1] for c in CASES])
+@pytest.mark.parametrize(("question", "expected_doc", "facts"), CASES, ids=[c[1] for c in CASES])
 def test_rag_retrieves_evidence_and_answers_from_it(rag_pipeline, question, expected_doc, facts):
     """The right passage is retrieved and its key fact appears in the answer."""
     result = rag_pipeline.answer(question)

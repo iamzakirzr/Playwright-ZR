@@ -4,6 +4,7 @@ Tests call intent methods (``find_by_username``) instead of embedding SQL.
 Every query is parameterised with ``?`` placeholders, never string-formatted,
 so test data can't cause SQL injection either.
 """
+
 from __future__ import annotations
 
 import sqlite3

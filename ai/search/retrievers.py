@@ -1,4 +1,5 @@
 """Concrete retrieval strategies: BM25 (keyword), embeddings (semantic) and hybrid."""
+
 from __future__ import annotations
 
 import math
@@ -9,7 +10,38 @@ from ai.search.base import Document, Retriever
 
 _TOKEN = re.compile(r"[a-z0-9$]+")
 _STOPWORDS = frozenset(
-    "a an the is are do does i my me you your we our of to for on in at and or can what how when will with it be".split()
+    [
+        "a",
+        "an",
+        "the",
+        "is",
+        "are",
+        "do",
+        "does",
+        "i",
+        "my",
+        "me",
+        "you",
+        "your",
+        "we",
+        "our",
+        "of",
+        "to",
+        "for",
+        "on",
+        "in",
+        "at",
+        "and",
+        "or",
+        "can",
+        "what",
+        "how",
+        "when",
+        "will",
+        "with",
+        "it",
+        "be",
+    ]
 )
 
 
@@ -47,7 +79,7 @@ class BM25Retriever(Retriever):
         """Sum the BM25 contribution of each query term for every document."""
         terms = tokenize(query)
         scores = []
-        for tf, length in zip(self._tfs, self._lengths):
+        for tf, length in zip(self._tfs, self._lengths, strict=True):
             score = 0.0
             for term in terms:
                 if term not in tf:

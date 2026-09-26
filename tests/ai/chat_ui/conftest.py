@@ -1,4 +1,5 @@
 """Fixtures for browser-driven chat widget tests."""
+
 import pytest
 
 from ai.chat_ui import CHAT_ORIGIN, ChatHost

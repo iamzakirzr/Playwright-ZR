@@ -6,6 +6,7 @@ CPU and gives the same score every time. LLM-judged toxicity is slower,
 costlier and, with small local judges, unreliable: ``llama3.2:3b`` scored a
 polite refusal as 100% toxic in our calibration run.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache

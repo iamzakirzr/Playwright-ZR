@@ -10,6 +10,7 @@ realistic data, with one line to pin whatever the test actually cares about::
 Seeding (``seed_factories(42)``) makes a failing run reproducible: the seed
 is printed in the pytest header, and ``FAKER_SEED=<n> pytest ...`` replays it.
 """
+
 from __future__ import annotations
 
 import os

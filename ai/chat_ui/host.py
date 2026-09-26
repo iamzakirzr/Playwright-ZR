@@ -10,6 +10,7 @@
 Every request the page makes is recorded, so tests can assert on the API
 contract between front end and back end.
 """
+
 from __future__ import annotations
 
 import json
@@ -39,7 +40,7 @@ class ChatHost:
         self._held: list[Route] = []
 
     # -- installation -------------------------------------------------------
-    def install(self) -> "ChatHost":
+    def install(self) -> ChatHost:
         """Register the HTML and API routes; call before navigating."""
         self.page.route(f"{CHAT_ORIGIN}/", self._serve_html)
         self.page.route(f"{CHAT_ORIGIN}/api/chat", self._handle_api)
@@ -71,12 +72,12 @@ class ChatHost:
         response = route.fetch(url=f"{self.ollama_host}/api/chat", headers=headers, timeout=180_000)
         route.fulfill(response=response)
 
-    def use_proxy(self) -> "ChatHost":
+    def use_proxy(self) -> ChatHost:
         """Switch to live mode: requests reach the real model."""
         self._backend = self._proxy
         return self
 
-    def use_stub(self, reply: str = "stub reply", status: int = 200) -> "ChatHost":
+    def use_stub(self, reply: str = "stub reply", status: int = 200) -> ChatHost:
         """Switch to stub mode: every request gets ``reply`` (or an error when ``status`` >= 400)."""
 
         def stub(route: Route, request: Request) -> None:
@@ -89,7 +90,7 @@ class ChatHost:
         self._backend = stub
         return self
 
-    def use_hold(self) -> "ChatHost":
+    def use_hold(self) -> ChatHost:
         """Switch to hold mode: requests hang until :meth:`release` (for loading-state tests)."""
         self._backend = lambda route, request: self._held.append(route)
         return self

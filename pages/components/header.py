@@ -1,4 +1,5 @@
 """Header component shared by every authenticated page (composition over inheritance)."""
+
 from playwright.sync_api import Page
 
 

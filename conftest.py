@@ -1,5 +1,6 @@
 """Shared fixtures. Tests request intent-level objects (page objects, service
 clients, repositories, chatbot, metrics) and never build them by hand."""
+
 from __future__ import annotations
 
 import os
@@ -26,6 +27,8 @@ TESTS_ROOT = Path(__file__).parent / "tests"
 #                       the opt-in 7B judge also gets `strong_judge`
 # --------------------------------------------------------------------------- #
 LIVE_FIXTURES = {"ollama_models", "require_ollama_model"}
+#: Folder names that map to a differently named marker (tests/mobile/web -> mobile_web).
+FOLDER_MARKER_ALIASES = {"web": "mobile_web", "native": "mobile_native"}
 JUDGE_FIXTURES = {"judge", "strong_metrics", "ragas_llm"}
 STRONG_JUDGE_FIXTURES = {"strong_metrics", "ragas_llm"}
 
@@ -38,7 +41,7 @@ def pytest_collection_modifyitems(config, items):
         except ValueError:
             continue
         for folder in parts[:-1]:
-            item.add_marker(getattr(pytest.mark, folder))
+            item.add_marker(getattr(pytest.mark, FOLDER_MARKER_ALIASES.get(folder, folder)))
         fixtures = set(getattr(item, "fixturenames", ()))
         if fixtures & LIVE_FIXTURES:
             item.add_marker(pytest.mark.live)

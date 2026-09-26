@@ -1,4 +1,5 @@
 """Repository mirroring API bookings into SQL, for cross-layer (API ↔ DB) checks."""
+
 from api.schemas.booking import Booking
 from db.repositories.base_repository import BaseRepository
 

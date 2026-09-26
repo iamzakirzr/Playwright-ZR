@@ -5,6 +5,7 @@
   context. This is the sharpest faithfulness probe: a model answering from
   pre-training ("100 °C") fails even though that answer is "true" in general.
 """
+
 import re
 
 import pytest

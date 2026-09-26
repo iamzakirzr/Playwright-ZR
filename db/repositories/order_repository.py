@@ -1,4 +1,5 @@
 """Repository for ``orders`` and ``order_items``, including the data-integrity queries."""
+
 from db.repositories.base_repository import BaseRepository
 
 

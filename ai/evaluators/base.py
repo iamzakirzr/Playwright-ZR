@@ -9,6 +9,7 @@ Deterministic metrics need no judge LLM: they are fast, free and never flaky.
 Prefer them wherever a rule can express the requirement, and save LLM judges
 for what needs understanding.
 """
+
 from __future__ import annotations
 
 from abc import abstractmethod

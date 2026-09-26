@@ -4,6 +4,7 @@ SQLite keeps the suite zero-infrastructure. Moving to Postgres means
 replacing this module (for example with psycopg); repositories depend only
 on a DB-API connection.
 """
+
 from __future__ import annotations
 
 import sqlite3

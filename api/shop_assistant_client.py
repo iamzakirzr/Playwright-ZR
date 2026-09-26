@@ -1,4 +1,5 @@
 """Service object for the AI shop assistant's HTTP API (``apps/shop_assistant``)."""
+
 from __future__ import annotations
 
 from playwright.sync_api import APIResponse

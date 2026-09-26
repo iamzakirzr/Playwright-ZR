@@ -7,6 +7,7 @@
 * When allure-pytest isn't installed, every helper is a no-op, so the framework
   still runs without it.
 """
+
 from __future__ import annotations
 
 import json
@@ -49,7 +50,9 @@ def attach_png(name: str, png: bytes) -> None:
         allure.attach(png, name=name, attachment_type=allure.attachment_type.PNG)
 
 
-def attach_llm_exchange(question: str, answer: str, *, model: str = "", context: list[str] | None = None, **telemetry: Any) -> None:
+def attach_llm_exchange(
+    question: str, answer: str, *, model: str = "", context: list[str] | None = None, **telemetry: Any
+) -> None:
     """Attach one LLM call (question, context, answer, model, latency, tokens) as a JSON record."""
     attach_json(
         f"LLM: {question[:60]}",
