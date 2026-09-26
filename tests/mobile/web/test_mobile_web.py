@@ -11,6 +11,9 @@ from playwright.sync_api import expect
 from ai.chat_ui import CHAT_ORIGIN, ChatHost
 from pages import ChatPage
 
+#: Every mobile page needs this; without it WebKit lays out at 980px and taps land on <html>.
+MOBILE_VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
+
 
 def column_count(page, locator) -> int:
     """How many distinct x positions the first cards sit at (1 means a stacked, single-column layout)."""
@@ -24,11 +27,19 @@ def has_horizontal_scroll(page) -> bool:
 
 
 def test_device_profile_is_applied(mobile_page, playwright, device_name):
-    """The emulated viewport, touch support and mobile user agent are active."""
+    """The emulated viewport, touch input and mobile user agent are active.
+
+    Touch is checked by behaviour (a tap delivers a ``touchstart`` event), not by
+    ``navigator.maxTouchPoints``: Playwright's Linux WebKit build reports 0 there
+    even though touch events work.
+    """
     expected = playwright.devices[device_name]
 
     assert mobile_page.viewport_size == expected["viewport"]
-    assert mobile_page.evaluate("navigator.maxTouchPoints") > 0
+    mobile_page.set_content(f"{MOBILE_VIEWPORT_META}<body style='height:100vh'></body>")
+    mobile_page.evaluate("window.touched = false; document.addEventListener('touchstart', () => window.touched = true)")
+    mobile_page.tap("body")
+    assert mobile_page.evaluate("window.touched"), "a tap did not deliver a touchstart event"
     assert mobile_page.evaluate("navigator.userAgent") == expected["user_agent"]
 
 
@@ -79,6 +90,8 @@ def test_chat_widget_is_usable_on_phone(mobile_page, settings):
     ChatHost(mobile_page, settings.ollama_host).install().use_stub(reply="Hi from mobile")
     chat = ChatPage(mobile_page, CHAT_ORIGIN).open().expect_loaded()
 
+    # Without <meta name="viewport"> the page lays out at 980px and is scaled down to fit.
+    assert mobile_page.evaluate("window.innerWidth") == mobile_page.viewport_size["width"], "missing viewport meta tag"
     expect(chat.input).to_be_in_viewport()
     chat.input.tap()
     assert chat.send_and_wait("hello") == "Hi from mobile"

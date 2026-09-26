@@ -12,7 +12,7 @@ and everything nightly.
 | `api-sql` | API, SQL and hybrid tests, parallel with `-n auto` | |
 | `ui` | UI pages, visual baselines, BDD scenarios | chromium, firefox, webkit |
 | `mobile-web` | phones emulated by Playwright | chromium, webkit |
-| `mobile-native` | Android emulator (API 30) + Appium 2 + Chrome | |
+| `mobile-native` | Android emulator (API 33) + Appium 2 + Chrome | |
 | `ai-offline` | embeddings, classifiers, prompts, chains, guards, MCP | |
 | `ai-live` | real model + 3B judge on Ollama | behaviour, judged |
 | `docker` | builds the test image, validates `docker-compose.yml` | |

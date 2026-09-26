@@ -133,12 +133,18 @@ jobs:
       - name: Run Appium tests on the emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 33
           target: google_apis
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: pytest -m mobile_native -v --junitxml=reports/junit.xml
+          # Chrome only reads command-line flags (here: skip the first-run screens) when it is
+          # the debug app; otherwise its welcome screen covers every page.
+          script: |
+            adb shell am set-debug-app --persistent com.android.chrome
+            adb shell 'echo "_ --disable-fre --no-default-browser-check --no-first-run" > /data/local/tmp/chrome-command-line'
+            adb shell dumpsys package com.android.chrome | grep versionName
+            pytest -m mobile_native -v --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
