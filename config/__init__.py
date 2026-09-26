@@ -1,5 +1,5 @@
 """Framework configuration (see ``config/settings.py``)."""
 
-from config.settings import Settings, get_settings
+from config.settings import Settings, env_flag, get_settings
 
-__all__ = ["Settings", "get_settings"]
+__all__ = ["Settings", "env_flag", "get_settings"]

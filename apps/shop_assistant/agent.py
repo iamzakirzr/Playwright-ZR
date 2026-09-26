@@ -87,29 +87,43 @@ SYSTEM_PROMPT = (
 
 
 OFF_TOPIC_REPLY = "I can only help with shopping at the Sauce Demo Store: products, your cart, orders and store policies."
+#: Store-specific nouns with their inflections spelled out. Verbs ("add"), greetings ("hi") and
+#: open prefixes (``\w*``) are deliberately absent: "add two numbers" or "history" must not bypass
+#: the classifier. Anything not matched here goes to the LLM scope check.
 _STORE_VOCABULARY = re.compile(
-    r"\b(cart|basket|order|buy|add|remove|checkout|price|cost|ship|shipping|deliver|delivery|return|refund|"
-    r"warranty|pay|payment|paypal|card|support|account|product|backpack|bike|light|t-?shirt|shirt|jacket|fleece|onesie|"
-    r"hi|hello|hey|thanks|thank)\w*\b",
+    r"\b(carts?|baskets?|orders?|checkout|prices?|shipping|delivery|deliveries|returns?|refunds?|warrant(?:y|ies)|"
+    r"payments?|paypal|store|shop|products?|backpacks?|bike lights?|t-?shirts?|jackets?|fleece|onesies?)\b",
     re.I,
 )
 
 
+#: A message that is *only* a greeting or thanks. Anchored, so "hi" inside "history" doesn't count.
+_SMALL_TALK = re.compile(r"^\W*(hi|hello|hey|thanks|thank you|thx|cheers)\b[\s\w]{0,10}\W*$", re.I)
+
+
 def mentions_store_vocabulary(text: str) -> bool:
-    """True if ``text`` contains any store word; such messages skip the LLM scope check."""
-    return bool(_STORE_VOCABULARY.search(text))
+    """True if ``text`` names a store concept or is plain small talk; such messages skip the LLM scope check."""
+    return bool(_STORE_VOCABULARY.search(text) or _SMALL_TALK.match(text))
 
 
 NO_TOOL_NUDGE = (
     "You described a cart change but did not call a tool, so nothing changed. "
     "Call the correct tool now (add_to_cart, remove_from_cart or view_cart)."
 )
-_ACTION_CLAIM = re.compile(r"\b(added|removed|put|placed|increased|updated|deleted)\b.*\b(cart|basket)\b", re.I | re.S)
+_ACTION_CLAIM = re.compile(r"\b(added|removed|put|placed|increased|updated|deleted)\b.*\b(cart|basket)\b", re.I)
+_NEGATION = re.compile(r"\b(not|no|nothing|never|yet|n't|cannot)\b|n't\b", re.I)
 
 
 def claims_cart_action(text: str) -> bool:
-    """True if ``text`` says the cart was changed ("I've added 2 backpacks to your cart")."""
-    return bool(_ACTION_CLAIM.search(text or ""))
+    """True if a sentence of ``text`` states a cart change ("I've added 2 backpacks to your cart").
+
+    Questions ("Would you like me to put it in your basket?") and negations ("nothing has been
+    added to your cart yet") are not claims, so they don't trigger the no-tool nudge.
+    """
+    for sentence in re.split(r"(?<=[.!?])\s+", text or ""):
+        if _ACTION_CLAIM.search(sentence) and not sentence.rstrip().endswith("?") and not _NEGATION.search(sentence):
+            return True
+    return False
 
 
 @dataclass
@@ -188,7 +202,8 @@ class ShopAgent:
         try:
             if name == "add_to_cart":
                 product = resolve_product(str(args.get("product", "")))
-                quantity = int(args.get("quantity") or 1)
+                raw_quantity = args.get("quantity")
+                quantity = 1 if raw_quantity in (None, "") else int(raw_quantity)  # 0 must reach Cart.add's check
                 cart.add(product, quantity)
                 args = {"product": product, "quantity": quantity}
                 output = {"ok": True, "cart": cart.as_dict()}
@@ -226,6 +241,22 @@ class ShopAgent:
         return response.json()["message"]
 
     def handle(self, session_id: str, message: str) -> AgentReply:
+        """Answer one user message as an atomic turn.
+
+        If anything fails mid-turn (Ollama timeout, 5xx), the session's history and cart are
+        restored, so a client retry doesn't see a duplicated message or double-applied tool calls.
+        """
+        history = self.histories.setdefault(session_id, [])
+        cart = self.cart(session_id)
+        history_checkpoint, cart_checkpoint = len(history), dict(cart.items)
+        try:
+            return self._handle(session_id, message)
+        except Exception:
+            del history[history_checkpoint:]
+            cart.items = cart_checkpoint
+            raise
+
+    def _handle(self, session_id: str, message: str) -> AgentReply:
         """Answer one user message, running tools as the model requests (bounded by MAX_TOOL_ROUNDS)."""
         if self.is_out_of_scope(message):
             return AgentReply(reply=OFF_TOPIC_REPLY)

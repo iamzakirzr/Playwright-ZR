@@ -36,6 +36,10 @@ class ScriptedShopAgent(ShopAgent):
         return self.replies.pop(0)
 
 
+#: Scripted classifier verdict for messages without store nouns ("add it"), which consult the scope guard first.
+IN_SCOPE = {"content": "IN_SCOPE"}
+
+
 def tool_reply(name: str, arguments) -> dict:
     """An Ollama-shaped assistant message that requests one tool call."""
     return {"content": "", "tool_calls": [{"function": {"name": name, "arguments": arguments}}]}
@@ -78,6 +82,12 @@ class TestCatalog:
     def test_resolve_product(self, loose, exact):
         """Loose names map to catalogue names."""
         assert resolve_product(loose) == exact
+
+    @pytest.mark.parametrize("name", ["", "  ", "s", "labs", "sauce", "Sauce Labs", "item"])
+    def test_empty_or_generic_names_match_nothing(self, name):
+        """Regression: "" was a substring of every name, so a missing product added a backpack."""
+        with pytest.raises(UnknownProductError):
+            resolve_product(name)
 
     def test_unknown_product_is_rejected(self):
         """Nothing is guessed for an unrelated name."""
@@ -124,12 +134,47 @@ class TestAgentLoop:
 
     def test_unknown_product_becomes_a_polite_error_not_a_crash(self):
         """A bad tool argument is reported back; the fallback reply explains it."""
-        agent = ScriptedShopAgent([tool_reply("add_to_cart", {"product": "laptop", "quantity": 1}), {"content": ""}])
+        agent = ScriptedShopAgent([IN_SCOPE, tool_reply("add_to_cart", {"product": "laptop", "quantity": 1}), {"content": ""}])
 
         result = agent.handle("s1", "add a laptop")
 
         assert result.tools_called[0].output["ok"] is False
         assert "couldn't" in result.reply
+        assert agent.cart("s1").items == {}
+
+    def test_zero_quantity_is_an_error_not_one_item(self):
+        """Regression: ``quantity or 1`` turned 0 into 1 and skipped Cart.add's validation."""
+        agent = ScriptedShopAgent([tool_reply("add_to_cart", {"product": "backpack", "quantity": 0}), {"content": "ok"}])
+
+        call = agent.handle("s1", "set backpacks to 0").tools_called[0]
+
+        assert call.output == {"ok": False, "error": "quantity must be at least 1"}
+        assert agent.cart("s1").items == {}
+
+    def test_missing_product_adds_nothing(self):
+        """Regression: a tool call without a product used to add a Sauce Labs Backpack."""
+        agent = ScriptedShopAgent([IN_SCOPE, tool_reply("add_to_cart", {"quantity": 2}), {"content": "ok"}])
+
+        call = agent.handle("s1", "add two").tools_called[0]
+
+        assert call.output["ok"] is False
+        assert agent.cart("s1").items == {}
+
+    def test_failed_turn_rolls_back_history_and_cart(self):
+        """Regression: a mid-turn LLM failure left the message (and any tool effects) behind,
+        so a client retry double-applied them."""
+
+        class FlakyAgent(ScriptedShopAgent):
+            def _chat(self, messages, tools=True):
+                if not self.replies:
+                    raise TimeoutError("ollama timed out")
+                return super()._chat(messages, tools)
+
+        agent = FlakyAgent([tool_reply("add_to_cart", {"product": "backpack", "quantity": 2})])
+        with pytest.raises(TimeoutError):
+            agent.handle("s1", "add 2 backpacks")
+
+        assert agent.histories["s1"] == []
         assert agent.cart("s1").items == {}
 
     def test_tool_rounds_are_bounded(self):
@@ -167,6 +212,11 @@ class TestActionClaimGuard:
             ("The onesie has been removed from your cart.", True),
             ("Your cart contains 1 bike light.", False),
             ("You have 45 days to return an item.", False),
+            # Regressions: negations and offers are not claims, and must not trigger the nudge.
+            ("Your cart is empty; nothing has been added to your cart yet.", False),
+            ("Would you like me to put it in your basket?", False),
+            ("I haven't added anything to your cart.", False),
+            ("Sure. I've added the jacket to your cart. Anything else?", True),
         ],
     )
     def test_claims_cart_action(self, text, claims):
@@ -177,6 +227,7 @@ class TestActionClaimGuard:
         """A narrated-but-not-done action is retried once; the real tool then runs."""
         agent = ScriptedShopAgent(
             [
+                IN_SCOPE,
                 {"content": "I've added one more bike light to your cart."},
                 tool_reply("add_to_cart", {"product": "bike light", "quantity": 1}),
                 {"content": "Done."},
@@ -187,7 +238,7 @@ class TestActionClaimGuard:
 
         assert agent.cart("s1").items == {"Sauce Labs Bike Light": 1}
         assert [c.name for c in result.tools_called] == ["add_to_cart"]
-        assert agent.sent[1][-1]["content"] == NO_TOOL_NUDGE
+        assert agent.sent[2][-1]["content"] == NO_TOOL_NUDGE  # sent[0] is the scope check
 
     def test_false_claim_and_nudge_are_removed_from_history(self):
         """Later turns never see the false claim or the internal nudge."""
@@ -207,11 +258,11 @@ class TestActionClaimGuard:
     def test_only_one_nudge_per_turn(self):
         """A model that keeps narrating is not nudged forever; the second claim is returned as is."""
         claim = {"content": "I've added it to your cart."}
-        agent = ScriptedShopAgent([claim, claim])
+        agent = ScriptedShopAgent([IN_SCOPE, claim, claim])
 
         result = agent.handle("s1", "add it")
 
-        assert len(agent.sent) == 2
+        assert len(agent.sent) == 3  # scope check + claim + one nudged retry
         assert result.tools_called == []
 
 
@@ -225,6 +276,20 @@ class TestScopeGuard:
     def test_store_messages_skip_the_llm(self, message):
         """Store vocabulary is recognised without spending a model call (and can't be misclassified)."""
         assert mentions_store_vocabulary(message)
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "write a poem about history",
+            "tell me about high school",
+            "write python code to add two numbers",
+            "which card game should I learn",
+            "hi, can you summarise the French revolution for me",
+        ],
+    )
+    def test_unrelated_messages_go_to_the_classifier(self, message):
+        r"""Regression: open prefixes (``hi\w*``, ``add``) let these bypass the scope classifier."""
+        assert not mentions_store_vocabulary(message)
 
     def test_off_topic_message_is_refused_without_tools(self):
         """A clear OUT_OF_SCOPE verdict returns the fixed reply; no tools, no RAG."""

@@ -31,8 +31,14 @@ INJECTION_PATTERNS = [
     r"system override",
     r"you are no longer",
     r"you are now (dan|in developer mode|unrestricted|jailbroken)",
-    r"developer mode",
-    r"\bDAN\b",
+    # Only as an instruction to the model: "my name is Dan" or "turn off developer mode on my
+    # phone" are ordinary customer messages and must not be refused.
+    r"(enable|enter|activate|switch to|act in|stay in) developer mode",
+    r"developer mode (is (now )?)?(enabled|activated)\b",
+    r"developer mode is (now )?on\b",
+    r"\b(act|pretend|roleplay) (as|to be) dan\b",
+    r"\byou are dan\b",
+    r"\bdo anything now\b",
 ]
 
 #: PII shapes redacted from output.

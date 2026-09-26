@@ -18,6 +18,12 @@ class UnknownProductError(ValueError):
     """Raised when a product name can't be matched to the catalogue."""
 
 
+#: Shorter names ("s", "a") are substrings of everything, so they never identify a product.
+MIN_NAME_CHARS = 3
+#: Words shared by every catalogue name; on their own they name no product.
+GENERIC_WORDS = {"sauce", "labs", "sauce labs", "product", "item", "items", "products"}
+
+
 def _short_name(product: str) -> str:
     """Distinctive part of a catalogue name: "Sauce Labs Bike Light" gives "bike light"."""
     return product.lower().removeprefix("sauce labs ").strip()
@@ -31,8 +37,11 @@ def resolve_product(name: str) -> str:
         UnknownProductError: If nothing in the catalogue is a reasonable match.
     """
     wanted = name.strip().lower()
+    if len(wanted) < MIN_NAME_CHARS or wanted in GENERIC_WORDS:
+        raise UnknownProductError(f"No product matches {name!r}")
     for product in PRODUCTS:
-        if wanted == product.lower() or wanted.rstrip("s") in product.lower():
+        # Match against the distinctive part only: "labs" or "sauce" must not pick the first product.
+        if wanted == product.lower() or wanted.rstrip("s") in _short_name(product):
             return product
     for product in PRODUCTS:
         if _short_name(product) in wanted:

@@ -42,7 +42,7 @@ jobs:
       - run: ruff format --check .
 
   api-sql:
-    name: API / SQL / hybrid
+    name: API / SQL / hybrid / unit
     if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'functional'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -51,7 +51,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           browsers: ""
-      - run: pytest -m "api or sql or hybrid" -n auto --junitxml=reports/junit.xml
+      - run: pytest -m "api or sql or hybrid or unit" -n auto --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:

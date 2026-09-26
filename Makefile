@@ -7,7 +7,7 @@ BROWSER ?= chromium
 MARK_OFFLINE = not live and not judge and not strong_judge
 
 .DEFAULT_GOAL := help
-.PHONY: help setup models lint format test test-functional test-ui test-api test-sql bdd \
+.PHONY: help setup models lint format test test-functional test-unit test-ui test-api test-sql bdd \
         test-visual test-mobile-web test-mobile-native test-ai-offline test-ai-live test-ai-judged \
         test-ai-strong smoke report report-open docker-build docker-up docker-down clean
 
@@ -38,13 +38,16 @@ format: ## Auto-fix lint issues and reformat
 test: test-functional test-ai-offline ## Everything that needs no LLM server
 
 test-functional: ## UI + API + SQL + hybrid + BDD (no AI)
-	$(PYTEST) -m "(ui or api or sql or hybrid or bdd) and not ai and not live" --browser $(BROWSER) -n auto
+	$(PYTEST) -m "(unit or ui or api or sql or hybrid or bdd) and not ai and not live" --browser $(BROWSER) -n auto
 
 test-ui: ## Browser tests only (BROWSER=firefox make test-ui)
 	$(PYTEST) -m "ui" --browser $(BROWSER)
 
 test-api: ## Restful Booker API tests
 	$(PYTEST) -m "api"
+
+test-unit: ## Framework self-tests (seconds, no browser/network/model)
+	$(PYTEST) -m "unit"
 
 test-sql: ## SQLite repository tests
 	$(PYTEST) -m "sql or hybrid"

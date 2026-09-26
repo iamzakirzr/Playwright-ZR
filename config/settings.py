@@ -5,6 +5,7 @@ Every field can be overridden by an environment variable of the same name
 URLs, credentials, model names or thresholds; they read them from here.
 """
 
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -95,3 +96,12 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return the process-wide :class:`Settings` singleton (read once, cached)."""
     return Settings()
+
+
+def env_flag(name: str) -> bool:
+    """True only for an explicit "1", "true", "yes" or "on" (any case).
+
+    ``bool(os.getenv(name))`` would treat "0" and "false" as true, silently turning on modes such
+    as baseline updates that accept every visual change.
+    """
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}

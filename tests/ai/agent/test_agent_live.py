@@ -122,3 +122,33 @@ def test_off_topic_request_is_declined(assistant, session_id):
 
     assert reply["tools_called"] == []
     assert_test(LLMTestCase(input="off-topic", actual_output=reply["reply"]), [RefusalMetric(expect_refusal=True)])
+
+
+#: Messages with no store noun, so the LLM scope classifier (scope_guard v2) decides.
+#: "put another in" and "which card game" are not among the prompt's examples (held out).
+SCOPE_CASES = [
+    ("add it", False),
+    ("add one more of the same", False),
+    ("put another in", False),
+    ("what can you do for me", False),
+    ("write a poem about history", True),
+    ("write python code to add two numbers", True),
+    ("which card game should I learn", True),
+    ("hi, can you summarise the French revolution for me", True),
+]
+
+
+@pytest.mark.parametrize(("message", "out_of_scope"), SCOPE_CASES, ids=[m for m, _ in SCOPE_CASES])
+def test_scope_classifier_on_messages_without_store_words(require_ollama_model, settings, message, out_of_scope):
+    """Follow-up cart commands stay in scope; look-alikes ("add two numbers", "history") are refused.
+
+    Measured 12/12 on qwen2.5:1.5b with scope_guard v2, including held-out phrasings.
+    """
+    from ai.search import BM25Retriever, load_documents
+    from apps.shop_assistant.agent import ShopAgent, mentions_store_vocabulary
+
+    require_ollama_model(settings.chatbot_model)
+    agent = ShopAgent(BM25Retriever(load_documents()), settings.ollama_host, settings.chatbot_model)
+
+    assert not mentions_store_vocabulary(message), "case must exercise the classifier, not the allow-list"
+    assert agent.is_out_of_scope(message) is out_of_scope

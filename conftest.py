@@ -52,10 +52,27 @@ def pytest_collection_modifyitems(config, items):
 
 
 def pytest_configure(config):
-    """Seed the data factories once per run so failures can be replayed with FAKER_SEED."""
+    """Pick the run's base seed once and share it with xdist workers through FAKER_SEED.
+
+    Workers start after this hook runs on the controller and inherit its environment, so every
+    process uses the same base seed as the one printed in the report header.
+    """
     from data import seed_factories
 
     config._faker_seed = seed_factories()
+    os.environ["FAKER_SEED"] = str(config._faker_seed)
+
+
+@pytest.fixture(autouse=True)
+def _seed_test_data(request):
+    """Reseed Faker per test from (base seed, test id).
+
+    Each test's data then depends only on the base seed and its own id, not on which worker ran
+    it or which tests ran before, so ``FAKER_SEED=<n> pytest <that test>`` reproduces it exactly.
+    """
+    from data import seed_factories
+
+    seed_factories(f"{request.config._faker_seed}:{request.node.nodeid}")
 
 
 def pytest_report_header(config):
@@ -109,6 +126,32 @@ def logged_in(login_page, inventory_page, settings) -> InventoryPage:
     """Start a test already authenticated on the inventory page."""
     login_page.open().login_as(settings.ui_standard_user, settings.ui_password)
     return inventory_page.expect_loaded()
+
+
+@pytest.fixture(scope="session")
+def sauce_auth_state(browser, settings, tmp_path_factory) -> Path:
+    """Log in through the UI once per session and save cookies + localStorage to a file.
+
+    Modules opt in by overriding ``browser_context_args`` (see ``tests/ui/test_checkout_e2e.py``);
+    their tests then start signed in, skipping the login form, which saves a few seconds per test
+    and removes a dependency on the login page from unrelated tests.
+    """
+    context = browser.new_context()
+    try:
+        page = context.new_page()
+        LoginPage(page, settings.ui_base_url).open().login_as(settings.ui_standard_user, settings.ui_password)
+        InventoryPage(page, settings.ui_base_url).expect_loaded()
+        path = tmp_path_factory.mktemp("auth") / "sauce_state.json"
+        context.storage_state(path=path)
+        return path
+    finally:
+        context.close()
+
+
+@pytest.fixture
+def signed_in(inventory_page) -> InventoryPage:
+    """Inventory page opened directly; the context must carry ``sauce_auth_state``."""
+    return inventory_page.open().expect_loaded()
 
 
 # --------------------------------------------------------------------------- #

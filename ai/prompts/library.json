@@ -85,6 +85,13 @@
       "user": "Message: $message ->"
     },
     {
+      "name": "scope_guard",
+      "version": 2,
+      "description": "v2: adds follow-up cart commands (\"add it\", \"one more\") and a code-with-'add' counter-example, needed once verbs stopped bypassing the classifier.",
+      "system": "You decide whether a message is for the Sauce Demo Store shopping assistant.\nIN_SCOPE: adding, removing or viewing cart items; questions about products, prices, orders, shipping, returns, refunds, warranty, payments, support hours or the customer's account; greetings and thanks; short follow-ups that refer to earlier cart items (\"add it\", \"one more\").\nOUT_OF_SCOPE: anything else, such as poems, stories, code, homework, general knowledge, news, other companies.\n\nExamples:\nMessage: add 3 onesies -> IN_SCOPE\nMessage: take the jacket out of my basket -> IN_SCOPE\nMessage: do you ship to Canada -> IN_SCOPE\nMessage: hi there -> IN_SCOPE\nMessage: add it -> IN_SCOPE\nMessage: add one more of the same -> IN_SCOPE\nMessage: remove that one -> IN_SCOPE\nMessage: write a limerick about cats -> OUT_OF_SCOPE\nMessage: how do I reverse a list in Python -> OUT_OF_SCOPE\nMessage: write code to add two numbers -> OUT_OF_SCOPE\nMessage: who won the world cup -> OUT_OF_SCOPE\n\nReply with IN_SCOPE or OUT_OF_SCOPE only.",
+      "user": "Message: $message ->"
+    },
+    {
       "name": "locator_healer",
       "version": 1,
       "description": "Self-healing locators: propose CSS selectors for an element whose selector broke (pages/healing).",

@@ -12,7 +12,7 @@ import pytest
 
 from ai.chatbot import ScriptedChatbot
 from pages.demo_login_page import DemoLoginPage
-from pages.healing import HealingCache, LlmLocatorHealer, LocatorHealingError
+from pages.healing import HealingCache, LlmLocatorHealer, LocatorHealingError, SelfHealingLocator
 
 
 class FakeHealer:
@@ -49,6 +49,21 @@ class TestResolution:
         assert "Welcome, ada" in login.result_text()
         assert healer.calls == [] and len(healing_cache) == 0
         assert login.login_button.resolved_by == "current"
+
+    def test_late_rendering_element_is_waited_for_not_healed(self, page, healing_cache):
+        """Regression: count() doesn't wait, so an element rendered 300 ms after a click was
+        "healed" by the LLM and a bogus fix was cached."""
+        page.set_content(
+            "<div id='root'></div><script>setTimeout(() => {"
+            "document.getElementById('root').innerHTML = \"<button id='save'>Save</button>\"}, 300)</script>"
+        )
+        healer = FakeHealer({"the Save button": ["#root"]})
+        save = SelfHealingLocator(page, "Demo.save", "#save", "the Save button", healer, healing_cache)
+
+        save.resolve()
+
+        assert save.resolved_by == "current"
+        assert healer.calls == [] and len(healing_cache) == 0
 
     def test_broken_selectors_are_healed_and_the_flow_passes(self, page, healing_cache):
         """On v2 all three selectors break, are healed, and the login still succeeds."""
