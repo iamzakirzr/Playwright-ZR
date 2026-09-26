@@ -230,6 +230,32 @@ class TestGoldenGate:
 
         assert gate.review([golden])[0].accepted
 
+    def test_whitespace_only_context_is_rejected_not_a_crash(self, gate):
+        """Regression: max() over no sentences raised ValueError and sank the whole batch."""
+        golden = Golden(input="Q?", expected_output="A", context=[" "])
+
+        assert gate.review([golden])[0].problems == ["no source context"]
+
+    @pytest.mark.parametrize(
+        "context",
+        [
+            [
+                "Items must be unused and in original packaging, and refunds are issued to the original payment method within 5 to 7 business days after we receive the returned item."
+            ],
+            ["- Free shipping over $75\n- Refunds are issued to the original payment method within 5 to 7 business days"],
+        ],
+        ids=["clause-of-long-sentence", "bullet-list"],
+    )
+    def test_copied_clause_is_rejected(self, gate, context):
+        """Regression: F-measure hid a clause lifted from a long sentence or an unpunctuated list."""
+        golden = Golden(
+            input="Are refunds issued to the original payment method within 5 to 7 business days?",
+            expected_output="Yes.",
+            context=context,
+        )
+
+        assert gate.review([golden])[0].problems == ["question copied from the context"]
+
     def test_near_duplicate_of_an_accepted_question_is_rejected(self, gate):
         """Only the first of two paraphrased questions is kept."""
         first = Golden(input="Can I return an item after 45 days?", expected_output="No.", context=self.CONTEXT)

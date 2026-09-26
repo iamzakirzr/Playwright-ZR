@@ -95,6 +95,23 @@ class TestCatalog:
         with pytest.raises(UnknownProductError):
             resolve_product(name)
 
+    @pytest.mark.parametrize(
+        ("text", "product", "named"),
+        [
+            ("remove the jacket", "Sauce Labs Fleece Jacket", True),
+            ("take the lights out", "Sauce Labs Bike Light", True),
+            ("drop the t-shirt", "Sauce Labs Bolt T-Shirt", True),
+            ("remove the backpack", "Sauce Labs Backpack", True),
+            ("remove it", "Sauce Labs Backpack", False),
+            ("remove the sauce labs thing", "Sauce Labs Backpack", False),
+        ],
+    )
+    def test_mentions_product_by_any_distinctive_word(self, text, product, named):
+        """Regression: only the full short name counted, so "remove the jacket" never matched."""
+        from apps.shop_assistant.catalog import mentions_product
+
+        assert mentions_product(text, product) is named
+
     def test_unknown_product_is_rejected(self):
         """Nothing is guessed for an unrelated name."""
         with pytest.raises(UnknownProductError):

@@ -34,8 +34,13 @@ def run_conversation(
 
 
 def _says(text: str, phrase: str) -> bool:
-    """True if ``phrase`` occurs in ``text`` (already lower-case) not glued to other letters or digits."""
-    return re.search(rf"(?<!\w){re.escape(phrase.lower())}(?!\w)", text) is not None
+    """True if ``phrase`` occurs in ``text`` (lower-case) as whole words, allowing a plural "s".
+
+    "1 x" doesn't match inside "21 x", "5" doesn't match inside "$1.5", and "backpack" matches
+    "backpacks".
+    """
+    pattern = rf"(?<![\w.]){re.escape(phrase.lower())}(?:e?s)?(?![\w]|\.\d)"
+    return re.search(pattern, text) is not None
 
 
 class RetentionProbeMetric(BaseConversationalMetric):

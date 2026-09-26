@@ -99,3 +99,22 @@ def test_wrapped_chat_models_still_get_json_mode():
     assert _is_chat_model(model.bind(temperature=0))
     assert _is_chat_model(model.with_retry())
     assert not _is_chat_model(RunnableLambda(lambda m: m))
+
+
+def test_only_text_blocks_become_the_reply():
+    """Non-text blocks (attachments) are not appended to the answer."""
+    reply = AIMessage(content=[{"type": "text", "text": "Answer"}, {"type": "text-plain", "text": "attached document"}])
+    app = LangChainChatbot(RunnableLambda(lambda _m: reply))
+
+    assert app.complete("s", "u").text == "Answer"
+
+
+def test_json_mode_on_a_wrapped_chat_model_keeps_its_retry_policy():
+    """Regression: ``.bind(format=...)`` on a RunnableRetry rebuilt it with default retries."""
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+
+    model = GenericFakeChatModel(messages=iter([AIMessage(content='{"ok": true}')])).with_retry(stop_after_attempt=1)
+    app = LangChainChatbot(model)
+
+    assert app.complete("s", "u", json_mode=True).text == '{"ok": true}'
+    assert app.llm.max_attempt_number == 1

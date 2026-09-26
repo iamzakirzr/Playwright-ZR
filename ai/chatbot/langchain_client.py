@@ -107,17 +107,18 @@ class LangChainChatbot(ChatbotClient):
 
     def complete(self, system: str, user: str, *, json_mode: bool = False) -> ChatResponse:
         """One system + user exchange straight to the model (used by prompt and chain tests)."""
-        # Only chat models understand format="json", including wrapped ones (.bind(), .with_retry());
-        # plain Runnables such as test doubles are used as is.
-        llm = self.llm.bind(format="json") if json_mode and _is_chat_model(self.llm) else self.llm
-        return self._timed(lambda: llm.invoke([SystemMessage(system), HumanMessage(user)]))
+        # format="json" is passed per call, not via .bind(): binding a RunnableRetry rebuilds it with
+        # default retry settings. Only chat models (also wrapped ones) get it; test doubles don't.
+        kwargs = {"format": "json"} if json_mode and _is_chat_model(self.llm) else {}
+        return self._timed(lambda: self.llm.invoke([SystemMessage(system), HumanMessage(user)], **kwargs))
 
     def _timed(self, call) -> ChatResponse:
         """Invoke ``call`` and wrap its ``AIMessage`` (or string) with latency and token counts."""
         started = time.perf_counter()
         message = call()
         latency_ms = (time.perf_counter() - started) * 1000
-        text = _content_text(message.content) if isinstance(message, AIMessage) else str(message)
+        # AIMessage.text keeps only text blocks when content is a list of blocks.
+        text = str(message.text) if isinstance(message, AIMessage) else str(message)
         usage = getattr(message, "usage_metadata", None) or {}
         return ChatResponse(
             text=text.strip(),
@@ -135,10 +136,3 @@ def _is_chat_model(runnable: Runnable) -> bool:
         if runnable is None:
             return False
     return True
-
-
-def _content_text(content: str | list) -> str:
-    """Message content as plain text: a string as is, or the ``text`` of each text block joined."""
-    if isinstance(content, str):
-        return content
-    return "".join(block.get("text", "") if isinstance(block, dict) else str(block) for block in content)

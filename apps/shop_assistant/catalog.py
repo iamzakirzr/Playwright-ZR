@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import difflib
+import re
 from dataclasses import dataclass, field
 
 PRODUCTS: dict[str, float] = {
@@ -53,9 +54,14 @@ def resolve_product(name: str) -> str:
 
 
 def mentions_product(text: str, product: str) -> bool:
-    """True if ``text`` names ``product`` by its distinctive part ("the backpack", "bike lights")."""
-    short = _short_name(product)
-    return bool(text) and (short in text.lower() or short.rstrip("s") in text.lower())
+    """True if ``text`` names ``product`` by any distinctive word: "the jacket", "lights", "t-shirt"."""
+    words = re.findall(r"[a-z0-9-]+", (text or "").lower())
+    return any(
+        word.rstrip("s") == part.rstrip("s")
+        for part in _short_name(product).split()
+        if len(part) >= 4 and part not in GENERIC_WORDS
+        for word in words
+    )
 
 
 def cart_lines(view: dict) -> list[str]:

@@ -56,15 +56,18 @@ def rouge_scores(prediction: str, reference: str, measure: str = "fmeasure") -> 
     return {key: float(getattr(scores[key], measure)) for key in ("rouge1", "rouge2", "rougeL")}
 
 
-def bleu_score(prediction: str, reference: str) -> float:
+def bleu_score(prediction: str, reference: str, effective_order: bool = False) -> float:
     """SacreBLEU score scaled to 0 to 1 (SacreBLEU reports 0 to 100).
 
     Uses ``corpus_bleu`` with SacreBLEU's defaults, exactly what HF ``evaluate``'s ``sacrebleu``
-    metric calls. (``sentence_bleu`` would switch on effective order and score a two-word exact
-    match 1.0 where HF reports 0.)
+    metric calls. Standard BLEU needs 4-grams, so any text under 4 tokens scores 0, even an exact
+    match. Pass ``effective_order=True`` for short outputs (SacreBLEU's ``sentence_bleu``
+    behaviour), knowing the numbers then differ from HF ``evaluate``.
     """
     import sacrebleu
 
+    if effective_order:
+        return float(sacrebleu.sentence_bleu(prediction, [reference]).score) / 100
     return float(sacrebleu.corpus_bleu([prediction], [[reference]]).score) / 100
 
 
@@ -116,14 +119,16 @@ class BleuMetric(_ReferenceMetric):
 
     Args:
         threshold: Minimum score to pass.
+        effective_order: Score outputs shorter than 4 tokens sensibly (see :func:`bleu_score`).
     """
 
     metric_name = "BLEU"
 
-    def __init__(self, threshold: float = 0.3) -> None:
+    def __init__(self, threshold: float = 0.3, effective_order: bool = False) -> None:
         """Create the BleuMetric; arguments are described in the class docstring."""
         super().__init__(pass_threshold=threshold)
+        self.effective_order = effective_order
 
     def compare(self, prediction: str, reference: str) -> float:
         """SacreBLEU / 100."""
-        return bleu_score(prediction, reference)
+        return bleu_score(prediction, reference, effective_order=self.effective_order)

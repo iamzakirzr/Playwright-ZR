@@ -12,16 +12,23 @@ from apps.playground import PRODUCTS, serve_playground
 from pages.support import StaticSite
 
 
+@pytest.fixture(autouse=True)
+def _no_crashing_fake_endpoints():
+    """Fail any essentials test in which a fake endpoint raised, on every site it created.
+
+    A crashing handler answers 500; without this check a page showing an error state could make
+    the test pass for the wrong reason.
+    """
+    StaticSite.reset_registry()
+    yield
+    errors = [error for site in StaticSite.created for error in site.errors]
+    assert errors == [], f"fake endpoints raised: {errors}"
+
+
 @pytest.fixture
 def site(context) -> StaticSite:
-    """Playground on the test's default browser context (pytest-playwright's ``context`` fixture).
-
-    Fails the test at teardown if any fake endpoint raised, so a crashing handler can't hide
-    behind a page that happens to show an error state.
-    """
-    site = serve_playground(context)
-    yield site
-    assert site.errors == [], f"fake endpoints raised: {site.errors}"
+    """Playground on the test's default browser context (pytest-playwright's ``context`` fixture)."""
+    return serve_playground(context)
 
 
 @pytest.fixture

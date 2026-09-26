@@ -88,6 +88,14 @@ class StaticSite:
         origin: Fake origin the site appears at.
     """
 
+    #: Every site created since the last :meth:`reset_registry` (lets a fixture check them all).
+    created: list[StaticSite] = []
+
+    @classmethod
+    def reset_registry(cls) -> None:
+        """Forget previously created sites (call at the start of each test)."""
+        cls.created.clear()
+
     def __init__(self, context: BrowserContext, root: Path, origin: str = "https://playground.local") -> None:
         """Store configuration; nothing is routed until :meth:`install`."""
         self.context = context
@@ -97,6 +105,7 @@ class StaticSite:
         #: Exceptions raised by API handlers (each answered with HTTP 500); assert this is empty.
         self.errors: list[str] = []
         self._api: dict[tuple[str, str], Handler] = {}
+        StaticSite.created.append(self)
 
     # -- configuration -------------------------------------------------------
     def api(self, method: str, path: str, handler: Handler) -> StaticSite:

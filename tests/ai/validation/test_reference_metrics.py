@@ -68,6 +68,12 @@ def test_local_backends_match_hugging_face_evaluate(prediction, reference):
     assert bleu_score(prediction, reference) == pytest.approx(hf_bleu)
 
 
+def test_short_exact_match_needs_effective_order():
+    """Standard BLEU needs 4-grams: a 2-token exact match scores 0 unless effective order is on."""
+    assert bleu_score("Cart empty.", "Cart empty.") == 0.0
+    assert bleu_score("Cart empty.", "Cart empty.", effective_order=True) == pytest.approx(1.0)
+
+
 class TestAsDeepEvalMetrics:
     """The wrappers plug into ``assert_test`` like any other metric."""
 

@@ -79,3 +79,19 @@ def test_retention_probe_matches_whole_words_only():
     metric.measure(case)
 
     assert not metric.is_successful()
+
+
+def test_retention_probe_plural_and_decimal_rules():
+    """Plurals count ("backpacks" says "backpack"); digits inside decimals don't ("$1.5" doesn't say "5")."""
+    from deepeval.test_case import ConversationalTestCase, Turn
+
+    case = ConversationalTestCase(
+        turns=[Turn(role="user", content="?"), Turn(role="assistant", content="1 of your 2 backpacks. Total $1.5")]
+    )
+
+    plural, decimal = RetentionProbeMetric(["backpack"]), RetentionProbeMetric(["5"])
+    plural.measure(case)
+    decimal.measure(case)
+
+    assert plural.is_successful()
+    assert not decimal.is_successful()

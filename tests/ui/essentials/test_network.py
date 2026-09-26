@@ -94,8 +94,10 @@ def test_crashing_endpoint_answers_500_instead_of_hanging(page, site, base_url_p
 
     site.api("GET", "/api/products", broken)
 
-    products = ProductsPage(page, base_url_playground).open()
+    try:
+        products = ProductsPage(page, base_url_playground).open()
 
-    expect(products.status).to_have_text("Could not load products")
-    assert site.errors == ["GET /api/products: KeyError('boom')"]
-    site.errors.clear()  # expected here; the fixture fails any other test with recorded errors
+        expect(products.status).to_have_text("Could not load products")
+        assert site.errors == ["GET /api/products: KeyError('boom')"]
+    finally:
+        site.errors.clear()  # expected here; the autouse check fails any other test with errors
