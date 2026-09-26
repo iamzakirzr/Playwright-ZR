@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dialogs</title></head>
+<body>
+  <button onclick="alert('Saved!'); out('alert closed')">Alert</button>
+  <button onclick="out(confirm('Delete item?') ? 'deleted' : 'kept')">Confirm</button>
+  <button onclick="const n = prompt('Your name?', 'guest'); out(n === null ? 'cancelled' : 'hello ' + n)">Prompt</button>
+  <p data-testid="result"></p>
+  <script>function out(t) { document.querySelector("[data-testid=result]").textContent = t; }</script>
+</body></html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Login</title></head>
+<body>
+  <label>Username <input name="username"></label>
+  <button>Sign in</button>
+  <script>
+    document.querySelector("button").addEventListener("click", async () => {
+      const username = document.querySelector("[name=username]").value;
+      const res = await fetch("/api/login", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({username})});
+      const {token} = await res.json();
+      localStorage.setItem("token", token);
+      location.href = "/account.html";
+    });
+  </script>
+</body></html>

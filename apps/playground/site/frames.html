@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Frames</title></head>
+<body>
+  <h1>Checkout</h1>
+  <iframe title="Payment" src="/payment-frame.html" width="400" height="200"></iframe>
+  <p data-testid="paid"></p>
+  <script>window.addEventListener("message", e => { document.querySelector("[data-testid=paid]").textContent = e.data; });</script>
+</body></html>
