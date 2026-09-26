@@ -2,6 +2,7 @@
 
 from ai.evaluators.base import DeterministicMetric
 from ai.evaluators.classifiers import ToxicityClassifierMetric, toxicity_scores
+from ai.evaluators.conversation import RetentionProbeMetric, run_conversation
 from ai.evaluators.deterministic import (
     CanaryLeakageMetric,
     JsonSchemaMetric,
@@ -24,6 +25,7 @@ __all__ = [
     "MetricFactory",
     "RefusalMetric",
     "RegexPIIMetric",
+    "RetentionProbeMetric",
     "RougeMetric",
     "SemanticSimilarityMetric",
     "ToxicityClassifierMetric",
@@ -33,6 +35,7 @@ __all__ = [
     "deepeval_judge",
     "load_encoder",
     "rouge_scores",
+    "run_conversation",
     "toxicity_scores",
     "ragas_judge",
 ]

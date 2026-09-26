@@ -14,6 +14,7 @@ from apps.shop_assistant.agent import (
     NO_TOOL_NUDGE,
     OFF_TOPIC_REPLY,
     ShopAgent,
+    asks_about_cart,
     claims_cart_action,
     mentions_store_vocabulary,
     normalise_arguments,
@@ -103,6 +104,17 @@ class TestCatalog:
         assert cart.items == {"Sauce Labs Backpack": 3, "Sauce Labs Onesie": 1}
         assert cart.total == round(3 * 29.99 + 7.99, 2)
 
+    def test_partial_removal(self):
+        """Regression: "remove one backpack" emptied the cart because remove() had no quantity."""
+        cart = Cart()
+        cart.add("Sauce Labs Backpack", 2)
+
+        assert cart.remove("Sauce Labs Backpack", 1)
+        assert cart.items == {"Sauce Labs Backpack": 1}
+        assert cart.remove("Sauce Labs Backpack", 5)  # more than present removes the line
+        assert cart.items == {}
+        assert not cart.remove("Sauce Labs Backpack")
+
     def test_quantity_must_be_positive(self):
         """Zero or negative quantities are refused."""
         with pytest.raises(ValueError):
@@ -150,6 +162,78 @@ class TestAgentLoop:
 
         assert call.output == {"ok": False, "error": "quantity must be at least 1"}
         assert agent.cart("s1").items == {}
+
+    def test_remove_tool_honours_quantity(self):
+        """The model can remove some of a product; omitting quantity still removes all."""
+        agent = ScriptedShopAgent(
+            [
+                tool_reply("add_to_cart", {"product": "backpack", "quantity": 3}),
+                tool_reply("remove_from_cart", {"product": "backpack", "quantity": 1}),
+                {"content": "ok"},
+            ]
+        )
+
+        agent.handle("s1", "add 3 backpacks then remove one")
+
+        assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
+
+    @pytest.mark.parametrize(
+        ("message", "left"),
+        [("remove one backpack", 2), ("please take out 2 backpacks", 1), ("remove the backpack", 0), ("remove a backpack", 2)],
+    )
+    def test_removal_count_falls_back_to_the_users_words(self, message, left):
+        """Regression: the 1.5B model omits quantity, so "remove one" removed all three."""
+        agent = ScriptedShopAgent([tool_reply("remove_from_cart", {"product": "backpack"}), {"content": "ok"}])
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+
+        agent.handle("s1", message)
+
+        assert agent.cart("s1").items.get("Sauce Labs Backpack", 0) == left
+
+    def test_count_applies_only_to_the_product_it_names(self):
+        """In "remove one backpack and the jacket", only the backpack has a count."""
+        agent = ScriptedShopAgent(
+            [
+                {
+                    "content": "",
+                    "tool_calls": [
+                        {"function": {"name": "remove_from_cart", "arguments": {"product": "backpack"}}},
+                        {"function": {"name": "remove_from_cart", "arguments": {"product": "fleece jacket"}}},
+                    ],
+                },
+                {"content": "ok"},
+            ]
+        )
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+        agent.cart("s1").add("Sauce Labs Fleece Jacket", 2)
+
+        agent.handle("s1", "remove one backpack and the jacket")
+
+        assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
+
+    def test_cart_question_is_answered_from_the_real_cart(self):
+        """Regression: asked "what's in my cart now?", the model invented three items without a tool."""
+        agent = ScriptedShopAgent([{"content": "You have 1 backpack, 1 bike light and 1 t-shirt ($49.98)."}])
+        agent.cart("s1").add("Sauce Labs Backpack", 1)
+
+        result = agent.handle("s1", "What's in my cart now?")
+
+        assert [c.name for c in result.tools_called] == ["view_cart"]
+        assert result.reply == "Your cart: 1 x Sauce Labs Backpack. Total $29.99."
+
+    @pytest.mark.parametrize(
+        ("message", "is_cart_question"),
+        [
+            ("What's in my cart now?", True),
+            ("show me my basket", True),
+            ("how many items are in my cart", True),
+            ("add 2 backpacks to my cart", False),
+            ("What is your return policy?", False),
+        ],
+    )
+    def test_cart_question_detection(self, message, is_cart_question):
+        """Only questions about cart contents trigger the grounded answer."""
+        assert asks_about_cart(message) is is_cart_question
 
     def test_missing_product_adds_nothing(self):
         """Regression: a tool call without a product used to add a Sauce Labs Backpack."""

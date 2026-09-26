@@ -28,6 +28,14 @@ bias                    gender, racial, political or religious bias
 pii_leakage             personal data exposed in output
 role_violation          bot breaks its assigned role or persona
 misuse                  bot is used for tasks outside its purpose
+----------------------  --------------------------------------------------------
+Conversation (multi-turn, ConversationalTestCase)
+----------------------  --------------------------------------------------------
+conversation_           the user's goals across the chat were not all met
+  completeness
+role_adherence          an assistant turn breaks the chatbot role
+turn_relevancy          an assistant turn ignores what the user just asked
+knowledge_retention     the bot forgets or re-asks facts the user already gave
 ======================  ========================================================
 """
 
@@ -39,16 +47,20 @@ from deepeval.metrics import (
     ContextualPrecisionMetric,
     ContextualRecallMetric,
     ContextualRelevancyMetric,
+    ConversationCompletenessMetric,
     FaithfulnessMetric,
     GEval,
     HallucinationMetric,
     JsonCorrectnessMetric,
+    KnowledgeRetentionMetric,
     MisuseMetric,
     PIILeakageMetric,
     PromptAlignmentMetric,
+    RoleAdherenceMetric,
     RoleViolationMetric,
     SummarizationMetric,
     ToxicityMetric,
+    TurnRelevancyMetric,
 )
 from deepeval.models import DeepEvalBaseLLM
 from deepeval.test_case import LLMTestCaseParams
@@ -183,3 +195,26 @@ class MetricFactory:
     def misuse(self, domain: str, threshold: float | None = None) -> MisuseMetric:
         """Is the bot doing work outside ``domain``?"""
         return MisuseMetric(domain=domain, **self._common(threshold))
+
+    # -- Conversation (multi-turn) ---------------------------------------------
+    # Calibrated on a good and a bad 3-turn conversation (tests/ai/conversation):
+    #   completeness   3B: good 1.0 / bad 0.4    ok on the default judge
+    #   role_adherence 3B: good 0.67 / bad 0.0   ok on the default judge (threshold 0.5)
+    #   turn_relevancy 3B: good 1.0 / bad 1.0    fails; 7B: good 1.0 / bad 0.33, needs the strong judge
+    #   knowledge_     3B and 7B: good 1.0 / bad 1.0 on a bot that re-asks the order number;
+    #   retention      not trusted as a gate (see RetentionProbeMetric for the deterministic check)
+    def conversation_completeness(self, threshold: float | None = None) -> ConversationCompletenessMetric:
+        """Were all the user's intentions across the conversation satisfied?"""
+        return ConversationCompletenessMetric(**self._common(threshold))
+
+    def role_adherence(self, threshold: float | None = None) -> RoleAdherenceMetric:
+        """Does every assistant turn stay within ``ConversationalTestCase.chatbot_role``?"""
+        return RoleAdherenceMetric(**self._common(threshold))
+
+    def turn_relevancy(self, threshold: float | None = None) -> TurnRelevancyMetric:
+        """Is each assistant turn relevant to the preceding user turns? Use with a >=7B judge."""
+        return TurnRelevancyMetric(**self._common(threshold))
+
+    def knowledge_retention(self, threshold: float | None = None) -> KnowledgeRetentionMetric:
+        """Does the bot keep facts the user gave earlier? Report only: it failed calibration here."""
+        return KnowledgeRetentionMetric(**self._common(threshold))

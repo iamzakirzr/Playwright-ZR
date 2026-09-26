@@ -68,9 +68,24 @@ class Cart:
             raise ValueError("quantity must be at least 1")
         self.items[product] = self.items.get(product, 0) + quantity
 
-    def remove(self, product: str) -> bool:
-        """Remove a product entirely; return False if it wasn't in the cart."""
-        return self.items.pop(product, None) is not None
+    def remove(self, product: str, quantity: int | None = None) -> bool:
+        """Remove ``quantity`` of a product (all of it when None or at least what's there).
+
+        Returns:
+            False if the product wasn't in the cart.
+
+        Raises:
+            ValueError: If ``quantity`` is less than 1.
+        """
+        if product not in self.items:
+            return False
+        if quantity is not None and quantity < 1:
+            raise ValueError("quantity must be at least 1")
+        if quantity is None or quantity >= self.items[product]:
+            del self.items[product]
+        else:
+            self.items[product] -= quantity
+        return True
 
     def clear(self) -> None:
         """Empty the cart."""
