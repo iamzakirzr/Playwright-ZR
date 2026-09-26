@@ -4,71 +4,173 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Nightly: catches drift in the public demo sites and in model behaviour.
+    - cron: "17 2 * * *"
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Which tier to run
+        type: choice
+        default: all
+        options: [all, functional, mobile, ai-offline, ai-live]
+      browser:
+        description: Browser for UI and mobile-web jobs
+        type: choice
+        default: all
+        options: [all, chromium, firefox, webkit]
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  PYTHON_VERSION: "3.11"
   HF_HOME: ~/.cache/huggingface
 
 jobs:
-  functional:
-    name: UI / API / SQL
+  lint:
+    name: Lint (ruff)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
-      - name: Run functional suites
-        run: pytest -m "ui or api or sql or hybrid" -n auto --junitxml=reports/functional.xml
+          python-version: "3.11"
+      - run: pip install "ruff==0.16.9"
+      - run: ruff check . --output-format=github
+      - run: ruff format --check .
+
+  api-sql:
+    name: API / SQL / hybrid
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'functional'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          browsers: ""
+      - run: pytest -m "api or sql or hybrid" -n auto --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: functional-results
+          name: results-api-sql
+          path: reports/
+
+  ui:
+    name: UI + BDD (${{ matrix.browser }})
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'functional'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ${{ fromJSON((github.event_name != 'workflow_dispatch' || inputs.browser == 'all') && '["chromium","firefox","webkit"]' || format('["{0}"]', inputs.browser)) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          browsers: ${{ matrix.browser }}
+      - name: Run UI and BDD suites
+        run: pytest -m "(ui or bdd) and not ai and not live" --browser ${{ matrix.browser }} -n auto --junitxml=reports/junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-ui-${{ matrix.browser }}
           path: |
             reports/
             test-results/
 
-  ai-offline:
-    name: AI offline (search, prompts, chains, guards, widget)
+  mobile-web:
+    name: Mobile web (${{ matrix.browser }})
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'mobile'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    # Deterministic AI tests: embeddings, classifiers, scripted models, stubbed UI. No LLM server.
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Firefox cannot emulate isMobile, so phones run on Chromium and WebKit (Safari's engine).
+        browser: [chromium, webkit]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: ./.github/actions/setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
-      - name: Cache Hugging Face models
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface
-          key: hf-${{ hashFiles('config/settings.py', 'ai/evaluators/classifiers.py') }}
-      - name: Run offline AI suites
-        run: pytest -m "ai and not live" -v --junitxml=reports/ai-offline.xml
+          browsers: ${{ matrix.browser }}
+      - run: pytest -m mobile_web --browser ${{ matrix.browser }} --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ai-offline-results
+          name: results-mobile-web-${{ matrix.browser }}
+          path: |
+            reports/
+            test-results/
+
+  mobile-native:
+    name: Mobile native (Android emulator + Appium)
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'mobile'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          browsers: ""
+      - name: Enable KVM (hardware acceleration for the emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install and start Appium 2 with UiAutomator2
+        run: |
+          npm install -g appium@2
+          appium driver install uiautomator2@3
+          (appium --allow-insecure chromedriver_autodownload > appium.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break; sleep 1; done
+      - name: Run Appium tests on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: pytest -m mobile_native -v --junitxml=reports/junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-mobile-native
+          path: |
+            reports/
+            appium.log
+
+  ai-offline:
+    name: AI offline (search, prompts, chains, guards, MCP, widget)
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'ai-offline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('config/settings.py', 'ai/evaluators/classifiers.py') }}
+      - run: pytest -m "ai and not live and not judge and not strong_judge" -v --junitxml=reports/junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-ai-offline
           path: |
             reports/
             test-results/
 
   ai-live:
     name: AI live (${{ matrix.tier }})
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'ai-live'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     # LLM evals are slower and probabilistic, so they run apart from the deterministic suites.
@@ -77,30 +179,22 @@ jobs:
       matrix:
         include:
           - tier: model behaviour
+            slug: behaviour
             marker: "live and not judge"
           - tier: judged metrics
+            slug: judged
             marker: "judge and not strong_judge"
     env:
       CHATBOT_MODEL: qwen2.5:1.5b
       JUDGE_MODEL: llama3.2:3b
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - name: Install dependencies
-        run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
-      - name: Cache Hugging Face models
-        uses: actions/cache@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
           key: hf-${{ hashFiles('config/settings.py', 'ai/evaluators/classifiers.py') }}
-      - name: Cache Ollama models
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ~/.ollama/models
           key: ollama-${{ env.CHATBOT_MODEL }}-${{ env.JUDGE_MODEL }}
@@ -114,12 +208,81 @@ jobs:
       - name: Run live AI suites
         # Strong-judge tests (-m strong_judge) need a 7B judge (~2 min per call on CPU),
         # so they aren't selected here; run them locally or on a GPU runner.
-        run: pytest -m "ai and (${{ matrix.marker }})" -v --junitxml=reports/ai-live.xml
+        run: pytest -m "ai and (${{ matrix.marker }})" -v --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ai-live-${{ strategy.job-index }}
+          name: results-ai-live-${{ matrix.slug }}
           path: |
             reports/
             test-results/
             ollama.log
+
+  docker:
+    name: Docker image builds
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: playwright-zr:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Validate docker-compose.yml
+        run: docker compose config -q
+
+  report:
+    name: Allure report
+    if: always()
+    needs: [api-sql, ui, mobile-web, mobile-native, ai-offline, ai-live]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: artifacts
+      - name: Merge every job's Allure results
+        run: |
+          mkdir -p allure-results
+          find artifacts -path '*allure-results/*' -type f -exec cp {} allure-results/ \;
+          ls allure-results | wc -l
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Generate HTML report
+        run: npx -y allure-commandline generate allure-results -o allure-report --clean
+      - uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+
+  publish-report:
+    # Publishing needs GitHub Pages enabled (Settings > Pages > Source: GitHub Actions)
+    # and the repository variable DEPLOY_ALLURE_PAGES=true.
+    name: Publish Allure report to Pages
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ALLURE_PAGES == 'true'
+    needs: report
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report/
+      - id: deploy
+        uses: actions/deploy-pages@v4

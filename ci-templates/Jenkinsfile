@@ -1,0 +1,77 @@
+// TEMPLATE: not executed by this repository (it runs on GitHub Actions).
+// Shows the same stages as .github/workflows/tests.yml for a Jenkins shop.
+// Needs: a Linux agent with Docker, and the "Allure Jenkins Plugin" + "JUnit" plugins.
+
+pipeline {
+    agent {
+        docker {
+            // Official Playwright image: browsers and their system libraries preinstalled.
+            image 'mcr.microsoft.com/playwright/python:v1.55.0-noble'
+            args '--ipc=host'
+        }
+    }
+
+    parameters {
+        choice(name: 'SUITE', choices: ['all', 'functional', 'mobile', 'ai-offline', 'ai-live'], description: 'Which tier to run')
+        choice(name: 'BROWSER', choices: ['chromium', 'firefox', 'webkit'], description: 'Browser for UI tests')
+    }
+
+    triggers {
+        cron('H 2 * * *')   // nightly
+    }
+
+    options {
+        timeout(time: 90, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                sh '''
+                    python -m venv .venv && . .venv/bin/activate
+                    pip install torch --index-url https://download.pytorch.org/whl/cpu
+                    pip install -r requirements-dev.txt
+                    python -m playwright install ${BROWSER}
+                '''
+            }
+        }
+        stage('Lint') {
+            steps { sh '. .venv/bin/activate && ruff check . && ruff format --check .' }
+        }
+        stage('Tests') {
+            parallel {
+                stage('API / SQL') {
+                    when { expression { params.SUITE in ['all', 'functional'] } }
+                    steps { sh '. .venv/bin/activate && pytest -m "api or sql or hybrid" -n auto --junitxml=reports/api-sql.xml' }
+                }
+                stage('UI + BDD') {
+                    when { expression { params.SUITE in ['all', 'functional'] } }
+                    steps { sh '. .venv/bin/activate && pytest -m "(ui or bdd) and not ai and not live" --browser ${BROWSER} --junitxml=reports/ui.xml' }
+                }
+                stage('Mobile web') {
+                    when { expression { params.SUITE in ['all', 'mobile'] } }
+                    steps { sh '. .venv/bin/activate && pytest -m mobile_web --junitxml=reports/mobile-web.xml' }
+                }
+                stage('AI offline') {
+                    when { expression { params.SUITE in ['all', 'ai-offline'] } }
+                    steps { sh '. .venv/bin/activate && pytest -m "ai and not live and not judge and not strong_judge" --junitxml=reports/ai-offline.xml' }
+                }
+            }
+        }
+        stage('AI live') {
+            // Needs an Ollama server reachable from the agent (set OLLAMA_HOST).
+            when { expression { params.SUITE in ['all', 'ai-live'] } }
+            environment { OLLAMA_HOST = 'http://ollama:11434' }
+            steps { sh '. .venv/bin/activate && pytest -m "ai and live and not strong_judge" --junitxml=reports/ai-live.xml' }
+        }
+    }
+
+    post {
+        always {
+            junit allowEmptyResults: true, testResults: 'reports/*.xml'
+            allure results: [[path: 'reports/allure-results']]
+            archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: true
+        }
+    }
+}

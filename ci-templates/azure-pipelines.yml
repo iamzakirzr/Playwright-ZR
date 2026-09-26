@@ -1,0 +1,95 @@
+# TEMPLATE: not executed by this repository (it runs on GitHub Actions).
+# Shows the same stages as .github/workflows/tests.yml for Azure DevOps.
+# Adapt the pool and add an Ollama service connection before using the AI-live stage.
+
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: ["*"]
+schedules:
+  - cron: "17 2 * * *"
+    displayName: Nightly
+    branches:
+      include: [main]
+    always: true
+
+parameters:
+  - name: browsers
+    type: object
+    default: [chromium, firefox, webkit]
+
+variables:
+  PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Lint
+    jobs:
+      - job: ruff
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: "3.11" }
+          - script: pip install ruff==0.16.9 && ruff check . && ruff format --check .
+            displayName: ruff
+
+  - stage: Functional
+    dependsOn: Lint
+    jobs:
+      - job: api_sql
+        displayName: API / SQL / hybrid
+        steps:
+          - template: steps-setup.yml
+            parameters: { browsers: "" }
+          - script: pytest -m "api or sql or hybrid" -n auto --junitxml=reports/junit.xml
+          - task: PublishTestResults@2
+            condition: always()
+            inputs: { testResultsFiles: reports/junit.xml, testRunTitle: API-SQL }
+
+      - ${{ each browser in parameters.browsers }}:
+          - job: ui_${{ browser }}
+            displayName: UI + BDD (${{ browser }})
+            steps:
+              - template: steps-setup.yml
+                parameters: { browsers: "${{ browser }}" }
+              - script: pytest -m "(ui or bdd) and not ai and not live" --browser ${{ browser }} -n auto --junitxml=reports/junit.xml
+              - task: PublishTestResults@2
+                condition: always()
+                inputs:
+                  testResultsFiles: reports/junit.xml
+                  testRunTitle: UI-${{ browser }}
+              - publish: test-results
+                condition: failed()
+                artifact: traces-${{ browser }}
+
+  - stage: AI
+    dependsOn: Lint
+    jobs:
+      - job: ai_offline
+        displayName: AI offline
+        steps:
+          - template: steps-setup.yml
+            parameters: { browsers: chromium }
+          - script: pytest -m "ai and not live and not judge and not strong_judge" --junitxml=reports/junit.xml
+          - task: PublishTestResults@2
+            condition: always()
+            inputs: { testResultsFiles: reports/junit.xml, testRunTitle: AI-offline }
+
+      - job: ai_live
+        displayName: AI live
+        timeoutInMinutes: 90
+        steps:
+          - template: steps-setup.yml
+            parameters: { browsers: chromium }
+          - script: |
+              curl -fsSL https://ollama.com/install.sh | sh
+              (ollama serve > ollama.log 2>&1 &)
+              sleep 5 && ollama pull qwen2.5:1.5b && ollama pull llama3.2:3b
+            displayName: Start Ollama
+          - script: pytest -m "ai and live and not strong_judge" --junitxml=reports/junit.xml
+          - task: PublishTestResults@2
+            condition: always()
+            inputs: { testResultsFiles: reports/junit.xml, testRunTitle: AI-live }
