@@ -49,7 +49,8 @@ Ollama, pulls the models and runs the suites in containers ([`docker-compose.yml
 
 ```bash
 # Install Ollama: https://ollama.com/download
-# (Linux: curl -fsSL https://ollama.com/install.sh | sh; it needs `zstd` installed)
+# (Linux: curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.34.4 sh; it needs `zstd` installed.
+#  Thresholds were measured on 0.34.4; other versions can shift a small model's output.)
 ollama serve &                   # leave running
 ollama pull qwen2.5:1.5b         # chatbot under test (~1 GB)
 ollama pull llama3.2:3b          # judge for quality metrics (~2 GB)

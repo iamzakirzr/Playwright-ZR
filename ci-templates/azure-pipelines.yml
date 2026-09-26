@@ -85,7 +85,7 @@ stages:
           - template: steps-setup.yml
             parameters: { browsers: chromium }
           - script: |
-              curl -fsSL https://ollama.com/install.sh | sh
+              curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.34.4 sh  # pinned, see tests.yml
               (ollama serve > ollama.log 2>&1 &)
               sleep 5 && ollama pull qwen2.5:1.5b && ollama pull llama3.2:3b
             displayName: Start Ollama

@@ -193,6 +193,10 @@ jobs:
     env:
       CHATBOT_MODEL: qwen2.5:1.5b
       JUDGE_MODEL: llama3.2:3b
+      # Pinned: a new Ollama build can change a small model's temperature-0 output, and every
+      # threshold here was measured on this version (an unpinned install dropped prices from
+      # the summarizer test in CI while 0.34.4 kept them on 10/10 seeds).
+      OLLAMA_VERSION: 0.34.4
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -203,10 +207,11 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.ollama/models
-          key: ollama-${{ env.CHATBOT_MODEL }}-${{ env.JUDGE_MODEL }}
+          key: ollama-${{ env.OLLAMA_VERSION }}-${{ env.CHATBOT_MODEL }}-${{ env.JUDGE_MODEL }}
       - name: Start Ollama and pull models
         run: |
-          curl -fsSL https://ollama.com/install.sh | sh
+          curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION="$OLLAMA_VERSION" sh
+          ollama --version
           (ollama serve > ollama.log 2>&1 &)
           for i in $(seq 1 30); do curl -sf localhost:11434/api/version && break; sleep 1; done
           ollama pull "$CHATBOT_MODEL"
