@@ -85,3 +85,17 @@ def test_json_mode_with_a_plain_runnable_does_not_crash(app, recorded):
     app.complete("s", "u", json_mode=True)
 
     assert len(recorded) == 1
+
+
+def test_wrapped_chat_models_still_get_json_mode():
+    """Regression: ``isinstance(llm, BaseChatModel)`` missed ``.bind()``/``.with_retry()`` wrappers."""
+    from langchain_ollama import ChatOllama
+
+    from ai.chatbot.langchain_client import _is_chat_model
+
+    model = ChatOllama(model="qwen2.5:1.5b")
+
+    assert _is_chat_model(model)
+    assert _is_chat_model(model.bind(temperature=0))
+    assert _is_chat_model(model.with_retry())
+    assert not _is_chat_model(RunnableLambda(lambda m: m))

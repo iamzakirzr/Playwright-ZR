@@ -57,10 +57,15 @@ def rouge_scores(prediction: str, reference: str, measure: str = "fmeasure") -> 
 
 
 def bleu_score(prediction: str, reference: str) -> float:
-    """SacreBLEU score scaled to 0 to 1 (SacreBLEU reports 0 to 100); same backend as HF ``sacrebleu``."""
+    """SacreBLEU score scaled to 0 to 1 (SacreBLEU reports 0 to 100).
+
+    Uses ``corpus_bleu`` with SacreBLEU's defaults, exactly what HF ``evaluate``'s ``sacrebleu``
+    metric calls. (``sentence_bleu`` would switch on effective order and score a two-word exact
+    match 1.0 where HF reports 0.)
+    """
     import sacrebleu
 
-    return float(sacrebleu.sentence_bleu(prediction, [reference]).score) / 100
+    return float(sacrebleu.corpus_bleu([prediction], [[reference]]).score) / 100
 
 
 class _ReferenceMetric(DeterministicMetric):

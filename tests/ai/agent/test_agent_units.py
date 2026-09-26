@@ -227,6 +227,28 @@ class TestAgentLoop:
 
         assert agent.cart("s1").items == {}
 
+    def test_cart_in_the_prompt_is_refreshed_after_each_tool_round(self):
+        """Regression: CURRENT CART was built once per turn, so round 2 still saw the old quantity."""
+        agent = ScriptedShopAgent(
+            [tool_reply("remove_from_cart", {"product": "backpack", "quantity": 1}), {"content": "2 left."}]
+        )
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+
+        agent.handle("s1", "remove one backpack, what's left?")
+
+        assert "- 3 x Sauce Labs Backpack" in agent.sent[0][0]["content"]
+        assert "- 2 x Sauce Labs Backpack" in agent.sent[1][0]["content"]
+
+    def test_dropped_product_is_not_guessed_when_the_user_named_another(self):
+        """Regression: with only a backpack in the cart, "remove the fleece jacket" removed a backpack."""
+        agent = ScriptedShopAgent([tool_reply("remove_from_cart", {"quantity": 1}), {"content": "sorry"}])
+        agent.cart("s1").add("Sauce Labs Backpack", 2)
+
+        call = agent.handle("s1", "remove the fleece jacket").tools_called[0]
+
+        assert call.output["ok"] is False and "product is required" in call.output["error"]
+        assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
+
     def test_missing_product_error_names_the_fix(self):
         """With several kinds of item, a call without a product is an error telling the model what to resend."""
         agent = ScriptedShopAgent([IN_SCOPE, tool_reply("remove_from_cart", {"quantity": 3}), {"content": "sorry"}])

@@ -14,8 +14,14 @@ from pages.support import StaticSite
 
 @pytest.fixture
 def site(context) -> StaticSite:
-    """Playground on the test's default browser context (pytest-playwright's ``context`` fixture)."""
-    return serve_playground(context)
+    """Playground on the test's default browser context (pytest-playwright's ``context`` fixture).
+
+    Fails the test at teardown if any fake endpoint raised, so a crashing handler can't hide
+    behind a page that happens to show an error state.
+    """
+    site = serve_playground(context)
+    yield site
+    assert site.errors == [], f"fake endpoints raised: {site.errors}"
 
 
 @pytest.fixture

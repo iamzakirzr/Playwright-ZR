@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 
 from deepeval.metrics import BaseConversationalMetric
@@ -30,6 +31,11 @@ def run_conversation(
         turns.append(Turn(role="user", content=message))
         turns.append(Turn(role="assistant", content=send(message)))
     return ConversationalTestCase(turns=turns, chatbot_role=chatbot_role)
+
+
+def _says(text: str, phrase: str) -> bool:
+    """True if ``phrase`` occurs in ``text`` (already lower-case) not glued to other letters or digits."""
+    return re.search(rf"(?<!\w){re.escape(phrase.lower())}(?!\w)", text) is not None
 
 
 class RetentionProbeMetric(BaseConversationalMetric):
@@ -57,7 +63,8 @@ class RetentionProbeMetric(BaseConversationalMetric):
         replies = [t.content for t in test_case.turns if t.role == "assistant"]
         text = replies[self.turn].lower() if replies else ""
         spellings = [fact if isinstance(fact, tuple) else (fact,) for fact in self.facts]
-        missing = [options for options in spellings if not any(o.lower() in text for o in options)]
+        # Whole-word matches only: "1 x" must not match inside "21 x".
+        missing = [options for options in spellings if not any(_says(text, o) for o in options)]
         self.score = (len(self.facts) - len(missing)) / len(self.facts) if self.facts else 1.0
         self.reason = f"missing {missing}" if missing else "all facts retained"
         self.success = self.score >= self.threshold

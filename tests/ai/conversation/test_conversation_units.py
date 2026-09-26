@@ -65,3 +65,17 @@ def test_retention_probe_accepts_alternative_spellings(good_conversation):
     metric.measure(good_conversation)
 
     assert metric.is_successful()
+
+
+def test_retention_probe_matches_whole_words_only():
+    """Regression: substring matching let "1 x" pass on "21 x Sauce Labs Backpack"."""
+    from deepeval.test_case import ConversationalTestCase, Turn
+
+    case = ConversationalTestCase(
+        turns=[Turn(role="user", content="how many?"), Turn(role="assistant", content="21 x Sauce Labs Backpack")]
+    )
+    metric = RetentionProbeMetric([("1 x", "one")])
+
+    metric.measure(case)
+
+    assert not metric.is_successful()

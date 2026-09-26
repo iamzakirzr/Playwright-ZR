@@ -107,8 +107,9 @@ class LangChainChatbot(ChatbotClient):
 
     def complete(self, system: str, user: str, *, json_mode: bool = False) -> ChatResponse:
         """One system + user exchange straight to the model (used by prompt and chain tests)."""
-        # Only chat models understand format="json"; plain Runnables (test doubles) are used as is.
-        llm = self.llm.bind(format="json") if json_mode and isinstance(self.llm, BaseChatModel) else self.llm
+        # Only chat models understand format="json", including wrapped ones (.bind(), .with_retry());
+        # plain Runnables such as test doubles are used as is.
+        llm = self.llm.bind(format="json") if json_mode and _is_chat_model(self.llm) else self.llm
         return self._timed(lambda: llm.invoke([SystemMessage(system), HumanMessage(user)]))
 
     def _timed(self, call) -> ChatResponse:
@@ -116,12 +117,7 @@ class LangChainChatbot(ChatbotClient):
         started = time.perf_counter()
         message = call()
         latency_ms = (time.perf_counter() - started) * 1000
-        if isinstance(message, AIMessage):
-            # Content is a string, or a list of blocks for some providers ([{"type": "text", ...}]).
-            text_attr = getattr(message, "text", None)  # a method in langchain-core 1.x, a property before
-            text = text_attr() if callable(text_attr) else text_attr if isinstance(text_attr, str) else str(message.content)
-        else:
-            text = str(message)
+        text = _content_text(message.content) if isinstance(message, AIMessage) else str(message)
         usage = getattr(message, "usage_metadata", None) or {}
         return ChatResponse(
             text=text.strip(),
@@ -130,3 +126,19 @@ class LangChainChatbot(ChatbotClient):
             prompt_tokens=usage.get("input_tokens", 0),
             completion_tokens=usage.get("output_tokens", 0),
         )
+
+
+def _is_chat_model(runnable: Runnable) -> bool:
+    """True for a chat model, also when wrapped by ``.bind()`` or ``.with_retry()`` (they expose ``.bound``)."""
+    while not isinstance(runnable, BaseChatModel):
+        runnable = getattr(runnable, "bound", None)
+        if runnable is None:
+            return False
+    return True
+
+
+def _content_text(content: str | list) -> str:
+    """Message content as plain text: a string as is, or the ``text`` of each text block joined."""
+    if isinstance(content, str):
+        return content
+    return "".join(block.get("text", "") if isinstance(block, dict) else str(block) for block in content)

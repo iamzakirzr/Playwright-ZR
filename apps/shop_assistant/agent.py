@@ -36,7 +36,7 @@ import httpx
 
 from ai.prompts import default_registry
 from ai.search import Retriever
-from apps.shop_assistant.catalog import PRODUCTS, Cart, UnknownProductError, resolve_product
+from apps.shop_assistant.catalog import PRODUCTS, Cart, UnknownProductError, cart_lines, mentions_product, resolve_product
 
 MAX_TOOL_ROUNDS = 3
 
@@ -133,10 +133,10 @@ def describe_cart(cart: Cart) -> str:
     Giving the model the live cart every turn means it never has to remember or guess it:
     before this, asked "what's in my cart now?", it invented three items and a total.
     """
-    if not cart.items:
+    view = cart.as_dict()
+    if not view["items"]:
         return "(empty)"
-    lines = [f"- {quantity} x {product}" for product, quantity in sorted(cart.items.items())]
-    return "\n".join([*lines, f"Total: ${cart.total:.2f}"])
+    return "\n".join([*(f"- {line}" for line in cart_lines(view)), f"Total: ${view['total']:.2f}"])
 
 
 def claims_cart_action(text: str) -> bool:
@@ -232,14 +232,20 @@ class ShopAgent:
         self.carts.pop(session_id, None)
 
     # -- tools --------------------------------------------------------------
-    def run_tool(self, session_id: str, name: str, raw_arguments: Any) -> ToolCall:
-        """Execute one tool call against the session's cart; errors become tool output, not crashes."""
+    def run_tool(self, session_id: str, name: str, raw_arguments: Any, user_message: str = "") -> ToolCall:
+        """Execute one tool call against the session's cart; errors become tool output, not crashes.
+
+        ``user_message`` is only used to confirm a product the model dropped (see below).
+        """
         args = normalise_arguments(raw_arguments)
         cart = self.cart(session_id)
         try:
             if name == "remove_from_cart" and not args.get("product") and len(cart.items) == 1:
-                # Unambiguous from state, not from parsing words: the cart holds one kind of item.
-                args["product"] = next(iter(cart.items))
+                # The model dropped the product. Fill it in only when the cart holds one kind of item
+                # AND the user named that item; "remove the fleece jacket" must not delete a backpack.
+                only_item = next(iter(cart.items))
+                if mentions_product(user_message, only_item):
+                    args["product"] = only_item
             if name in {"add_to_cart", "remove_from_cart"} and not args.get("product"):
                 raise ValueError(f"product is required: call {name} again with the product name from the catalogue")
             if name == "add_to_cart":
@@ -308,11 +314,8 @@ class ShopAgent:
         if self.is_out_of_scope(message):
             return AgentReply(reply=OFF_TOPIC_REPLY)
         results = self.retriever.search(message, k=self.k)
-        system = SYSTEM_PROMPT.format(
-            products=", ".join(f"{p} (${price})" for p, price in PRODUCTS.items()),
-            cart=describe_cart(self.cart(session_id)),
-            context="\n".join(f"- {r.document.text}" for r in results),
-        )
+        context = "\n".join(f"- {r.document.text}" for r in results)
+        products = ", ".join(f"{p} (${price})" for p, price in PRODUCTS.items())
         history = self.histories.setdefault(session_id, [])
         history.append({"role": "user", "content": message})
         calls: list[ToolCall] = []
@@ -320,6 +323,8 @@ class ShopAgent:
         false_claim = None
 
         for _ in range(MAX_TOOL_ROUNDS):
+            # Rebuilt every round: tool calls in this turn change the cart the model must trust.
+            system = SYSTEM_PROMPT.format(products=products, cart=describe_cart(self.cart(session_id)), context=context)
             reply = self._chat([{"role": "system", "content": system}, *history])
             tool_requests = reply.get("tool_calls") or []
             if not tool_requests:
@@ -334,7 +339,7 @@ class ShopAgent:
             history.append({"role": "assistant", "content": reply.get("content", ""), "tool_calls": tool_requests})
             for request in tool_requests:
                 fn = request["function"]
-                call = self.run_tool(session_id, fn["name"], fn.get("arguments", {}))
+                call = self.run_tool(session_id, fn["name"], fn.get("arguments", {}), user_message=message)
                 calls.append(call)
                 history.append({"role": "tool", "content": json.dumps(call.output)})
         text = (reply.get("content") or "").strip() or self._summarise(calls)
@@ -358,5 +363,5 @@ class ShopAgent:
         if not last.output.get("ok"):
             return f"Sorry, I couldn't do that: {last.output.get('error', 'unknown error')}."
         cart = last.output["cart"]
-        lines = ", ".join(f"{i['quantity']} x {i['product']}" for i in cart["items"]) or "empty"
+        lines = ", ".join(cart_lines(cart)) or "empty"
         return f"Your cart: {lines}. Total ${cart['total']:.2f}."

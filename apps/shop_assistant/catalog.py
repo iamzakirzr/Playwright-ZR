@@ -52,6 +52,17 @@ def resolve_product(name: str) -> str:
     raise UnknownProductError(f"No product matches {name!r}")
 
 
+def mentions_product(text: str, product: str) -> bool:
+    """True if ``text`` names ``product`` by its distinctive part ("the backpack", "bike lights")."""
+    short = _short_name(product)
+    return bool(text) and (short in text.lower() or short.rstrip("s") in text.lower())
+
+
+def cart_lines(view: dict) -> list[str]:
+    """``["2 x Sauce Labs Backpack", ...]`` from ``Cart.as_dict()``; the one place cart lines are formatted."""
+    return [f"{item['quantity']} x {item['product']}" for item in view["items"]]
+
+
 @dataclass
 class Cart:
     """One session's cart: product name mapped to quantity."""

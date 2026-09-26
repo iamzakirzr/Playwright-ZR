@@ -221,6 +221,15 @@ class TestGoldenGate:
 
         assert gate.review([golden])[0].problems == ["question copied from the context"]
 
+    def test_paraphrased_question_over_a_long_context_is_accepted(self, gate):
+        """Regression: LCS precision against a long context flagged any question reusing its words."""
+        context = [
+            "Returns are accepted within 45 days of delivery. Items must be unused and in original packaging. Refunds take 5-7 days."
+        ]
+        golden = Golden(input="Are returns accepted within 45 days?", expected_output="Yes.", context=context)
+
+        assert gate.review([golden])[0].accepted
+
     def test_near_duplicate_of_an_accepted_question_is_rejected(self, gate):
         """Only the first of two paraphrased questions is kept."""
         first = Golden(input="Can I return an item after 45 days?", expected_output="No.", context=self.CONTEXT)
