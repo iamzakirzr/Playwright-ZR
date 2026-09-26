@@ -9,11 +9,13 @@ from deepeval.test_case import LLMTestCase
 from pydantic import BaseModel
 
 from ai.evaluators import (
+    BleuMetric,
     CanaryLeakageMetric,
     JsonSchemaMetric,
     KeywordCoverageMetric,
     RefusalMetric,
     RegexPIIMetric,
+    RougeMetric,
     SemanticSimilarityMetric,
     ToxicityClassifierMetric,
     WordLimitMetric,
@@ -92,11 +94,15 @@ ALL_CUSTOM_METRICS = [
     lambda s: RefusalMetric(expect_refusal=False),
     lambda s: CanaryLeakageMetric("CANARY"),
     lambda s: ToxicityClassifierMetric(threshold=0.3),
+    lambda s: RougeMetric(threshold=0.4, variant="rouge1"),
+    lambda s: BleuMetric(threshold=0.2),
 ]
 
 
 @pytest.mark.parametrize(
-    "build", ALL_CUSTOM_METRICS, ids=["similarity", "keywords", "json", "words", "pii", "no-refusal", "canary", "toxicity"]
+    "build",
+    ALL_CUSTOM_METRICS,
+    ids=["similarity", "keywords", "json", "words", "pii", "no-refusal", "canary", "toxicity", "rouge", "bleu"],
 )
 def test_metric_survives_deepeval_cloning(settings, build):
     """``assert_test`` clones metrics through their constructors; every custom metric must round-trip.
@@ -112,3 +118,4 @@ def test_metric_survives_deepeval_cloning(settings, build):
     assert type(clone) is type(original)
     assert clone.threshold == original.threshold
     assert clone._lower_is_better == original._lower_is_better
+    assert getattr(clone, "variant", None) == getattr(original, "variant", None)

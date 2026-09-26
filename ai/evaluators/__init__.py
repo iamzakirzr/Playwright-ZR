@@ -12,9 +12,11 @@ from ai.evaluators.deterministic import (
 )
 from ai.evaluators.factory import MetricFactory
 from ai.evaluators.judge import deepeval_judge, ragas_judge
+from ai.evaluators.reference_metrics import BleuMetric, RougeMetric, bleu_score, rouge_scores
 from ai.evaluators.semantic_similarity import SemanticSimilarityMetric, cosine_similarity, load_encoder
 
 __all__ = [
+    "BleuMetric",
     "CanaryLeakageMetric",
     "DeterministicMetric",
     "JsonSchemaMetric",
@@ -22,12 +24,15 @@ __all__ = [
     "MetricFactory",
     "RefusalMetric",
     "RegexPIIMetric",
+    "RougeMetric",
     "SemanticSimilarityMetric",
     "ToxicityClassifierMetric",
     "WordLimitMetric",
+    "bleu_score",
     "cosine_similarity",
     "deepeval_judge",
     "load_encoder",
+    "rouge_scores",
     "toxicity_scores",
     "ragas_judge",
 ]
