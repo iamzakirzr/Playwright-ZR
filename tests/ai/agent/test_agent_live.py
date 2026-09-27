@@ -91,10 +91,12 @@ class TestMultiTurn:
 
     def test_follow_up_refers_to_previous_item(self, assistant, session_id):
         """'Add one more of the same' resolves 'the same' from the previous turn."""
-        assistant.chat(session_id, "Add a bike light to my cart")
-        assistant.chat(session_id, "Add one more of the same item")
+        first = assistant.chat(session_id, "Add a bike light to my cart")
+        second = assistant.chat(session_id, "Add one more of the same item")
 
-        assert assistant.quantity_of(session_id, BIKE_LIGHT) == 2, assistant.cart(session_id)
+        # The tool calls say *which* turn went wrong (CI once ended with 3 bike lights).
+        calls = [(c["name"], c["arguments"]) for reply in (first, second) for c in reply["tools_called"]]
+        assert assistant.quantity_of(session_id, BIKE_LIGHT) == 2, (assistant.cart(session_id), calls)
 
     def test_reported_total_matches_cart_api(self, assistant, session_id):
         """What the bot says the total is must equal the cart API's total (no hallucinated arithmetic)."""
