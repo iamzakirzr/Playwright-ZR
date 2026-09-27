@@ -155,7 +155,7 @@ The chatbot is `qwen2.5:1.5b`, grounded on a **fictional** store policy, so a co
 
 ### 3.3 Prompt testing: `tests/ai/prompts/`
 - **Offline**: rendering, missing or unexpected variables, template-injection safety, version pinning, security-rule lint, and **prompt-drift snapshots** (a wording change fails until it is reviewed: `UPDATE_PROMPT_SNAPSHOTS=1 pytest tests/ai/prompts/test_prompt_registry.py`).
-- **Live**: classifier accuracy (few-shot `intent_classifier` v2 routes 14/14 vs v1's 10/14), JSON-schema adherence (`JsonSchemaMetric` + DeepEval `JsonCorrectnessMetric`), word limits, Yes/No closed form, DeepEval `PromptAlignmentMetric` (strong judge), **A/B regression** (new prompt version must not cover fewer facts than v1), paraphrase robustness, summariser fact retention.
+- **Live**: classifier accuracy (few-shot `intent_classifier` v2 routes 14/14 vs v1's 10/14), JSON-schema adherence (`JsonSchemaMetric` + DeepEval `JsonCorrectnessMetric`), word limits, Yes/No closed form, DeepEval `PromptAlignmentMetric` (strong judge), **A/B regression** (new prompt version must not cover fewer facts than v1), paraphrase robustness, summariser fact retention (`summarizer` v2, one sentence per rule, kept every number in 16/16 sampled runs vs 4–8/16 for v1's two-sentence cap, which wrote "$4. 99").
 
 ### 3.4 Prompt chaining: `tests/ai/chains/`
 Chain: `intent → handoff (out_of_scope stops here) → rewrite → retrieve → answer`.

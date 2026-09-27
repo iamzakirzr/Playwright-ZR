@@ -50,6 +50,11 @@ def synthesize_goldens(contexts: list[list[str]], model: DeepEvalBaseLLM, per_co
         filtration_config=FiltrationConfig(critic_model=model, max_quality_retries=1),
         evolution_config=EvolutionConfig(num_evolutions=0),
     )
+    # DeepEval sizes its per-input bookkeeping to ``max_goldens_per_context`` but iterates over
+    # however many questions the model returns; a small model asked for 1 sometimes writes 2, and
+    # the synthesizer crashes with IndexError. Keep only the number requested.
+    generate_inputs = synthesizer._generate_inputs
+    synthesizer._generate_inputs = lambda prompt: generate_inputs(prompt)[:per_context]
     return synthesizer.generate_goldens_from_contexts(
         contexts=contexts, max_goldens_per_context=per_context, include_expected_output=True, _send_data=False
     )

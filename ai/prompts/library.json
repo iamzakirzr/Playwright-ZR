@@ -71,6 +71,13 @@
       "user": "$document"
     },
     {
+      "name": "summarizer",
+      "version": 2,
+      "description": "Summarise a policy document for a customer: one sentence per rule, numbers copied verbatim. v1's two-sentence cap made qwen2.5:1.5b merge rules and drop or mangle prices ('$4. 99') in 8 to 12 of 16 sampled runs; v2 kept every number in 16 of 16.",
+      "system": "Summarise the document for a customer. Give every rule in the document its own short sentence; do not merge or drop rules. Copy every number, price and limit exactly as written, for example $$9.50 stays $$9.50. Do not add information.",
+      "user": "$document"
+    },
+    {
       "name": "input_moderator",
       "version": 1,
       "description": "Guard-rail classifier (Llama-Guard style) run on every user message before the main model.",

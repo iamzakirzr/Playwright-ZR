@@ -21,6 +21,7 @@ from ai.chatbot import OllamaChatbot
 from ai.datasets import golden_case, load_golden
 from ai.evaluators import JsonSchemaMetric, KeywordCoverageMetric, WordLimitMetric, cosine_similarity
 from ai.prompts import default_registry
+from reporting import attach_text
 
 REGISTRY = default_registry()
 
@@ -169,8 +170,13 @@ def test_paraphrased_questions_get_consistent_answers(chatbot, settings):
 
 
 def test_summarizer_keeps_every_number(chatbot):
-    """The summary keeps every number and limit from the source document."""
+    """The summary keeps every number and limit from the source document.
+
+    v1 of the prompt failed this in CI: the model wrote "$4. 99" and merged rules to fit a
+    two-sentence cap. The summary is attached so a failure shows what the model wrote.
+    """
     document = " ".join(golden_case("shipping-cost")["context"])
     summary = chatbot.run_prompt(REGISTRY.get("summarizer"), document=document).text
+    attach_text("summary", summary)
 
     assert_test(LLMTestCase(input=document, actual_output=summary), [KeywordCoverageMetric(["4.99", "75", "14.99"])])
