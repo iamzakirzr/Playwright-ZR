@@ -25,34 +25,56 @@ USER_TURNS = [
 
 @pytest.fixture(scope="module")
 def conversation(assistant):
-    """Run the scripted conversation once in a fresh session; yield (session id, test case)."""
+    """Run the scripted conversation once in a fresh session; yield (session id, test case, transcript).
+
+    The transcript keeps every reply *with its tool calls*, so a failure shows what the agent did,
+    not only the final state (small models behave differently across CPUs).
+    """
     session = "conv-" + str(id(assistant))
+    transcript: list[dict] = []
+
+    def send(message: str) -> str:
+        reply = assistant.chat(session, message)
+        transcript.append({"user": message, "reply": reply["reply"], "tools": reply["tools_called"]})
+        return reply["reply"]
+
     try:
-        case = run_conversation(lambda m: assistant.chat(session, m)["reply"], USER_TURNS, chatbot_role=ROLE)
-        attach_json("conversation", [{"role": t.role, "content": t.content} for t in case.turns])
-        yield session, case
+        case = run_conversation(send, USER_TURNS, chatbot_role=ROLE)
+        attach_json("conversation", transcript)
+        yield session, case, transcript
     finally:
         assistant.reset(session)
 
 
+def trajectory(transcript: list[dict]) -> str:
+    """Readable per-turn summary for assertion messages."""
+    return "\n".join(
+        f"  {t['user']!r} -> tools={[(c['name'], c['arguments'], c['output'].get('ok')) for c in t['tools']]} reply={t['reply'][:80]!r}"
+        for t in transcript
+    )
+
+
 def test_net_cart_state_after_the_conversation(assistant, conversation):
     """Add 2, remove 1: exactly one backpack left."""
-    session, _ = conversation
+    session, _, transcript = conversation
 
-    assert assistant.quantity_of(session, BACKPACK) == 1
+    assert assistant.quantity_of(session, BACKPACK) == 1, "\n" + trajectory(transcript)
 
 
 def test_last_reply_states_the_remaining_quantity(conversation):
     """The final answer says one backpack is left (rule-based, no judge)."""
-    _, case = conversation
+    _, case, transcript = conversation
     one = ("1 x", "1 sauce", "one sauce", "one backpack", "1 backpack")
+    probe = RetentionProbeMetric([one, "backpack"])
 
-    assert_test(case, [RetentionProbeMetric([one, "backpack"])])
+    probe.measure(case)
+
+    assert probe.is_successful(), f"{probe.reason}\n{trajectory(transcript)}"
 
 
 def test_conversation_is_complete_and_in_role(conversation, judge, settings):
     """Every user goal met, every turn in role, judged by the calibrated 3B judge."""
-    _, case = conversation
+    _, case, _transcript = conversation
     factory = MetricFactory(judge)
 
     assert_test(case, [factory.conversation_completeness(threshold=0.7), factory.role_adherence(threshold=0.5)])
