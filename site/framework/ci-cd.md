@@ -6,7 +6,7 @@ description: Playwright-ZR's CI policy - hermetic lint/unit/SQL/essentials/AI-of
 # CI/CD
 
 ::: tip In one minute
-- **PR + main**: `.github/workflows/tests.yml` runs **lint** and a **hermetic** job (unit, SQL/hybrid, local Playwright essentials, healing, AI offline). No Sauce Demo, Restful Booker, or Ollama on the PR gate.
+- **PR + main**: `.github/workflows/tests.yml` runs **lint** and a **hermetic** job (unit, SQL, local Playwright essentials, healing, AI offline). No Sauce Demo, Restful Booker, or Ollama on the PR gate (`api`/`hybrid` are main-only).
 - **Main only**: the same workflow also runs **API** (Restful Booker) and **UI/BDD** (Sauce Demo) after merge.
 - **Manual**: `.github/workflows/optional-suites.yml` holds **mobile, live AI, Docker and Allure**, started from the Actions tab.
 - **Local PR gate**: `make lint` and `make test-hermetic`.
@@ -45,7 +45,7 @@ triggers on `pull_request` and on `push` to `main`.
 | Job | When | Selects | Matrix |
 |---|---|---|---|
 | `lint` | PR + main | ruff check + format | none |
-| `hermetic` | PR + main | `(unit or sql or hybrid or essentials or healing) and not live`, then AI offline | chromium |
+| `hermetic` | PR + main | `(unit or sql or essentials or healing) and not live and not api and not hybrid`, then AI offline | chromium |
 | `api-sql` | main only | `api or sql or hybrid` | none |
 | `ui` | main only | Sauce Demo UI + BDD (excludes essentials/healing) | chromium, firefox, webkit |
 
