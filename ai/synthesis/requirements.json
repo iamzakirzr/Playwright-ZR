@@ -1,0 +1,12 @@
+{
+  "description": "Sauce Demo requirements used as input for AI test-case generation. Error messages match what tests/ui asserts against the real site.",
+  "requirements": [
+    {"id": "REQ-LOGIN-01", "text": "A user with a valid username and password signs in and lands on the Products page.", "needs_negative": false},
+    {"id": "REQ-LOGIN-02", "text": "Signing in without a username shows the error 'Epic sadface: Username is required'.", "needs_negative": true},
+    {"id": "REQ-LOGIN-03", "text": "Signing in with a username but no password shows the error 'Epic sadface: Password is required'.", "needs_negative": true},
+    {"id": "REQ-LOGIN-04", "text": "The user locked_out_user cannot sign in and sees 'Epic sadface: Sorry, this user has been locked out.'", "needs_negative": true},
+    {"id": "REQ-CART-01", "text": "The cart badge shows how many items are in the cart; removing an item decreases it, and an empty cart shows no badge.", "needs_negative": false},
+    {"id": "REQ-CHECKOUT-01", "text": "Checkout requires first name, last name and postal code; a missing field shows 'Error: <Field> is required' for the first missing field.", "needs_negative": true},
+    {"id": "REQ-CHECKOUT-02", "text": "The order summary total equals the item subtotal plus tax.", "needs_negative": false}
+  ]
+}

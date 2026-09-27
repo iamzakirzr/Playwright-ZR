@@ -27,9 +27,18 @@ T = TypeVar("T")
 fake = Faker()
 
 
-def seed_factories(seed: int | None = None) -> int:
-    """Seed Faker and ``random`` (from ``FAKER_SEED`` or a new random seed) and return the seed used."""
-    seed = int(os.getenv("FAKER_SEED", seed if seed is not None else random.randrange(1_000_000)))
+def base_seed() -> int:
+    """The run's seed: ``FAKER_SEED`` if set, otherwise a fresh random one."""
+    value = os.getenv("FAKER_SEED", "").strip()
+    return int(value) if value else random.randrange(1_000_000)
+
+
+def seed_factories(seed: int | str | None = None) -> int | str:
+    """Seed Faker and ``random`` with ``seed`` (default: :func:`base_seed`) and return it.
+
+    Any hashable works, so the root conftest seeds each test with ``"<base>:<test id>"``.
+    """
+    seed = base_seed() if seed is None else seed
     Faker.seed(seed)
     random.seed(seed)
     return seed

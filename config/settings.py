@@ -5,6 +5,7 @@ Every field can be overridden by an environment variable of the same name
 URLs, credentials, model names or thresholds; they read them from here.
 """
 
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,6 +56,10 @@ class Settings(BaseSettings):
     #: Per-call timeout (seconds) for DeepEval judge calls; CPU inference is slow.
     judge_timeout_s: int = 600
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    #: Model that drafts test cases from requirements (ai/synthesis). Measured on the 7 Sauce Demo
+    #: requirements: llama3.2:3b covered 7/7 with sensible types; qwen2.5:1.5b covered 6/7 and
+    #: mislabelled error scenarios as positive.
+    testgen_model: str = "llama3.2:3b"
     #: Vision model for the opt-in visual judge (tests skip if it isn't pulled).
     vision_model: str = "qwen2.5vl:3b"
     similarity_threshold: float = 0.70
@@ -95,3 +100,12 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return the process-wide :class:`Settings` singleton (read once, cached)."""
     return Settings()
+
+
+def env_flag(name: str) -> bool:
+    """True only for an explicit "1", "true", "yes" or "on" (any case).
+
+    ``bool(os.getenv(name))`` would treat "0" and "false" as true, silently turning on modes such
+    as baseline updates that accept every visual change.
+    """
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}

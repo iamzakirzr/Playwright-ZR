@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Payment</title></head>
+<body>
+  <label>Card number <input name="card"></label>
+  <button onclick="parent.postMessage('Paid with card ending ' + document.querySelector('[name=card]').value.slice(-4), '*')">Pay</button>
+</body></html>

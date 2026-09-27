@@ -1,6 +1,10 @@
 // TEMPLATE: not executed by this repository (it runs on GitHub Actions).
-// Shows the same stages as .github/workflows/tests.yml for a Jenkins shop.
+// Mirrors .github/workflows/tests.yml + optional-suites.yml for a Jenkins shop.
 // Needs: a Linux agent with Docker, and the "Allure Jenkins Plugin" + "JUnit" plugins.
+//
+// Automatic runs: configure a Multibranch Pipeline (or a push webhook) that builds only `main`,
+// so it runs when a pull request is merged. Those builds use SUITE=functional: UI, API and SQL.
+// Every other suite (lint, mobile, AI) runs only when someone starts a build with that SUITE.
 
 pipeline {
     agent {
@@ -12,12 +16,9 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'SUITE', choices: ['all', 'functional', 'mobile', 'ai-offline', 'ai-live'], description: 'Which tier to run')
+        // The first choice is the default, so automatic builds run the functional suites only.
+        choice(name: 'SUITE', choices: ['functional', 'all', 'lint', 'mobile', 'ai-offline', 'ai-live'], description: 'Which tier to run')
         choice(name: 'BROWSER', choices: ['chromium', 'firefox', 'webkit'], description: 'Browser for UI tests')
-    }
-
-    triggers {
-        cron('H 2 * * *')   // nightly
     }
 
     options {
@@ -37,6 +38,7 @@ pipeline {
             }
         }
         stage('Lint') {
+            when { expression { params.SUITE in ['all', 'lint'] } }
             steps { sh '. .venv/bin/activate && ruff check . && ruff format --check .' }
         }
         stage('Tests') {

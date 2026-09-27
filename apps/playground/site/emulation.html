@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Emulation</title>
+<style>:root { color-scheme: light dark; } @media (prefers-color-scheme: dark) { body { background: #111; } }</style></head>
+<body>
+  <p data-testid="locale"></p><p data-testid="timezone"></p><p data-testid="theme"></p><p data-testid="network"></p>
+  <button onclick="navigator.geolocation.getCurrentPosition(p => set('position', p.coords.latitude.toFixed(2) + ',' + p.coords.longitude.toFixed(2)), e => set('position', 'denied'))">Locate me</button>
+  <p data-testid="position"></p>
+  <script>
+    function set(id, v) { document.querySelector(`[data-testid=${id}]`).textContent = v; }
+    set("locale", new Intl.NumberFormat().format(1234.5));
+    set("timezone", Intl.DateTimeFormat().resolvedOptions().timeZone);
+    set("theme", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const net = () => set("network", navigator.onLine ? "online" : "offline");
+    net(); addEventListener("online", net); addEventListener("offline", net);
+  </script>
+</body></html>

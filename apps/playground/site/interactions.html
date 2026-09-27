@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Interactions</title>
+<style>
+  [role=tooltip] { display: none; } .help:hover + [role=tooltip] { display: block; }
+  .zone { width: 160px; height: 60px; border: 1px dashed #888; margin: 8px; }
+</style></head>
+<body>
+  <span class="help">What is CVV?</span><span role="tooltip">The 3 digits on the back of your card</span>
+  <div class="zone" data-testid="source"><div draggable="true" data-testid="item" id="item">Backpack</div></div>
+  <div class="zone" data-testid="cart-zone"></div>
+  <p data-testid="dropped"></p>
+  <label>Search <input data-testid="search"></label><p data-testid="shortcut"></p>
+  <script>
+    const item = document.getElementById("item"), zone = document.querySelector("[data-testid=cart-zone]");
+    item.addEventListener("dragstart", e => e.dataTransfer.setData("text/plain", item.id));
+    zone.addEventListener("dragover", e => e.preventDefault());
+    zone.addEventListener("drop", e => { e.preventDefault(); zone.appendChild(document.getElementById(e.dataTransfer.getData("text/plain"))); document.querySelector("[data-testid=dropped]").textContent = "Backpack in cart"; });
+    document.addEventListener("keydown", e => { if (e.key === "k" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.querySelector("[data-testid=search]").focus(); document.querySelector("[data-testid=shortcut]").textContent = "search focused"; } });
+  </script>
+</body></html>

@@ -24,6 +24,23 @@ Work through them in order; each chapter uses what the previous one built.
 | 10 | [Mobile: emulation and Appium](10-mobile.md) | no | `make test-mobile-web` |
 | 11 | [Self-healing locators and visual testing](11-healing-and-visual.md) | partly | `pytest -m "healing or visual"` |
 | 12 | [CI/CD pipelines](12-ci-cd.md) | no | `make lint` |
+| 13 | [Playwright essentials](13-playwright-essentials.md) | no | `pytest tests/ui/essentials` |
+| 14 | [Synthetic data and advanced AI evals](14-synthetic-data-and-advanced-evals.md) | partly | `pytest tests/ai/synthesis tests/ai/conversation tests/ai/langchain` |
+| 15 | [Building and testing agents with LangChain and LangGraph](15-building-agents-with-langchain.md) | partly | `pytest tests/ai/langgraph` |
+
+Chapter 13 fits right after chapter 2 if you prefer to learn every browser technique first.
+
+**AI / LLM track** (after chapters 01 to 05), in this order:
+
+| Step | Chapter | You learn to |
+|---|---|---|
+| 1 | 06 AI evaluation fundamentals | score LLM answers: similarity, faithfulness, calibrated judges |
+| 2 | 07 AI search, prompts and chains | test retrieval, versioned prompts and multi-step chains |
+| 3 | 14 Synthetic data and advanced evals | generate and gate test data; multi-turn, BLEU/ROUGE, a LangChain RAG app |
+| 4 | 08 Agents and MCP servers | test a tool-calling agent and an MCP server (state + trajectory oracles) |
+| 5 | 15 Building agents with LangChain and LangGraph | build an agent with `@tool` and `StateGraph`, and test every layer |
+| 6 | 09 Red teaming and guardrails | attack what you built and measure the guardrails |
+[Course coverage](../course-coverage.md) maps ExecuteAutomation course topics to these chapters.
 
 "Partly" means the chapter has an offline tier that runs anywhere and a live tier that skips
 cleanly without Ollama.

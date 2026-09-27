@@ -6,17 +6,20 @@ built to be learned from as much as used.
 | Layer | What it tests | Target |
 |---|---|---|
 | **UI** | Page Object Model flows, visual baselines, self-healing locators | [saucedemo.com](https://www.saucedemo.com) |
+| **Playwright essentials** | Network mocking, dialogs, frames, tabs, files, auth state, emulation | Local playground app ([`apps/playground`](apps/playground)) |
 | **API** | CRUD + contract (schema) validation | [restful-booker](https://restful-booker.herokuapp.com) |
 | **SQL** | Repositories, constraints, integrity | Seeded SQLite |
 | **Hybrid** | API ↔ DB consistency | both |
 | **BDD** | Gherkin scenarios over the same page objects | saucedemo + AI assistant |
 | **Mobile** | Device emulation (Pixel, iPhone) and Appium on an Android emulator | saucedemo |
-| **AI** | RAG quality, AI search, prompts, chains, agents & tool calls, MCP servers, red teaming, GenAI validation, chat UI | Open-source LLMs served locally by [Ollama](https://ollama.com) |
+| **AI** | RAG quality, AI search, prompts, chains, agents & tool calls, multi-turn conversations, MCP servers, red teaming, GenAI validation, LangChain apps, synthetic data, chat UI | Open-source LLMs served locally by [Ollama](https://ollama.com) |
 
 Everything is open source and runs locally. No paid API keys are needed.
 
-> **New here? Start with the [learning path](docs/learning-path/README.md):** 12 short chapters,
+> **New here? Start with the [learning path](docs/learning-path/README.md):** 14 short chapters,
 > one per layer, each with files to read, a command to run, an exercise and a quiz.
+> [Course coverage](docs/course-coverage.md) maps ExecuteAutomation (Karthik KK) course topics to
+> the code that practises them.
 
 ---
 
@@ -46,7 +49,8 @@ Ollama, pulls the models and runs the suites in containers ([`docker-compose.yml
 
 ```bash
 # Install Ollama: https://ollama.com/download
-# (Linux: curl -fsSL https://ollama.com/install.sh | sh; it needs `zstd` installed)
+# (Linux: curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.34.4 sh; it needs `zstd` installed.
+#  Thresholds were measured on 0.34.4; other versions can shift a small model's output.)
 ollama serve &                   # leave running
 ollama pull qwen2.5:1.5b         # chatbot under test (~1 GB)
 ollama pull llama3.2:3b          # judge for quality metrics (~2 GB)
@@ -82,7 +86,7 @@ mobile/       Appium driver factory + screen objects
 visual/       screenshot comparator + opt-in vision judge
 data/         Faker factories (seeded, replayable)
 reporting/    Allure steps and attachments
-apps/         apps under test: shop_assistant (FastAPI agent), store_mcp (MCP server)
+apps/         apps under test: shop_assistant (FastAPI agent + LangGraph agent), store_mcp (MCP server)
 config/settings.py             ← every URL, model, threshold and budget (env-overridable)
 ```
 
@@ -151,7 +155,7 @@ The chatbot is `qwen2.5:1.5b`, grounded on a **fictional** store policy, so a co
 
 ### 3.3 Prompt testing: `tests/ai/prompts/`
 - **Offline**: rendering, missing or unexpected variables, template-injection safety, version pinning, security-rule lint, and **prompt-drift snapshots** (a wording change fails until it is reviewed: `UPDATE_PROMPT_SNAPSHOTS=1 pytest tests/ai/prompts/test_prompt_registry.py`).
-- **Live**: classifier accuracy (few-shot `intent_classifier` v2 routes 14/14 vs v1's 10/14), JSON-schema adherence (`JsonSchemaMetric` + DeepEval `JsonCorrectnessMetric`), word limits, Yes/No closed form, DeepEval `PromptAlignmentMetric` (strong judge), **A/B regression** (new prompt version must not cover fewer facts than v1), paraphrase robustness, summariser fact retention.
+- **Live**: classifier accuracy (few-shot `intent_classifier` v2 routes 14/14 vs v1's 10/14), JSON-schema adherence (`JsonSchemaMetric` + DeepEval `JsonCorrectnessMetric`), word limits, Yes/No closed form, DeepEval `PromptAlignmentMetric` (strong judge), **A/B regression** (new prompt version must not cover fewer facts than v1), paraphrase robustness, summariser fact retention (`summarizer` v2, one sentence per rule, kept every number in 16/16 sampled runs vs 4–8/16 for v1's two-sentence cap, which wrote "$4. 99").
 
 ### 3.4 Prompt chaining: `tests/ai/chains/`
 Chain: `intent → handoff (out_of_scope stops here) → rewrite → retrieve → answer`.
@@ -213,11 +217,48 @@ heals a renamed login form with the local model.
 a diff image on failure (`UPDATE_SNAPSHOTS=1` accepts changes). `visual/vision_judge.py` adds an
 opt-in vision-LLM description of a side-by-side composite; it is **advisory**, pixels decide.
 
-### 3.12 Metric catalogue
+### 3.12 Multi-turn conversations: `tests/ai/conversation/`, `tests/ai/agent/test_agent_conversation.py`
+`run_conversation` builds DeepEval `ConversationalTestCase`s from any bot. Calibration decides
+which judged metrics may gate: completeness (3B judge), role adherence and turn relevancy (7B
+judge only; the 3B judge confused speakers in CI), knowledge retention (failed on both, so the rule-based `RetentionProbeMetric` is used
+instead). The first run of the shopping conversation found three agent defects: "remove one
+backpack" removed all of them, the model ignored an optional `quantity`, and it invented cart
+contents. A first fix with regex guards over the user's text was rejected in code review (every
+new phrasing needed another rule). The structural fix: the live cart goes into the system prompt
+every turn, `quantity` is required on removal, and malformed arguments are repaired from their
+shape. When CI showed the model copying the schema text (`"product": "Product name"`), `product`
+became an `enum` of catalogue names; an unusable product falls back to the one product the user
+named (only if exactly one), never to a guess, and never decides the action or quantity.
+
+### 3.13 LangChain app under test: `tests/ai/langchain/`
+`LangChainChatbot` is an LCEL RAG chain (retrieve, then messages, then `ChatOllama`) behind the same
+`ChatbotClient` interface, so the golden-set, faithfulness and canary checks run against a
+LangChain app unchanged. Unit tests swap the model for a recording `RunnableLambda`.
+
+### 3.13b Building an agent with LangChain and LangGraph: `tests/ai/langgraph/`
+[`apps/shop_assistant/langgraph_agent.py`](apps/shop_assistant/langgraph_agent.py) rebuilds the shop
+assistant with `@tool` functions (typed arguments become the schema: an `enum` of product names),
+a `StateGraph` (`retrieve -> agent -> tools -> agent`), `ToolNode` error feedback, a checkpointer for
+memory, and a `recursion_limit` loop bound. Tested offline with `ScriptedChatModel` (a chat model
+double that can `bind_tools`) and live on qwen2.5:1.5b. Measured while building it: in agentic-RAG
+mode the model called the search tool in 0 of 6 policy questions and invented answers, so retrieval
+is a graph node by default. Walkthrough: [learning-path chapter 15](docs/learning-path/15-building-agents-with-langchain.md).
+
+### 3.14 Synthetic data: `tests/ai/synthesis/`
+- **Goldens**: DeepEval's `Synthesizer` with a local model, then `GoldenQualityGate` (complete,
+  not copied, not duplicate, expected answer grounded). It rejects the hallucinated golden the
+  synthesizer actually produced during development.
+- **Test cases from requirements**: JSON drafts per requirement with related requirements as RAG
+  context, pydantic validation, and a coverage review (uncovered, missing negatives, duplicates,
+  unchecked error messages). llama3.2:3b covers 7/7 Sauce Demo requirements.
+
+### 3.15 Metric catalogue
 | Kind | Metrics | Where |
 |---|---|---|
-| Rule-based (fast, deterministic) | Semantic similarity, keyword coverage, JSON schema, word limit, refusal, canary leakage, regex PII | `ai/evaluators/deterministic.py`, `semantic_similarity.py` |
+| Rule-based (fast, deterministic) | Semantic similarity, keyword coverage, JSON schema, word limit, refusal, canary leakage, regex PII, retention probe | `ai/evaluators/deterministic.py`, `semantic_similarity.py`, `conversation.py` |
+| Reference overlap (Hugging Face `evaluate`) | ROUGE-1/2/L, BLEU (for wording-sensitive output only) | `ai/evaluators/reference_metrics.py` |
 | Classifier | Toxicity (`unitary/toxic-bert`) | `ai/evaluators/classifiers.py` |
+| LLM-judged conversational (DeepEval) | Conversation completeness, role adherence, turn relevancy, knowledge retention | `ai/evaluators/factory.py` |
 | LLM-judged (DeepEval) | Faithfulness, answer relevancy, contextual precision/recall/relevancy, hallucination, G-Eval completeness and correctness, summarisation, prompt alignment, JSON correctness, toxicity, bias, PII leakage, role violation, misuse. See §3.1 for which judge each needs | `ai/evaluators/factory.py` |
 | LLM-judged (Ragas) | Faithfulness | `tests/ai/rag/test_ragas_crosscheck.py` |
 | Retrieval (IR) | Recall@k, Precision@k, Hit rate, MRR, nDCG@k | `ai/search/metrics.py` |
@@ -267,7 +308,8 @@ All settings live in `config/settings.py`. Override any of them with an environm
 | `JUDGE_TIMEOUT_S` | 600 | DeepEval per-call timeout (CPU is slow) |
 | `VISION_MODEL` | `qwen2.5vl:3b` | Opt-in visual judge |
 | `APPIUM_SERVER_URL`, `ANDROID_DEVICE_NAME` | `http://127.0.0.1:4723` / `emulator-5554` | Appium tests |
-| `FAKER_SEED` | random (printed) | Replay test data |
+| `FAKER_SEED` | random (printed) | Replay test data (each test is reseeded from seed + test id) |
+| `TESTGEN_MODEL` | `llama3.2:3b` | Model that drafts test cases from requirements |
 | `UPDATE_SNAPSHOTS`, `UPDATE_PROMPT_SNAPSHOTS` | unset | Accept new visual / prompt baselines |
 
 ---
@@ -291,19 +333,31 @@ All settings live in `config/settings.py`. Override any of them with an environm
 | A mobile screen | Subclass `BaseScreen` in `mobile/screens/` |
 | A healable element | `self.healable("name", "selector", "plain-English description")` in a page object |
 | A visual check | `comparator.compare("name", locator.screenshot(mask=[...]))` |
+| A page served inside Playwright | `StaticSite(context, folder).json("GET", "/api/x", data).install()` ([`pages/support`](pages/support)) |
+| A conversation eval | `run_conversation(send, turns, chatbot_role=...)` then `assert_test(case, [factory.conversation_completeness()])` |
+| A requirement for AI test design | Add it to `ai/synthesis/requirements.json` (quote exact error messages) |
 
 ---
 
 ## 7. CI/CD
 
-[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs on every push and PR, **nightly**,
-and on demand (`workflow_dispatch` with `suite` and `browser` inputs):
+Two workflows, split by *when* they run:
+
+**Automatic, on merge only:** [`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs
+when a change lands on `main` (a merged pull request). It runs nothing on pull requests, on a
+schedule or by hand.
+
+| Job | Selects | Matrix |
+|---|---|---|
+| `api-sql` | `api or sql or hybrid` | |
+| `ui` | `(ui or bdd) and not ai and not live` | chromium, firefox, webkit |
+
+**Deactivated, manual only:** [`.github/workflows/optional-suites.yml`](.github/workflows/optional-suites.yml)
+runs only from the Actions tab ("Run workflow", input `suite`):
 
 | Job | Selects | Matrix |
 |---|---|---|
 | `lint` | `ruff check` + `ruff format --check` | |
-| `api-sql` | `api or sql or hybrid` | |
-| `ui` | `(ui or bdd) and not ai and not live` | chromium, firefox, webkit |
 | `mobile-web` | `mobile_web` | chromium, webkit |
 | `mobile-native` | `mobile_native` on an Android emulator with Appium 2 | |
 | `ai-offline` | `ai and not live and not judge` | |
@@ -311,15 +365,19 @@ and on demand (`workflow_dispatch` with `suite` and `browser` inputs):
 | `docker` | builds the image, validates `docker-compose.yml` | |
 | `report` | merges every job's Allure results into one HTML report (artifact) | |
 
+Because pull requests get no CI, run `make lint` and `make test` (or the pre-commit hook) before
+you open one: a broken change is found only after it is merged.
+
 Shared install steps live in the composite action [`.github/actions/setup`](.github/actions/setup/action.yml).
 Publishing the Allure report to GitHub Pages is opt-in: enable Pages (source: GitHub Actions) and set
 the repository variable `DEPLOY_ALLURE_PAGES=true`.
 
-The strong-judge tests (`-m strong_judge`) aren't selected in CI because a 7B judge takes about
+The strong-judge tests (`-m strong_judge`) aren't selected even in the manual workflow, because a 7B judge takes about
 2 min per call on a CPU runner. Run them locally or on a GPU runner.
 
 **Other CI servers:** [`ci-templates/Jenkinsfile`](ci-templates/Jenkinsfile) and
-[`ci-templates/azure-pipelines.yml`](ci-templates/azure-pipelines.yml) mirror the same stages.
+[`ci-templates/azure-pipelines.yml`](ci-templates/azure-pipelines.yml) mirror the same policy
+(functional stages on merge to `main`, everything else on a manual run).
 They are templates, not executed by this repository.
 
 ## 8. Known limitations (read before trusting a green run)

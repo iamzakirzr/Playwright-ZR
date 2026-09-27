@@ -15,6 +15,7 @@ from apps.shop_assistant.agent import (
     OFF_TOPIC_REPLY,
     ShopAgent,
     claims_cart_action,
+    describe_cart,
     mentions_store_vocabulary,
     normalise_arguments,
 )
@@ -36,6 +37,10 @@ class ScriptedShopAgent(ShopAgent):
         return self.replies.pop(0)
 
 
+#: Scripted classifier verdict for messages without store nouns ("add it"), which consult the scope guard first.
+IN_SCOPE = {"content": "IN_SCOPE"}
+
+
 def tool_reply(name: str, arguments) -> dict:
     """An Ollama-shaped assistant message that requests one tool call."""
     return {"content": "", "tool_calls": [{"function": {"name": name, "arguments": arguments}}]}
@@ -53,8 +58,13 @@ class TestArgumentRepair:
             ('{"product": "Onesie"}', {"product": "Onesie"}),
             ("not json", {}),
             (None, {}),
+            (
+                {"product": {"quantity": 3, "type": "Sauce Labs Backpack"}, "quantity": 1},
+                {"product": "Sauce Labs Backpack", "quantity": 1},
+            ),
+            ({"product": {"type": "string"}}, {"product": None}),
         ],
-        ids=["clean", "schema-value", "schema-description", "json-string", "garbage", "none"],
+        ids=["clean", "schema-value", "schema-description", "json-string", "garbage", "none", "cart-line-copy", "bare-schema"],
     )
     def test_normalise_arguments(self, raw, expected):
         """Each malformed shape seen from qwen2.5:1.5b is mapped to plain values."""
@@ -79,6 +89,29 @@ class TestCatalog:
         """Loose names map to catalogue names."""
         assert resolve_product(loose) == exact
 
+    @pytest.mark.parametrize("name", ["", "  ", "s", "labs", "sauce", "Sauce Labs", "item"])
+    def test_empty_or_generic_names_match_nothing(self, name):
+        """Regression: "" was a substring of every name, so a missing product added a backpack."""
+        with pytest.raises(UnknownProductError):
+            resolve_product(name)
+
+    @pytest.mark.parametrize(
+        ("text", "product", "named"),
+        [
+            ("remove the jacket", "Sauce Labs Fleece Jacket", True),
+            ("take the lights out", "Sauce Labs Bike Light", True),
+            ("drop the t-shirt", "Sauce Labs Bolt T-Shirt", True),
+            ("remove the backpack", "Sauce Labs Backpack", True),
+            ("remove it", "Sauce Labs Backpack", False),
+            ("remove the sauce labs thing", "Sauce Labs Backpack", False),
+        ],
+    )
+    def test_mentions_product_by_any_distinctive_word(self, text, product, named):
+        """Regression: only the full short name counted, so "remove the jacket" never matched."""
+        from apps.shop_assistant.catalog import mentions_product
+
+        assert mentions_product(text, product) is named
+
     def test_unknown_product_is_rejected(self):
         """Nothing is guessed for an unrelated name."""
         with pytest.raises(UnknownProductError):
@@ -92,6 +125,17 @@ class TestCatalog:
         cart.add("Sauce Labs Onesie")
         assert cart.items == {"Sauce Labs Backpack": 3, "Sauce Labs Onesie": 1}
         assert cart.total == round(3 * 29.99 + 7.99, 2)
+
+    def test_partial_removal(self):
+        """Regression: "remove one backpack" emptied the cart because remove() had no quantity."""
+        cart = Cart()
+        cart.add("Sauce Labs Backpack", 2)
+
+        assert cart.remove("Sauce Labs Backpack", 1)
+        assert cart.items == {"Sauce Labs Backpack": 1}
+        assert cart.remove("Sauce Labs Backpack", 5)  # more than present removes the line
+        assert cart.items == {}
+        assert not cart.remove("Sauce Labs Backpack")
 
     def test_quantity_must_be_positive(self):
         """Zero or negative quantities are refused."""
@@ -124,12 +168,194 @@ class TestAgentLoop:
 
     def test_unknown_product_becomes_a_polite_error_not_a_crash(self):
         """A bad tool argument is reported back; the fallback reply explains it."""
-        agent = ScriptedShopAgent([tool_reply("add_to_cart", {"product": "laptop", "quantity": 1}), {"content": ""}])
+        agent = ScriptedShopAgent([IN_SCOPE, tool_reply("add_to_cart", {"product": "laptop", "quantity": 1}), {"content": ""}])
 
         result = agent.handle("s1", "add a laptop")
 
         assert result.tools_called[0].output["ok"] is False
         assert "couldn't" in result.reply
+        assert agent.cart("s1").items == {}
+
+    def test_zero_quantity_is_an_error_not_one_item(self):
+        """Regression: ``quantity or 1`` turned 0 into 1 and skipped Cart.add's validation."""
+        agent = ScriptedShopAgent([tool_reply("add_to_cart", {"product": "backpack", "quantity": 0}), {"content": "ok"}])
+
+        call = agent.handle("s1", "set backpacks to 0").tools_called[0]
+
+        assert call.output == {"ok": False, "error": "quantity must be at least 1"}
+        assert agent.cart("s1").items == {}
+
+    def test_remove_tool_honours_quantity(self):
+        """The model can remove some of a product; omitting quantity still removes all."""
+        agent = ScriptedShopAgent(
+            [
+                tool_reply("add_to_cart", {"product": "backpack", "quantity": 3}),
+                tool_reply("remove_from_cart", {"product": "backpack", "quantity": 1}),
+                {"content": "ok"},
+            ]
+        )
+
+        agent.handle("s1", "add 3 backpacks then remove one")
+
+        assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
+
+    def test_live_cart_is_in_every_system_prompt(self):
+        """Regression: without it the model invented cart contents ("1 backpack, 1 bike light, 1 t-shirt")."""
+        agent = ScriptedShopAgent([{"content": "You have 2 backpacks."}])
+        agent.cart("s1").add("Sauce Labs Backpack", 2)
+
+        agent.handle("s1", "What's in my cart now?")
+
+        system = agent.sent[-1][0]["content"]
+        assert "CURRENT CART:\n- 2 x Sauce Labs Backpack\nTotal: $59.98" in system
+
+    def test_describe_cart(self):
+        """Empty and filled carts render the way the model sees them."""
+        cart = Cart()
+        assert describe_cart(cart) == "(empty)"
+        cart.add("Sauce Labs Onesie", 2)
+        assert describe_cart(cart) == "- 2 x Sauce Labs Onesie\nTotal: $15.98"
+
+    def test_remove_without_quantity_is_an_error_the_model_can_fix(self):
+        """Regression: a missing quantity used to mean "remove all", so "remove one" emptied the line."""
+        agent = ScriptedShopAgent(
+            [
+                IN_SCOPE,
+                tool_reply("remove_from_cart", {"product": "backpack"}),
+                tool_reply("remove_from_cart", {"product": "backpack", "quantity": 1}),
+                {"content": "Removed one."},
+            ]
+        )
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+
+        result = agent.handle("s1", "take away one")
+
+        assert [c.output["ok"] for c in result.tools_called] == [False, True]
+        assert "quantity is required" in result.tools_called[0].output["error"]
+        assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
+
+    def test_removal_without_product_uses_the_only_item_in_the_cart(self):
+        """Measured: for "remove the backpack" the model sent only {"quantity": 3}. With one kind of
+        item in the cart there is exactly one possible meaning."""
+        agent = ScriptedShopAgent([tool_reply("remove_from_cart", {"quantity": 3}), {"content": "Done."}])
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+
+        agent.handle("s1", "remove the backpack")
+
+        assert agent.cart("s1").items == {}
+
+    def test_cart_in_the_prompt_is_refreshed_after_each_tool_round(self):
+        """Regression: CURRENT CART was built once per turn, so round 2 still saw the old quantity."""
+        agent = ScriptedShopAgent(
+            [tool_reply("remove_from_cart", {"product": "backpack", "quantity": 1}), {"content": "2 left."}]
+        )
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+
+        agent.handle("s1", "remove one backpack, what's left?")
+
+        assert "- 3 x Sauce Labs Backpack" in agent.sent[0][0]["content"]
+        assert "- 2 x Sauce Labs Backpack" in agent.sent[1][0]["content"]
+
+    def test_dropped_product_is_not_guessed_when_the_user_named_another(self):
+        """Regression: with only a backpack in the cart, "remove the fleece jacket" removed a backpack."""
+        agent = ScriptedShopAgent([tool_reply("remove_from_cart", {"quantity": 1}), {"content": "sorry"}])
+        agent.cart("s1").add("Sauce Labs Backpack", 2)
+
+        call = agent.handle("s1", "remove the fleece jacket").tools_called[0]
+
+        assert call.arguments["product"] == "Sauce Labs Fleece Jacket"
+        assert call.output["ok"] is False
+        assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
+
+    @pytest.mark.parametrize(
+        ("tool", "arguments", "message", "expected"),
+        [
+            # Seen in CI (GitHub runners): the model copied the schema description as the value.
+            (
+                "add_to_cart",
+                {"product": "Product name", "quantity": 2},
+                "Please add 2 backpacks to my cart",
+                {"Sauce Labs Backpack": 4},
+            ),
+            ("remove_from_cart", {"product": "Product name", "quantity": 1}, "Remove one backpack", {"Sauce Labs Backpack": 1}),
+            ("add_to_cart", {"quantity": 1}, "add a bike light", {"Sauce Labs Backpack": 2, "Sauce Labs Bike Light": 1}),
+        ],
+    )
+    def test_garbled_product_falls_back_to_the_one_the_user_named(self, tool, arguments, message, expected):
+        """A missing or placeholder product is recovered from the user's own words, never guessed."""
+        agent = ScriptedShopAgent([tool_reply(tool, arguments), {"content": "Done."}])
+        agent.cart("s1").add("Sauce Labs Backpack", 2)
+
+        call = agent.handle("s1", message).tools_called[0]
+
+        assert call.output["ok"] is True
+        assert agent.cart("s1").items == expected
+
+    @pytest.mark.parametrize(
+        ("message", "classifier"),
+        [
+            ("add a backpack and a onesie", []),  # store nouns: the scope classifier is skipped
+            ("add the usual", [IN_SCOPE]),
+            ("add a laptop", [IN_SCOPE]),
+        ],
+    )
+    def test_garbled_product_with_no_single_named_product_is_an_error(self, message, classifier):
+        """Two named products (or none) leave nothing unambiguous to fall back to."""
+        agent = ScriptedShopAgent(
+            [*classifier, tool_reply("add_to_cart", {"product": "Product name", "quantity": 1}), {"content": "?"}]
+        )
+
+        call = agent.handle("s1", message).tools_called[0]
+
+        assert call.output["ok"] is False
+        assert "Product name" in call.output["error"] and "Sauce Labs Onesie" in call.output["error"]
+        assert agent.cart("s1").items == {}
+
+    def test_product_argument_lists_the_catalogue(self):
+        """The schema offers the exact names as an enum, so there is no placeholder text to copy."""
+        from apps.shop_assistant.agent import TOOLS
+        from apps.shop_assistant.catalog import PRODUCTS
+
+        cart_tools = [t["function"] for t in TOOLS if t["function"]["name"] != "view_cart"]
+        assert [tool["parameters"]["properties"]["product"]["enum"] for tool in cart_tools] == [list(PRODUCTS)] * 2
+
+    def test_missing_product_error_names_the_fix(self):
+        """With several kinds of item, a call without a product is an error telling the model what to resend."""
+        agent = ScriptedShopAgent([IN_SCOPE, tool_reply("remove_from_cart", {"quantity": 3}), {"content": "sorry"}])
+        agent.cart("s1").add("Sauce Labs Backpack", 3)
+        agent.cart("s1").add("Sauce Labs Onesie", 1)
+
+        call = agent.handle("s1", "take them away").tools_called[0]
+
+        assert call.output == {
+            "ok": False,
+            "error": "product is required: call remove_from_cart again with the product name from the catalogue",
+        }
+
+    def test_missing_product_adds_nothing(self):
+        """Regression: a tool call without a product used to add a Sauce Labs Backpack."""
+        agent = ScriptedShopAgent([IN_SCOPE, tool_reply("add_to_cart", {"quantity": 2}), {"content": "ok"}])
+
+        call = agent.handle("s1", "add two").tools_called[0]
+
+        assert call.output["ok"] is False
+        assert agent.cart("s1").items == {}
+
+    def test_failed_turn_rolls_back_history_and_cart(self):
+        """Regression: a mid-turn LLM failure left the message (and any tool effects) behind,
+        so a client retry double-applied them."""
+
+        class FlakyAgent(ScriptedShopAgent):
+            def _chat(self, messages, tools=True):
+                if not self.replies:
+                    raise TimeoutError("ollama timed out")
+                return super()._chat(messages, tools)
+
+        agent = FlakyAgent([tool_reply("add_to_cart", {"product": "backpack", "quantity": 2})])
+        with pytest.raises(TimeoutError):
+            agent.handle("s1", "add 2 backpacks")
+
+        assert agent.histories["s1"] == []
         assert agent.cart("s1").items == {}
 
     def test_tool_rounds_are_bounded(self):
@@ -167,6 +393,11 @@ class TestActionClaimGuard:
             ("The onesie has been removed from your cart.", True),
             ("Your cart contains 1 bike light.", False),
             ("You have 45 days to return an item.", False),
+            # Regressions: negations and offers are not claims, and must not trigger the nudge.
+            ("Your cart is empty; nothing has been added to your cart yet.", False),
+            ("Would you like me to put it in your basket?", False),
+            ("I haven't added anything to your cart.", False),
+            ("Sure. I've added the jacket to your cart. Anything else?", True),
         ],
     )
     def test_claims_cart_action(self, text, claims):
@@ -177,6 +408,7 @@ class TestActionClaimGuard:
         """A narrated-but-not-done action is retried once; the real tool then runs."""
         agent = ScriptedShopAgent(
             [
+                IN_SCOPE,
                 {"content": "I've added one more bike light to your cart."},
                 tool_reply("add_to_cart", {"product": "bike light", "quantity": 1}),
                 {"content": "Done."},
@@ -187,7 +419,7 @@ class TestActionClaimGuard:
 
         assert agent.cart("s1").items == {"Sauce Labs Bike Light": 1}
         assert [c.name for c in result.tools_called] == ["add_to_cart"]
-        assert agent.sent[1][-1]["content"] == NO_TOOL_NUDGE
+        assert agent.sent[2][-1]["content"] == NO_TOOL_NUDGE  # sent[0] is the scope check
 
     def test_false_claim_and_nudge_are_removed_from_history(self):
         """Later turns never see the false claim or the internal nudge."""
@@ -207,11 +439,11 @@ class TestActionClaimGuard:
     def test_only_one_nudge_per_turn(self):
         """A model that keeps narrating is not nudged forever; the second claim is returned as is."""
         claim = {"content": "I've added it to your cart."}
-        agent = ScriptedShopAgent([claim, claim])
+        agent = ScriptedShopAgent([IN_SCOPE, claim, claim])
 
         result = agent.handle("s1", "add it")
 
-        assert len(agent.sent) == 2
+        assert len(agent.sent) == 3  # scope check + claim + one nudged retry
         assert result.tools_called == []
 
 
@@ -225,6 +457,20 @@ class TestScopeGuard:
     def test_store_messages_skip_the_llm(self, message):
         """Store vocabulary is recognised without spending a model call (and can't be misclassified)."""
         assert mentions_store_vocabulary(message)
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "write a poem about history",
+            "tell me about high school",
+            "write python code to add two numbers",
+            "which card game should I learn",
+            "hi, can you summarise the French revolution for me",
+        ],
+    )
+    def test_unrelated_messages_go_to_the_classifier(self, message):
+        r"""Regression: open prefixes (``hi\w*``, ``add``) let these bypass the scope classifier."""
+        assert not mentions_store_vocabulary(message)
 
     def test_off_topic_message_is_refused_without_tools(self):
         """A clear OUT_OF_SCOPE verdict returns the fixed reply; no tools, no RAG."""

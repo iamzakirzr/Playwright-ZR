@@ -12,6 +12,8 @@ over Ollama. [`agent.py`](../../apps/shop_assistant/agent.py) has the guards the
 needed: argument normalisation, an "action claimed but no tool called" check, and a hybrid scope
 guard (regex allow-list first, LLM classifier second).
 Its client is [`api/shop_assistant_client.py`](../../api/shop_assistant_client.py), a service object like chapter 03.
+The same assistant rebuilt with LangChain tools and a LangGraph graph is chapter 15; read this
+hand-written version first, so you can see what the framework replaces.
 
 ## Read the tests
 1. [`tests/ai/agent/test_agent_units.py`](../../tests/ai/agent/test_agent_units.py): guards and tool
@@ -30,6 +32,19 @@ pytest -m "agent and not live"      # offline
 pytest -m "agent and live"          # needs Ollama
 pytest -m mcp
 ```
+
+## Using MCP servers from an AI client
+[`mcp.example.json`](../../mcp.example.json) registers three servers with Claude Desktop, Cursor or
+Claude Code:
+- **ExecuteAutomation's Playwright MCP server** (`@executeautomation/playwright-mcp-server`) and
+  **Microsoft's** (`@playwright/mcp`): the assistant drives a real browser from plain-English
+  instructions ("open saucedemo, log in as standard_user, add the backpack"), and can draft
+  Playwright code from what it did. Treat that code like `codegen` output: move locators into
+  page objects before it joins the suite.
+- **This repo's store server** (`python -m apps.store_mcp`): the server these tests verify.
+
+A good exercise is to let the assistant explore a flow through Playwright MCP, then write the
+test yourself with the page objects from chapter 2 and compare.
 
 ## The key idea: verify the side effect
 "I've added it to your cart!" proves nothing. The tests read `/cart/{session}` and assert the

@@ -153,8 +153,13 @@ class SelfHealingLocator:
         healer: LocatorHealer,
         cache: HealingCache,
         max_html_chars: int = 6000,
+        settle_ms: float = 1000,
     ) -> None:
-        """Store configuration; nothing touches the page until :meth:`resolve`."""
+        """Store configuration; nothing touches the page until :meth:`resolve`.
+
+        ``settle_ms`` is how long the current selector may take to appear (after a click that
+        renders asynchronously) before it counts as broken and the healer is asked.
+        """
         self.page = page
         self.key = key
         self.selector = selector
@@ -162,6 +167,7 @@ class SelfHealingLocator:
         self.healer = healer
         self.cache = cache
         self.max_html_chars = max_html_chars
+        self.settle_ms = settle_ms
         #: How the last resolve succeeded: "current", "cache" or "healed".
         self.resolved_by: str | None = None
 
@@ -172,6 +178,13 @@ class SelfHealingLocator:
             return locator if locator.count() == 1 else None
         except Exception:  # noqa: BLE001 - invalid selector syntax from the LLM
             return None
+
+    def _wait_attached(self, selector: str) -> None:
+        """Give ``selector`` up to ``settle_ms`` to appear; returns at once if it's already there."""
+        try:
+            self.page.locator(selector).first.wait_for(state="attached", timeout=self.settle_ms)
+        except Exception:  # noqa: BLE001 - absent or invalid: resolve() falls through to healing
+            pass
 
     def page_context(self) -> str:
         """Interactive-element HTML sent to the healer (bounded by ``max_html_chars``)."""
@@ -184,6 +197,7 @@ class SelfHealingLocator:
         Raises:
             LocatorHealingError: If the current, cached and suggested selectors all fail.
         """
+        self._wait_attached(self.selector)
         if (locator := self._unique(self.selector)) is not None:
             self.resolved_by = "current"
             return locator

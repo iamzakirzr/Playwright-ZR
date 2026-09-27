@@ -23,6 +23,8 @@ class OllamaChatbot(ChatbotClient):
         temperature: Sampling temperature; 0 makes runs as repeatable as an LLM allows.
         seed: Fixed sampling seed, which also reduces run-to-run variance.
         timeout_s: Per-request timeout in seconds (CPU inference is slow).
+        max_tokens: Cap on generated tokens (Ollama ``num_predict``); None means no cap. Leave it
+            off when testing output-length budgets, or the cap would hide an overrun.
         **kwargs: Forwarded to :class:`ChatbotClient` (prompt templates, canary).
     """
 
@@ -33,6 +35,7 @@ class OllamaChatbot(ChatbotClient):
         temperature: float = 0.0,
         seed: int = 42,
         timeout_s: int = 180,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> None:
         """Create the OllamaChatbot; arguments are described in the class docstring."""
@@ -42,6 +45,7 @@ class OllamaChatbot(ChatbotClient):
         self.temperature = temperature
         self.seed = seed
         self.timeout_ms = timeout_s * 1000
+        self.max_tokens = max_tokens
 
     def is_available(self) -> bool:
         """Return True if Ollama answers and ``self.model`` has been pulled."""
@@ -53,7 +57,9 @@ class OllamaChatbot(ChatbotClient):
             return False
         return self.model in {m["name"] for m in response.json().get("models", [])}
 
-    def with_options(self, *, temperature: float | None = None, seed: int | None = None) -> OllamaChatbot:
+    def with_options(
+        self, *, temperature: float | None = None, seed: int | None = None, max_tokens: int | None = None
+    ) -> OllamaChatbot:
         """Return a copy with different sampling options (used by consistency tests).
 
         Args:
@@ -66,6 +72,7 @@ class OllamaChatbot(ChatbotClient):
             temperature=self.temperature if temperature is None else temperature,
             seed=self.seed if seed is None else seed,
             timeout_s=self.timeout_ms // 1000,
+            max_tokens=self.max_tokens if max_tokens is None else max_tokens,
             grounded_prompt=self.grounded_prompt,
             open_prompt=self.open_prompt,
             canary=self.canary,
@@ -80,7 +87,8 @@ class OllamaChatbot(ChatbotClient):
         payload = {
             "model": self.model,
             "stream": False,
-            "options": {"temperature": self.temperature, "seed": self.seed},
+            "options": {"temperature": self.temperature, "seed": self.seed}
+            | ({"num_predict": self.max_tokens} if self.max_tokens else {}),
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},

@@ -19,12 +19,13 @@ does not. This module provides the same workflow:
 from __future__ import annotations
 
 import io
-import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image, ImageChops
+
+from config import env_flag
 
 
 @dataclass(frozen=True)
@@ -80,7 +81,7 @@ class VisualComparator:
         self.browser = browser
         self.max_diff_ratio = max_diff_ratio
         self.pixel_tolerance = pixel_tolerance
-        self.update = bool(os.getenv("UPDATE_SNAPSHOTS")) if update is None else update
+        self.update = env_flag("UPDATE_SNAPSHOTS") if update is None else update
 
     def baseline_path(self, name: str) -> Path:
         """``<baseline_dir>/<name>-<browser>-<platform>.png``."""
@@ -93,7 +94,10 @@ class VisualComparator:
         """
         if expected.size != actual.size:
             return 1.0, actual.convert("RGB")
-        delta = ImageChops.difference(expected.convert("RGB"), actual.convert("RGB")).convert("L")
+        # Largest per-channel difference, not luminance: luminance weights blue at 0.114, so a
+        # blue-only change of 126 would shrink to 14 and slip under the tolerance.
+        red, green, blue = ImageChops.difference(expected.convert("RGB"), actual.convert("RGB")).split()
+        delta = ImageChops.lighter(ImageChops.lighter(red, green), blue)
         changed = delta.point(lambda v: 255 if v > self.pixel_tolerance else 0)
         histogram = changed.histogram()
         ratio = histogram[255] / (expected.width * expected.height)

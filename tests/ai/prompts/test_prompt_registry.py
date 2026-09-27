@@ -9,12 +9,12 @@ To accept an intentional prompt change, regenerate the snapshot:
 """
 
 import json
-import os
 from pathlib import Path
 
 import pytest
 
 from ai.prompts import PromptError, PromptRegistry, PromptTemplate, default_registry
+from config import env_flag
 
 SNAPSHOT_FILE = Path(__file__).with_name("prompt_snapshots.json")
 REGISTRY = default_registry()
@@ -108,7 +108,7 @@ class TestPromptLint:
     def test_prompts_match_reviewed_snapshot(self):
         """Prompt drift detection: any wording change must be reviewed and re-snapshotted."""
         current = {f"{t.name}@v{t.version}": t.fingerprint for t in REGISTRY.all()}
-        if os.getenv("UPDATE_PROMPT_SNAPSHOTS"):
+        if env_flag("UPDATE_PROMPT_SNAPSHOTS"):
             SNAPSHOT_FILE.write_text(json.dumps(current, indent=2) + "\n")
         expected = json.loads(SNAPSHOT_FILE.read_text())
 

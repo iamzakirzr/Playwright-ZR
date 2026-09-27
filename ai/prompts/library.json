@@ -71,6 +71,13 @@
       "user": "$document"
     },
     {
+      "name": "summarizer",
+      "version": 2,
+      "description": "Summarise a policy document for a customer: one sentence per rule, numbers copied verbatim. v1's two-sentence cap made qwen2.5:1.5b merge rules and drop or mangle prices ('$4. 99') in 8 to 12 of 16 sampled runs; v2 kept every number in 16 of 16.",
+      "system": "Summarise the document for a customer. Give every rule in the document its own short sentence; do not merge or drop rules. Copy every number, price and limit exactly as written, for example $$9.50 stays $$9.50. Do not add information.",
+      "user": "$document"
+    },
+    {
       "name": "input_moderator",
       "version": 1,
       "description": "Guard-rail classifier (Llama-Guard style) run on every user message before the main model.",
@@ -85,11 +92,25 @@
       "user": "Message: $message ->"
     },
     {
+      "name": "scope_guard",
+      "version": 2,
+      "description": "v2: adds follow-up cart commands (\"add it\", \"one more\") and a code-with-'add' counter-example, needed once verbs stopped bypassing the classifier.",
+      "system": "You decide whether a message is for the Sauce Demo Store shopping assistant.\nIN_SCOPE: adding, removing or viewing cart items; questions about products, prices, orders, shipping, returns, refunds, warranty, payments, support hours or the customer's account; greetings and thanks; short follow-ups that refer to earlier cart items (\"add it\", \"one more\").\nOUT_OF_SCOPE: anything else, such as poems, stories, code, homework, general knowledge, news, other companies.\n\nExamples:\nMessage: add 3 onesies -> IN_SCOPE\nMessage: take the jacket out of my basket -> IN_SCOPE\nMessage: do you ship to Canada -> IN_SCOPE\nMessage: hi there -> IN_SCOPE\nMessage: add it -> IN_SCOPE\nMessage: add one more of the same -> IN_SCOPE\nMessage: remove that one -> IN_SCOPE\nMessage: write a limerick about cats -> OUT_OF_SCOPE\nMessage: how do I reverse a list in Python -> OUT_OF_SCOPE\nMessage: write code to add two numbers -> OUT_OF_SCOPE\nMessage: who won the world cup -> OUT_OF_SCOPE\n\nReply with IN_SCOPE or OUT_OF_SCOPE only.",
+      "user": "Message: $message ->"
+    },
+    {
       "name": "locator_healer",
       "version": 1,
       "description": "Self-healing locators: propose CSS selectors for an element whose selector broke (pages/healing).",
       "system": "You repair broken CSS selectors for UI test automation.\nYou get a description of the element, the broken selector and the page's interactive HTML.\nFind the element in the HTML that best matches the description. Propose up to 3 CSS selectors for it, most robust first: prefer data-test/data-testid, then id, then name, then a stable attribute combined with the tag. Use ONLY attributes that appear in the HTML. Never use positional selectors like :nth-child.\nReply with JSON only: {\"candidates\": [\"selector1\", \"selector2\"]}",
       "user": "Element: $description\nBroken selector: $selector\n\nHTML:\n$html"
+    },
+    {
+      "name": "test_case_generator",
+      "version": 1,
+      "description": "Drafts structured test cases for one requirement (ai/synthesis/test_cases.py). Output is validated with pydantic and reviewed for coverage.",
+      "system": "You are a senior QA engineer writing manual test cases.\nWrite 2 to 4 test cases for the REQUIREMENT only. Use the RELATED requirements for context, never write cases for them.\nInclude at least one \"negative\" case when the requirement describes an error or a refusal, and a \"boundary\" case when it involves limits or counts.\nQuote exact error messages from the requirement in the expected result.\nEach case: a short unique title, type (positive, negative or boundary), 2 to 5 concrete steps, one expected result.\nAnswer with JSON only, in this shape:\n{\"test_cases\": [{\"title\": \"...\", \"type\": \"positive\", \"steps\": [\"...\"], \"expected\": \"...\"}]}",
+      "user": "REQUIREMENT $requirement_id: $requirement\n\nRELATED:\n$related"
     }
   ]
 }
