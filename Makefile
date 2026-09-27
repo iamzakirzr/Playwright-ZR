@@ -24,7 +24,7 @@ setup: ## Install Python deps (editable extras), Chromium, and the git pre-commi
 
 setup-core: ## Lightweight install without AI / Appium / torch (SQL, API clients, lint)
 	$(PY) -m pip install -U pip setuptools wheel
-	$(PY) -m pip install -e ".[core,apps,dev]"
+	$(PY) -m pip install -e ".[ui,apps,dev]"
 
 models: ## Pull the Ollama models used by the live AI tests
 	ollama pull qwen2.5:1.5b
@@ -43,7 +43,7 @@ format: ## Auto-fix lint issues and reformat
 test: test-functional test-ai-offline ## Everything that needs no LLM server
 
 test-hermetic: ## PR-gate suite: unit, SQL, local essentials, healing, AI offline (no external demos)
-	$(PYTEST) -m "(unit or sql or hybrid or essentials or healing) and not live" --browser $(BROWSER) -n auto
+	$(PYTEST) -m "(unit or sql or essentials or healing) and not live and not api and not hybrid" --browser $(BROWSER) -n auto
 	$(PYTEST) -m "ai and $(MARK_OFFLINE)" -n auto
 
 test-functional: ## UI + API + SQL + hybrid + BDD (no AI)

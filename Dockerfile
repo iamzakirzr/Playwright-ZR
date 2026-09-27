@@ -27,7 +27,7 @@ COPY visual ./visual
 
 RUN pip install -U pip setuptools wheel \
  && pip install torch --index-url https://download.pytorch.org/whl/cpu \
- && pip install -e ".[core,apps,visual,mobile,ai]" \
+ && pip install -e ".[ui,apps,visual,mobile,ai]" \
  && python -m playwright install --with-deps chromium
 
 COPY . .

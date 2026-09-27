@@ -8,11 +8,25 @@ license = { text = "Apache-2.0" }
 
 # Runtime dependencies are split into extras so UI-only / SQL-only work does not pull
 # torch, DeepEval, Appium, etc. Install examples:
-#   pip install -e ".[core,apps]"           # API + SQL + shop assistant app
-#   pip install -e ".[core,apps,ai,visual]" # hermetic CI / AI offline
-#   pip install -e ".[all,dev]"             # full local developer setup (still needs CPU torch)
+#   pip install -e ".[ui,apps]"           # Playwright UI + API clients + shop assistant app
+#   pip install -e ".[ui,apps,ai,visual]" # hermetic CI / AI offline
+#   pip install -e ".[all,dev]"           # full local developer setup (still needs CPU torch)
+#
+# `ui` is the base test-runtime extra (Playwright, pytest, pydantic, faker, Allure, BDD).
+# `core` is kept as an alias of `ui` for older docs / scripts.
 
 [project.optional-dependencies]
+ui = [
+    "pytest>=8.3,<10",
+    "pytest-playwright>=0.7,<1",
+    "pytest-xdist>=3.6,<4",
+    "pydantic>=2.8,<3",
+    "pydantic-settings>=2.4,<3",
+    "Faker>=30,<41",
+    "allure-pytest>=2.13,<3",
+    "pytest-bdd>=7,<9",
+]
+# Alias of `ui` (duplicate list — self-extra refs are unreliable on a fresh editable install).
 core = [
     "pytest>=8.3,<10",
     "pytest-playwright>=0.7,<1",

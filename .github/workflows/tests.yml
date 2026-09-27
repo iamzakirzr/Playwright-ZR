@@ -34,10 +34,11 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           browsers: chromium
-          extras: core,apps,ai,visual
-      - name: Unit + SQL + hybrid + local UI essentials + healing
+          extras: ui,apps,ai,visual
+      - name: Unit + SQL + local UI essentials + healing
+        # Deliberately omit `hybrid` / `api`: those hit Restful Booker and belong on main-only.
         run: >
-          pytest -m "(unit or sql or hybrid or essentials or healing) and not live"
+          pytest -m "(unit or sql or essentials or healing) and not live and not api and not hybrid"
           --browser chromium -n auto --junitxml=reports/junit-hermetic.xml
       - name: AI offline (no Ollama)
         run: >
@@ -61,7 +62,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           browsers: ""
-          extras: core,apps
+          extras: ui,apps
       - run: pytest -m "api or sql or hybrid" -n auto --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
@@ -83,7 +84,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           browsers: ${{ matrix.browser }}
-          extras: core,apps,ai,visual
+          extras: ui,apps,ai,visual
       - name: Run Sauce Demo UI and BDD suites
         run: pytest -m "(ui or bdd) and not ai and not live and not essentials and not healing" --browser ${{ matrix.browser }} -n auto --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4

@@ -2,4 +2,4 @@
 #   pip install -e ".[all]"
 # CPU-only torch is still installed separately (see Makefile `setup` / CI setup action):
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
--e ".[core,apps,visual,mobile,ai]"
+-e ".[ui,apps,visual,mobile,ai]"

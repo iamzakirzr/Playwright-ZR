@@ -74,12 +74,13 @@ pytest tests/ai/synthesis tests/ai/conversation tests/ai/langchain              
 ## Test your knowledge
 1. Why does the golden gate check the *expected answer's* faithfulness, not the question's?
 2. When is ROUGE the right metric?
-3. Why keep `KnowledgeRetentionMetric` in the factory if it failed calibration?
+3. Why does `MetricFactory.knowledge_retention` raise instead of returning DeepEval's metric?
 
 <details><summary>Answers</summary>
 
 1. The expected answer is the oracle. If it is wrong, correct bots fail and wrong bots pass.
 2. When the exact wording is the requirement: templated messages, extractive summaries, or
    regression against a known-good output.
-3. For stronger judges later, and as a reported (not gating) signal; the docstring says so.
+3. It failed calibration on both local judges (good and bad scored identically). The factory
+   refuses to build a false gate; use `RetentionProbeMetric` instead.
 </details>

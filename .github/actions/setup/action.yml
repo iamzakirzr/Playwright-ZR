@@ -10,7 +10,7 @@ inputs:
     default: "3.11"
   extras:
     description: Comma-separated pyproject optional-dependency extras to install
-    default: "core,apps,ai,visual,mobile"
+    default: "ui,apps,ai,visual,mobile"
   with-torch:
     description: Install CPU-only torch before the project (needed for sentence-transformers / classifiers)
     default: "true"

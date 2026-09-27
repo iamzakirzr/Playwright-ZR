@@ -100,7 +100,7 @@ site/         AI QA Academy (VitePress learning site)
 config/settings.py             ← every URL, model, threshold and budget (env-overridable)
 ```
 
-Install via extras in [`pyproject.toml`](pyproject.toml): `core`, `apps`, `ai`, `visual`, `mobile`, `dev`, `all`.
+Install via extras in [`pyproject.toml`](pyproject.toml): `ui` (alias `core`), `apps`, `ai`, `visual`, `mobile`, `dev`, `all`.
 
 ### OOP design patterns used (and where to look)
 
@@ -360,7 +360,7 @@ Two workflows, split by *determinism* and *cost*:
 | Job | When | Selects | Notes |
 |---|---|---|---|
 | `lint` | PR + main | ruff check + format | No project install |
-| `hermetic` | PR + main | `unit` / `sql` / `hybrid` / `essentials` / `healing`, then AI offline | Local playground + SQLite + stubs only — no Sauce Demo, Restful Booker, or Ollama |
+| `hermetic` | PR + main | `unit` / `sql` / `essentials` / `healing`, then AI offline | Local playground + SQLite + stubs only — no Sauce Demo, Restful Booker, or Ollama (`hybrid`/`api` stay main-only) |
 | `api-sql` | main only | `api or sql or hybrid` | Hits Restful Booker |
 | `ui` | main only | Sauce Demo UI + BDD (excludes essentials/healing already covered by hermetic) | chromium, firefox, webkit |
 

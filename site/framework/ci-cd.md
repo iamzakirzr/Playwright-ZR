@@ -103,11 +103,10 @@ builds and the AI and lint stages have `condition: eq(variables['Build.Reason'],
 
 How do you judge a CI policy? Ask what it catches, when, and at what cost.
 
-**The trade-off, stated plainly.** Merge-only means post-merge detection. A pull request gets no CI signal,
-so a broken change is found after it is on `main`. The repository accepts that cost and says so in
-[chapter 12](https://github.com/iamzakirzr/Playwright-ZR/blob/main/docs/learning-path/12-ci-cd.md). To go back to
-gating pull requests, add `pull_request:` under `on:` in `tests.yml`. For a team, that is usually the right
-choice for the functional suites; the AI suites are a different question.
+**The trade-off, stated plainly.** Pull requests get a **hermetic** CI signal (lint + unit/SQL/local
+essentials/healing + AI offline). Sauce Demo and Restful Booker stay on **main-only** jobs so third-party
+availability cannot flake a required PR check. Live AI remains manual. See
+[chapter 12](https://github.com/iamzakirzr/Playwright-ZR/blob/main/docs/learning-path/12-ci-cd.md).
 
 **Why the AI suites are manual.**
 
@@ -128,28 +127,24 @@ records every prompt and answer, so a failed evaluation shows what the model sai
 
 ## In this repository
 
-The UI job, from `tests.yml`:
+The hermetic PR job, from `tests.yml`:
 
 ```yaml
-  ui:
-    name: UI + BDD (${{ matrix.browser }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox, webkit]
+  hermetic:
+    name: Hermetic (unit / SQL / essentials / healing / AI offline)
     steps:
-      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
         with:
-          browsers: ${{ matrix.browser }}
-      - name: Run UI and BDD suites
-        run: pytest -m "(ui or bdd) and not ai and not live" --browser ${{ matrix.browser }} -n auto --junitxml=reports/junit.xml
+          browsers: chromium
+          extras: ui,apps,ai,visual
+      - run: >
+          pytest -m "(unit or sql or essentials or healing) and not live and not api and not hybrid"
+          --browser chromium -n auto
+      - run: pytest -m "ai and not live and not judge and not strong_judge" -n auto
 ```
 
-The marker expression does the selecting. Because markers come from folders (see
-[the framework tour](/framework/overview)), a new test in `tests/ui/` joins this job with no CI change.
+Sauce Demo UI/BDD still run on main (three browsers). Markers come from folders (see
+[the framework tour](/framework/overview)).
 
 The Ollama pin in the `ai-live` job, with the reason recorded next to it:
 
@@ -176,22 +171,22 @@ Facts recorded in the repository that shaped this policy:
 
 ```bash
 make lint                              # what the lint job runs
-make test                              # everything that needs no model server
+make test-hermetic                     # same suites as the PR gate
 pre-commit run --all-files             # the hook, on every file
 docker compose up --abort-on-container-exit --exit-code-from tests
 ```
 
-Exercise: in a fork, add `pull_request:` under `on:` in `tests.yml`, open a pull request that breaks one
-UI test, and watch the three browser jobs report. Then write down, for your team, which suites you would put
-on pull requests, which on merge, and which on a nightly or manual run, and why.
+Exercise: open a pull request that breaks one hermetic unit test and watch the PR `lint` / `hermetic`
+jobs fail. Then write down, for your team, which suites you would put on pull requests, which on merge,
+and which on a nightly or manual run, and why.
 
 ## Check yourself
 
 1. With this policy, what catches a broken change before it reaches `main`?
 
 ::: details Answer
-Nothing in CI. The pre-commit hook (ruff) and running `make lint` and `make test` locally before opening
-the pull request. That is the stated cost of the merge-only policy.
+The PR `lint` and `hermetic` jobs (plus pre-commit locally). Sauce Demo / Restful Booker / live Ollama
+are intentionally *not* on that critical path.
 :::
 
 2. Why do the UI tests run on three browsers but the API tests only once?

@@ -61,6 +61,7 @@ from apps.shop_assistant.catalog import PRODUCTS, Cart
 from apps.shop_assistant.shared import describe_cart
 
 #: The product argument's type: exactly the catalogue names, so the tool schema is an ``enum``.
+#: Must stay aligned with ``shared.PRODUCT_ARGUMENT["enum"]`` / ``CART_TOOL_NAMES``.
 ProductName = Literal[tuple(PRODUCTS)]  # type: ignore[valid-type]
 
 #: Model calls allowed per user turn. Each tool round costs two graph steps (agent, tools).
