@@ -38,24 +38,24 @@ export function HeroSection(): React.JSX.Element {
           animate="show"
           className="max-w-3xl"
         >
-          <motion.p
-            variants={item}
-            className="mb-5 font-[family-name:var(--font-code)] text-sm tracking-[0.22em] text-primary uppercase"
-          >
-            AI QA Academy
-          </motion.p>
           <motion.h1
             variants={item}
-            className="text-balance text-4xl leading-[1.05] font-semibold tracking-tight text-foreground sm:text-6xl"
+            className="text-balance text-5xl leading-[0.98] font-semibold tracking-tight text-foreground sm:text-7xl"
           >
-            Learn how AI works by testing it
+            AI QA Academy
           </motion.h1>
           <motion.p
             variants={item}
-            className="mt-6 max-w-xl text-pretty text-lg text-muted-foreground sm:text-xl"
+            className="mt-6 max-w-xl text-pretty text-xl text-muted-foreground sm:text-2xl"
           >
-            LLMs, RAG, agents, and MCP — explained from the real Playwright-ZR
-            Python framework. Every number comes from a test you can run.
+            Learn how AI works by testing it
+          </motion.p>
+          <motion.p
+            variants={item}
+            className="mt-4 max-w-xl text-pretty text-base text-muted-foreground/90 sm:text-lg"
+          >
+            LLMs, RAG, agents, and MCP — from the real Playwright-ZR Python
+            framework. Every number comes from a test you can run.
           </motion.p>
           <motion.div variants={item} className="mt-10 flex flex-wrap gap-3">
             <Button asChild size="lg">

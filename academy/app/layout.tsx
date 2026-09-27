@@ -30,7 +30,15 @@ export default function RootLayout({
 }>): React.JSX.Element {
   return (
     <html lang="en" className="dark">
-      <body className={`${display.variable} ${code.variable} antialiased`}>{children}</body>
+      <body className={`${display.variable} ${code.variable} antialiased`}>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

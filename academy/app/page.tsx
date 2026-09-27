@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function HomePage(): React.JSX.Element {
   return (
-    <main>
+    <main id="main">
       <HeroSection />
       <CurriculumBentoGrid />
       <section className="mx-auto max-w-6xl px-6 pb-28 sm:px-8">

@@ -166,6 +166,27 @@ const judges: Lesson = {
   relatedRepoPaths: ["ai/evaluators/", "tests/ai/", "docs/learning-path/06-ai-evals-fundamentals.md"],
 };
 
+const howLlmsWork: Lesson = {
+  slug: "how-llms-work",
+  title: "How LLMs work",
+  summary:
+    "Tokens, embeddings, temperature, context windows and tool calling — then prompting, chaining, search and RAG.",
+  track: "foundations",
+  minutes: 15,
+  tip: [
+    "LLMs predict tokens; temperature and context windows change what you can trust in tests.",
+    "Embeddings power search; hybrid BM25 + dense retrieval is what this repo uses for RAG.",
+    "Tool calling is how agents act — test whether the model chose the right tool, not only the final prose.",
+  ],
+  sections: [
+    {
+      heading: "Why QA starts here",
+      body: "Before judging answers, know what the model can and cannot do. Playwright-ZR's learning path pairs these ideas with runnable evals so every claim maps to a command you can run.",
+    },
+  ],
+  relatedRepoPaths: ["site/foundations/how-llms-work.md", "docs/learning-path/06-ai-evals-fundamentals.md"],
+};
+
 const rag: Lesson = {
   slug: "rag",
   title: "Retrieval-augmented generation (RAG)",
@@ -271,6 +292,7 @@ export const allLessons: readonly Lesson[] = [
   overview,
   uiTesting,
   apiTesting,
+  howLlmsWork,
   rag,
   judges,
   agentsLesson,
@@ -288,7 +310,7 @@ export const curriculumTracks: readonly CurriculumTrack[] = [
     id: "foundations",
     title: "Foundations",
     description: "LLMs, prompting, search, and RAG grounded in runnable tests.",
-    lessons: [rag],
+    lessons: [howLlmsWork, rag],
   },
   {
     id: "evals",

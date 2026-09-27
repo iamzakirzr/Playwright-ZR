@@ -8,7 +8,9 @@ export default function LearnLayout({
   return (
     <div className="min-h-dvh lg:flex">
       <CurriculumSidebar />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div id="main" className="min-w-0 flex-1">
+        {children}
+      </div>
     </div>
   );
 }
