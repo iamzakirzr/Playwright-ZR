@@ -32,9 +32,7 @@ def _require_appium() -> tuple[Any, Any]:
         from appium import webdriver
         from appium.options.android import UiAutomator2Options
     except ImportError as exc:  # pragma: no cover - exercised when mobile extra is absent
-        raise ImportError(
-            "Appium-Python-Client is not installed. Install the mobile extra: pip install -e '.[mobile]'"
-        ) from exc
+        raise ImportError("Appium-Python-Client is not installed. Install the mobile extra: pip install -e '.[mobile]'") from exc
     return webdriver, UiAutomator2Options
 
 

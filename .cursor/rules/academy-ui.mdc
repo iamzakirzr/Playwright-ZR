@@ -1,0 +1,14 @@
+---
+description: Standards for the Next.js AI QA Academy under academy/
+globs: academy/**/*.{ts,tsx,css,md}
+alwaysApply: false
+---
+
+# AI QA Academy UI
+
+- Stack: Next.js 15, React 19, Tailwind v4, Shadcn-style `components/ui`, Framer Motion, Shiki.
+- Content must reflect Playwright-ZR **Python** facts (`site/`, `pages/`, `api/`, `ai/`). Do not invent TypeScript API frameworks or LangTools demos absent from the repo.
+- Prefer OKLCH tokens in `app/globals.css` `@theme`; keep the dark cyber/cyan academy aesthetic.
+- No `any` in TypeScript. Explicit props interfaces for components.
+- Marketing lives in `components/marketing`; learn features in `components/features`; primitives in `components/ui`.
+- When adding lessons, extend `lib/curriculum.ts` and keep tip bullets grounded in runnable tests.
