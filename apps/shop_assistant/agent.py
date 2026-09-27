@@ -349,7 +349,7 @@ class ShopAgent:
         history.append({"role": "user", "content": message})
         calls: list[ToolCall] = []
         nudged = False
-        false_claim = None
+        claim_at = None  # index of this turn's false claim in history (the nudge follows it)
 
         for _ in range(MAX_TOOL_ROUNDS):
             # Rebuilt every round: tool calls in this turn change the cart the model must trust.
@@ -360,7 +360,7 @@ class ShopAgent:
                 if not calls and not nudged and claims_cart_action(reply.get("content", "")):
                     # Guard: the model narrated an action without doing it. Ask once more.
                     nudged = True
-                    false_claim = reply.get("content", "")
+                    claim_at = len(history)
                     history.append({"role": "assistant", "content": reply.get("content", "")})
                     history.append({"role": "user", "content": NO_TOOL_NUDGE})
                     continue
@@ -372,14 +372,10 @@ class ShopAgent:
                 calls.append(call)
                 history.append({"role": "tool", "content": json.dumps(call.output)})
         text = (reply.get("content") or "").strip() or self._summarise(calls)
-        if nudged:
-            # Drop the false claim and the nudge from future turns; keep the real trajectory.
-            history[:] = [
-                m
-                for m in history
-                if m.get("content") != NO_TOOL_NUDGE
-                and not (m["role"] == "assistant" and m.get("content") == false_claim and "tool_calls" not in m)
-            ]
+        if claim_at is not None:
+            # Drop this turn's false claim and the nudge from future turns; keep the real trajectory.
+            # By position, not by text: an earlier genuine reply can have the very same wording.
+            del history[claim_at : claim_at + 2]
         history.append({"role": "assistant", "content": text})
         return AgentReply(reply=text, tools_called=calls, sources=[r.document.id for r in results])
 

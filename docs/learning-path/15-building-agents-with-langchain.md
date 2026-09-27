@@ -42,7 +42,9 @@ START -> retrieve -> agent --(tool calls?)--> tools -> agent -> ... -> END
    can't be trusted with belongs in an edge of the graph.
 4. **Bound the loop at the right step.** `recursion_limit = 2n - 1` allows `n` model calls and
    stops *before* a tools step whose result no model call would ever see. A cart change the agent
-   never reports is worse than no change. After the bound is hit, `_close_turn` answers the dangling
+   never reports is worse than no change. **Count every node:** the `retrieve` node is one more
+   step, so with it the limit is `2n`. The first version forgot that; a code review found the agent
+   got one model call fewer and could still run an unreported `add_to_cart`. After the bound is hit, `_close_turn` answers the dangling
    tool calls, or the next turn's history would be rejected.
 5. **Rebuild the cart into the prompt on every model call.** Same lesson as the hand-written agent:
    a prompt built once per turn goes stale after the first tool call.
@@ -99,7 +101,8 @@ pytest tests/ai/langgraph                 # with Ollama: + real qwen2.5:1.5b
    when the model is strong enough to decide reliably (measure it, as above) and retrieving on every
    message is too expensive or pulls in irrelevant passages.
 3. Steps alternate agent, tools, agent. With `2n` the tools step after the last allowed model call
-   would still run, changing the cart without any model call reporting it.
+   would still run, changing the cart without any model call reporting it. (With a `retrieve` node
+   in front, add one step for it.)
 4. A rejected call that the model then corrected had no effect, and the error-feedback loop is how
    LangGraph agents are meant to work. The trajectory still records it, so a test can bound how many
    retries are acceptable.

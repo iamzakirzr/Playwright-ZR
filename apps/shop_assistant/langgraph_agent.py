@@ -265,9 +265,12 @@ class LangGraphShopAgent:
 
     def _config(self, thread_id: str) -> RunnableConfig:
         """Run config: the thread (memory + cart) and the loop bound."""
-        # Steps: agent, tools, agent, ..., agent. 2n - 1 allows n model calls and stops *before* a
-        # tools step whose result no model call would ever see (a silent cart change).
-        return {"configurable": {"thread_id": thread_id}, "recursion_limit": 2 * self.max_model_calls - 1}
+        # Steps: [retrieve,] agent, tools, agent, ..., agent. 2n - 1 allows n model calls and stops
+        # *before* a tools step whose result no model call would ever see (a silent cart change).
+        # The retrieve node, when present, is one more step before the first model call.
+        retrieve_steps = 1 if "retrieve" in self.graph.nodes else 0
+        limit = 2 * self.max_model_calls - 1 + retrieve_steps
+        return {"configurable": {"thread_id": thread_id}, "recursion_limit": limit}
 
     # -- public API -------------------------------------------------------------
     def chat(self, thread_id: str, message: str) -> AgentTurn:

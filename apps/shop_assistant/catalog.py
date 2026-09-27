@@ -47,9 +47,13 @@ def resolve_product(name: str) -> str:
     for product in PRODUCTS:
         if _short_name(product) in wanted:
             return product
-    close = difflib.get_close_matches(wanted, [p.lower() for p in PRODUCTS], n=1, cutoff=0.5)
+    # Typos last ("backpak", "fleece jaket"). Compare only the distinctive part: every catalogue
+    # name starts with "Sauce Labs", so on full names that shared prefix alone scored as a match
+    # and "Sauce Labs Water Bottle" resolved to the Onesie.
+    distinctive = {_short_name(product): product for product in PRODUCTS}
+    close = difflib.get_close_matches(wanted.removeprefix("sauce labs").strip(), list(distinctive), n=1, cutoff=0.75)
     if close:
-        return next(p for p in PRODUCTS if p.lower() == close[0])
+        return distinctive[close[0]]
     raise UnknownProductError(f"No product matches {name!r}")
 
 

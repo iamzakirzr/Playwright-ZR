@@ -82,12 +82,23 @@ class TestCatalog:
             ("fleece jacket", "Sauce Labs Fleece Jacket"),
             # Seen from qwen2.5:1.5b: the product description passed as the name.
             ("Soft and comfortable onesie for all your little ones.", "Sauce Labs Onesie"),
+            ("backpak", "Sauce Labs Backpack"),
+            ("Sauce Labs Fleece Jaket", "Sauce Labs Fleece Jacket"),
         ],
-        ids=["short", "plural", "partial", "description"],
+        ids=["short", "plural", "partial", "description", "typo", "typo-full-name"],
     )
     def test_resolve_product(self, loose, exact):
         """Loose names map to catalogue names."""
         assert resolve_product(loose) == exact
+
+    @pytest.mark.parametrize(
+        "name", ["Sauce Labs Water Bottle", "Sauce Labs Bike Helmet", "sauce labs laptop"], ids=["bottle", "helmet", "laptop"]
+    )
+    def test_unsold_products_named_like_the_catalogue_match_nothing(self, name):
+        """Regression: the shared "Sauce Labs" prefix alone was a fuzzy match, so a water bottle
+        resolved to the Onesie and a helmet to the Bike Light."""
+        with pytest.raises(UnknownProductError):
+            resolve_product(name)
 
     @pytest.mark.parametrize("name", ["", "  ", "s", "labs", "sauce", "Sauce Labs", "item"])
     def test_empty_or_generic_names_match_nothing(self, name):
@@ -435,6 +446,28 @@ class TestActionClaimGuard:
         contents = [m.get("content") for m in agent.histories["s1"]]
         assert NO_TOOL_NUDGE not in contents
         assert "I've added a onesie to your cart." not in contents
+
+    def test_cleanup_keeps_an_earlier_genuine_reply_with_the_same_wording(self):
+        """Regression: the cleanup matched by text, so turn 1's real "I've added..." reply vanished
+        when turn 2's false claim used the same words, corrupting every later turn's history."""
+        claim = "I've added a Sauce Labs Bike Light to your cart."
+        agent = ScriptedShopAgent(
+            [
+                tool_reply("add_to_cart", {"product": "bike light", "quantity": 1}),
+                {"content": claim},  # turn 1: genuine, after a real tool call
+                {"content": claim},  # turn 2: the same words, no tool call -> nudged
+                tool_reply("add_to_cart", {"product": "bike light", "quantity": 1}),
+                {"content": "Added another one."},
+            ]
+        )
+
+        agent.handle("s1", "add a bike light")
+        agent.handle("s1", "add another bike light")
+
+        assistant_texts = [m["content"] for m in agent.histories["s1"] if m["role"] == "assistant" and m["content"]]
+        assert assistant_texts == [claim, "Added another one."]
+        assert NO_TOOL_NUDGE not in [m.get("content") for m in agent.histories["s1"]]
+        assert agent.cart("s1").items == {"Sauce Labs Bike Light": 2}
 
     def test_only_one_nudge_per_turn(self):
         """A model that keeps narrating is not nudged forever; the second claim is returned as is."""

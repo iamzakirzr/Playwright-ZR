@@ -19,6 +19,11 @@ BACKPACK = "Sauce Labs Backpack"
 ONESIE = "Sauce Labs Onesie"
 
 
+def _retriever(enabled: bool) -> dict:
+    """Keyword arguments giving the agent a retriever (and so a retrieve node), or none."""
+    return {"retriever": BM25Retriever(load_documents())} if enabled else {}
+
+
 def agent_with(*replies: AIMessage, **kwargs) -> tuple[LangGraphShopAgent, ScriptedChatModel]:
     """An agent whose model answers with ``replies``, plus the model (to inspect what it saw)."""
     model = ScriptedChatModel(replies=list(replies))
@@ -207,11 +212,16 @@ class TestMemoryAndBounds:
 
         assert agent.history("t1") == [] and agent.cart("t1").items == {}
 
-    def test_endless_tool_loop_is_bounded_and_the_thread_stays_usable(self):
+    #: The bound must hold with and without the retrieve node, which is one extra graph step.
+    #: Regression: the limit ignored it, so a retriever cost one model call and let a tool run unreported.
+    WITH_AND_WITHOUT_RETRIEVAL = pytest.mark.parametrize("retrieval", [False, True], ids=["no-retriever", "retrieve-node"])
+
+    @WITH_AND_WITHOUT_RETRIEVAL
+    def test_endless_tool_loop_is_bounded_and_the_thread_stays_usable(self, retrieval):
         """A model that never stops calling tools is cut off after max_model_calls; the history is
         closed (no unanswered tool calls), so the next turn still works."""
         loop = [tool_call_message("view_cart") for _ in range(3)]
-        agent, _ = agent_with(*loop, AIMessage("Your cart is empty."), max_model_calls=3)
+        agent, _ = agent_with(*loop, AIMessage("Your cart is empty."), max_model_calls=3, **_retriever(retrieval))
 
         turn = agent.chat("t1", "what's in my cart?")
 
@@ -220,16 +230,19 @@ class TestMemoryAndBounds:
         assert last_ai.content == GAVE_UP_REPLY and not last_ai.tool_calls
         assert agent.chat("t1", "and now?").reply == "Your cart is empty."
 
-    def test_bound_stops_before_a_tool_call_nobody_would_report(self):
+    @WITH_AND_WITHOUT_RETRIEVAL
+    def test_bound_stops_before_a_tool_call_nobody_would_report(self, retrieval):
         """The last allowed model call's tool request is *not* executed: a cart change the model
         could never tell the user about is worse than no change."""
         agent, _ = agent_with(
             tool_call_message("add_to_cart", product=BACKPACK, quantity=1),
             tool_call_message("add_to_cart", product=BACKPACK, quantity=1),
             max_model_calls=2,
+            **_retriever(retrieval),
         )
 
         turn = agent.chat("t1", "add a backpack")
 
+        assert turn.model_calls == 2
         assert agent.cart("t1").items == {BACKPACK: 1}
         assert turn.tool_calls[-1].error and "Not executed" in turn.tool_calls[-1].output
