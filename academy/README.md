@@ -32,4 +32,4 @@ The legacy VitePress docs remain in `/site` (current Vercel `rootDirectory`). To
 | 2 Design system | Done (Button, Card, Badge, Accordion, Tabs) |
 | 3 Landing / marketing | Done (Hero, CurriculumBentoGrid) |
 | 4 Learn UI | Done (sidebar layout, CodeBlock, RAGVisualizer) |
-| 5 Content map | Done (lessons from Playwright-ZR / `site/`) |
+| 5 Content map | Done (27 lessons mapped from `site/**/*.md` + verified Python samples) |
