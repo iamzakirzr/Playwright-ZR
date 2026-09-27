@@ -263,8 +263,61 @@ class TestAgentLoop:
 
         call = agent.handle("s1", "remove the fleece jacket").tools_called[0]
 
-        assert call.output["ok"] is False and "product is required" in call.output["error"]
+        assert call.arguments["product"] == "Sauce Labs Fleece Jacket"
+        assert call.output["ok"] is False
         assert agent.cart("s1").items == {"Sauce Labs Backpack": 2}
+
+    @pytest.mark.parametrize(
+        ("tool", "arguments", "message", "expected"),
+        [
+            # Seen in CI (GitHub runners): the model copied the schema description as the value.
+            (
+                "add_to_cart",
+                {"product": "Product name", "quantity": 2},
+                "Please add 2 backpacks to my cart",
+                {"Sauce Labs Backpack": 4},
+            ),
+            ("remove_from_cart", {"product": "Product name", "quantity": 1}, "Remove one backpack", {"Sauce Labs Backpack": 1}),
+            ("add_to_cart", {"quantity": 1}, "add a bike light", {"Sauce Labs Backpack": 2, "Sauce Labs Bike Light": 1}),
+        ],
+    )
+    def test_garbled_product_falls_back_to_the_one_the_user_named(self, tool, arguments, message, expected):
+        """A missing or placeholder product is recovered from the user's own words, never guessed."""
+        agent = ScriptedShopAgent([tool_reply(tool, arguments), {"content": "Done."}])
+        agent.cart("s1").add("Sauce Labs Backpack", 2)
+
+        call = agent.handle("s1", message).tools_called[0]
+
+        assert call.output["ok"] is True
+        assert agent.cart("s1").items == expected
+
+    @pytest.mark.parametrize(
+        ("message", "classifier"),
+        [
+            ("add a backpack and a onesie", []),  # store nouns: the scope classifier is skipped
+            ("add the usual", [IN_SCOPE]),
+            ("add a laptop", [IN_SCOPE]),
+        ],
+    )
+    def test_garbled_product_with_no_single_named_product_is_an_error(self, message, classifier):
+        """Two named products (or none) leave nothing unambiguous to fall back to."""
+        agent = ScriptedShopAgent(
+            [*classifier, tool_reply("add_to_cart", {"product": "Product name", "quantity": 1}), {"content": "?"}]
+        )
+
+        call = agent.handle("s1", message).tools_called[0]
+
+        assert call.output["ok"] is False
+        assert "Product name" in call.output["error"] and "Sauce Labs Onesie" in call.output["error"]
+        assert agent.cart("s1").items == {}
+
+    def test_product_argument_lists_the_catalogue(self):
+        """The schema offers the exact names as an enum, so there is no placeholder text to copy."""
+        from apps.shop_assistant.agent import TOOLS
+        from apps.shop_assistant.catalog import PRODUCTS
+
+        cart_tools = [t["function"] for t in TOOLS if t["function"]["name"] != "view_cart"]
+        assert [tool["parameters"]["properties"]["product"]["enum"] for tool in cart_tools] == [list(PRODUCTS)] * 2
 
     def test_missing_product_error_names_the_fix(self):
         """With several kinds of item, a call without a product is an error telling the model what to resend."""

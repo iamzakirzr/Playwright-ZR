@@ -64,6 +64,11 @@ def mentions_product(text: str, product: str) -> bool:
     )
 
 
+def products_named_in(text: str) -> list[str]:
+    """Catalogue products that ``text`` names, in catalogue order ("add 2 backpacks" gives the backpack)."""
+    return [product for product in PRODUCTS if mentions_product(text, product)]
+
+
 def cart_lines(view: dict) -> list[str]:
     """``["2 x Sauce Labs Backpack", ...]`` from ``Cart.as_dict()``; the one place cart lines are formatted."""
     return [f"{item['quantity']} x {item['product']}" for item in view["items"]]

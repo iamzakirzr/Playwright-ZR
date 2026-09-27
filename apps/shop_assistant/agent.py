@@ -36,9 +36,20 @@ import httpx
 
 from ai.prompts import default_registry
 from ai.search import Retriever
-from apps.shop_assistant.catalog import PRODUCTS, Cart, UnknownProductError, cart_lines, mentions_product, resolve_product
+from apps.shop_assistant.catalog import (
+    PRODUCTS,
+    Cart,
+    UnknownProductError,
+    cart_lines,
+    products_named_in,
+    resolve_product,
+)
 
 MAX_TOOL_ROUNDS = 3
+
+#: The product argument lists the catalogue as an ``enum``. With only a free-text description
+#: ("Product name"), qwen2.5:1.5b on some CPUs copied the description itself as the value.
+_PRODUCT_ARGUMENT = {"type": "string", "enum": list(PRODUCTS), "description": "The catalogue product the user named"}
 
 TOOLS = [
     {
@@ -49,7 +60,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "product": {"type": "string", "description": "Product name"},
+                    "product": _PRODUCT_ARGUMENT,
                     "quantity": {"type": "integer", "minimum": 1},
                 },
                 "required": ["product", "quantity"],
@@ -64,7 +75,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "product": {"type": "string"},
+                    "product": _PRODUCT_ARGUMENT,
                     "quantity": {
                         "type": "integer",
                         "minimum": 1,
@@ -235,28 +246,21 @@ class ShopAgent:
     def run_tool(self, session_id: str, name: str, raw_arguments: Any, user_message: str = "") -> ToolCall:
         """Execute one tool call against the session's cart; errors become tool output, not crashes.
 
-        ``user_message`` is only used to confirm a product the model dropped (see below).
+        ``user_message`` is only used to recover a product the model dropped or garbled (see
+        :meth:`_product_argument`).
         """
         args = normalise_arguments(raw_arguments)
         cart = self.cart(session_id)
         try:
-            if name == "remove_from_cart" and not args.get("product") and len(cart.items) == 1:
-                # The model dropped the product. Fill it in only when the cart holds one kind of item
-                # AND the user named that item; "remove the fleece jacket" must not delete a backpack.
-                only_item = next(iter(cart.items))
-                if mentions_product(user_message, only_item):
-                    args["product"] = only_item
-            if name in {"add_to_cart", "remove_from_cart"} and not args.get("product"):
-                raise ValueError(f"product is required: call {name} again with the product name from the catalogue")
             if name == "add_to_cart":
-                product = resolve_product(str(args.get("product", "")))
+                product = self._product_argument(name, args, user_message, cart)
                 raw_quantity = args.get("quantity")
                 quantity = 1 if raw_quantity in (None, "") else int(raw_quantity)  # 0 must reach Cart.add's check
                 cart.add(product, quantity)
                 args = {"product": product, "quantity": quantity}
                 output = {"ok": True, "cart": cart.as_dict()}
             elif name == "remove_from_cart":
-                product = resolve_product(str(args.get("product", "")))
+                product = self._product_argument(name, args, user_message, cart)
                 if args.get("quantity") in (None, ""):
                     # Required by the schema; an explicit error lets the model correct itself next round
                     # instead of the agent guessing "all" or "one".
@@ -271,6 +275,31 @@ class ShopAgent:
         except (UnknownProductError, ValueError) as exc:
             output = {"ok": False, "error": str(exc)}
         return ToolCall(name=name, arguments=args, output=output)
+
+    @staticmethod
+    def _product_argument(name: str, args: dict[str, Any], user_message: str, cart: Cart) -> str:
+        """The catalogue product for a cart tool call.
+
+        The model's argument wins when it resolves. When it is missing or unresolvable (small models
+        drop it, or copy placeholder text such as "Product name"), fall back to the product the
+        *user's own message* names, but only if exactly one is named; for removals, ties are narrowed
+        to what is in the cart. Anything else is an error the model sees and can correct next round,
+        so the agent never picks a product the user didn't mention.
+        """
+        raw = str(args.get("product") or "")
+        if raw:
+            try:
+                return resolve_product(raw)
+            except UnknownProductError:
+                pass
+        named = products_named_in(user_message)
+        if name == "remove_from_cart" and len(named) > 1:
+            named = [product for product in named if product in cart.items]
+        if len(named) == 1:
+            return named[0]
+        if raw:
+            raise UnknownProductError(f"No product matches {raw!r}; use one of: {', '.join(PRODUCTS)}")
+        raise ValueError(f"product is required: call {name} again with the product name from the catalogue")
 
     # -- scope guard ----------------------------------------------------------
     def is_out_of_scope(self, message: str) -> bool:
