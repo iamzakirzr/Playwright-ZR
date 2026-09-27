@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { curriculumTracks } from "@/lib/curriculum";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,20 @@ export function CurriculumSidebar(): React.JSX.Element {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const panelId = useId();
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   const nav = (
     <nav aria-label="Curriculum" className="space-y-6">
@@ -32,6 +46,8 @@ export function CurriculumSidebar(): React.JSX.Element {
                     href={href}
                     onClick={() => setOpen(false)}
                     title={lesson.title}
+                    aria-label={lesson.title}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
                       "block rounded-lg px-2 py-2 text-sm transition-colors",
                       active
@@ -40,7 +56,7 @@ export function CurriculumSidebar(): React.JSX.Element {
                       collapsed && "truncate text-center text-xs",
                     )}
                   >
-                    {collapsed ? lesson.title.slice(0, 2) : lesson.title}
+                    {collapsed ? lesson.title.charAt(0) : lesson.title}
                   </Link>
                 </li>
               );
@@ -62,6 +78,8 @@ export function CurriculumSidebar(): React.JSX.Element {
           size="icon"
           variant="ghost"
           aria-label={open ? "Close curriculum" : "Open curriculum"}
+          aria-expanded={open}
+          aria-controls={panelId}
           onClick={() => setOpen((value) => !value)}
         >
           {open ? <X /> : <Menu />}
@@ -69,7 +87,9 @@ export function CurriculumSidebar(): React.JSX.Element {
       </div>
 
       {open ? (
-        <div className="border-b border-border/70 bg-card p-4 lg:hidden">{nav}</div>
+        <div id={panelId} className="border-b border-border/70 bg-card p-4 lg:hidden">
+          {nav}
+        </div>
       ) : null}
 
       <aside
@@ -84,7 +104,7 @@ export function CurriculumSidebar(): React.JSX.Element {
               AI QA Academy
             </Link>
           ) : (
-            <Link href="/" className="text-xs font-semibold text-primary">
+            <Link href="/" className="text-xs font-semibold text-primary" aria-label="AI QA Academy">
               AQ
             </Link>
           )}
@@ -93,6 +113,7 @@ export function CurriculumSidebar(): React.JSX.Element {
             size="icon"
             variant="ghost"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
             onClick={() => setCollapsed((value) => !value)}
           >
             {collapsed ? <ChevronRight /> : <ChevronLeft />}
