@@ -762,11 +762,11 @@ const lesson_ai_in_qa_at_companies: Lesson = {
   track: "industry",
   minutes: 12,
   tip: [
-    "AI shows up in QA in two directions: AI that helps you test (drafting cases and data,",
-    "In the first direction AI is an assistant. Its output is a draft that a person reviews, because",
-    "In the second direction AI is the system under test. You need golden sets, calibrated judges,",
+    "AI shows up in QA in two directions: AI that helps you test (drafting cases and data, healing locators, triaging failures) and testing AI features (evals, red teaming, monitoring).",
+    "In the first direction AI is an assistant. Its output is a draft that a person reviews, because generators hallucinate too.",
+    "In the second direction AI is the system under test. You need golden sets, calibrated judges, attacks and budgets, not only pass/fail assertions.",
     "The QA role grows into an \"AI quality engineer\": someone who can say how good is good enough, and prove it.",
-    "Most failures come from over-trust: a single green run, an uncalibrated judge, an eval set that",
+    "Most failures come from over-trust: a single green run, an uncalibrated judge, an eval set that never changes, or checking the reply text instead of the real state.",
   ],
   sections: [
     {
@@ -789,9 +789,9 @@ const lesson_adoption_playbook: Lesson = {
   minutes: 12,
   tip: [
     "Start with one AI feature and write down how it can hurt users. Everything else follows from that list.",
-    "Build a small golden set, then add checks in order of trust: deterministic rules first,",
+    "Build a small golden set, then add checks in order of trust: deterministic rules first, classifiers next, calibrated LLM judges last.",
     "Red-team it, with a budget for attacks that succeed and a budget for legitimate requests refused.",
-    "In CI, decide per check whether it gates or reports. Small models behave differently",
+    "In CI, decide per check whether it gates or reports. Small models behave differently across machines, so only well-calibrated, stable checks should block a merge.",
     "Close the loop: production traces become new goldens. Then, and only then, scale to the next feature.",
   ],
   sections: [
