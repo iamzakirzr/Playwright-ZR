@@ -3,6 +3,10 @@
 A layered, object-oriented **Playwright (Python)** test framework for UI, API, SQL, mobile and AI,
 built to be learned from as much as used.
 
+**New to AI testing? Start with the learning site, [AI QA Academy](site/README.md)** (source in
+[`site/`](site)): how LLMs, RAG, agents, LangChain, LangGraph and MCP work and how to test them, with
+this repository as the running example. Run it locally with `make site`.
+
 | Layer | What it tests | Target |
 |---|---|---|
 | **UI** | Page Object Model flows, visual baselines, self-healing locators | [saucedemo.com](https://www.saucedemo.com) |
@@ -16,7 +20,7 @@ built to be learned from as much as used.
 
 Everything is open source and runs locally. No paid API keys are needed.
 
-> **New here? Start with the [learning path](docs/learning-path/README.md):** 14 short chapters,
+> **New here? Start with the [learning path](docs/learning-path/README.md):** 15 short chapters,
 > one per layer, each with files to read, a command to run, an exercise and a quiz.
 > [Course coverage](docs/course-coverage.md) maps ExecuteAutomation (Karthik KK) course topics to
 > the code that practises them.
