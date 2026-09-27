@@ -26,7 +26,7 @@ different tool or scope · **Not covered** = out of scope, with the reason.
 | API testing with Playwright | Covered | [`api/`](../api), [`tests/api`](../tests/api) |
 | Recording tests (codegen) | Covered (docs) | [chapter 13](learning-path/13-playwright-essentials.md) |
 | Allure and HTML reports | Covered | [`reporting/`](../reporting), `make report` |
-| Docker and GitHub Actions | Covered | [`Dockerfile`](../Dockerfile), [`.github/workflows/tests.yml`](../.github/workflows/tests.yml) (UI/API/SQL on merge) and [`optional-suites.yml`](../.github/workflows/optional-suites.yml) (manual) |
+| Docker and GitHub Actions | Covered | [`Dockerfile`](../Dockerfile), [`.github/workflows/tests.yml`](../.github/workflows/tests.yml) (hermetic lint/unit/SQL/essentials/AI-offline on every PR; Sauce Demo + Restful Booker on merge) and [`optional-suites.yml`](../.github/workflows/optional-suites.yml) (manual mobile/live AI) |
 | TypeScript, C# and Java bindings | Not covered | This repo is Python; the concepts carry over one to one |
 
 ## Generative AI in software testing / AI-driven test automation

@@ -1,10 +1,7 @@
 // TEMPLATE: not executed by this repository (it runs on GitHub Actions).
-// Mirrors .github/workflows/tests.yml + optional-suites.yml for a Jenkins shop.
+// Prefer the policy in .github/workflows/tests.yml: hermetic lint/unit/SQL/essentials/AI-offline
+// on every PR; Sauce Demo + Restful Booker on merge to main; mobile/live AI manual.
 // Needs: a Linux agent with Docker, and the "Allure Jenkins Plugin" + "JUnit" plugins.
-//
-// Automatic runs: configure a Multibranch Pipeline (or a push webhook) that builds only `main`,
-// so it runs when a pull request is merged. Those builds use SUITE=functional: UI, API and SQL.
-// Every other suite (lint, mobile, AI) runs only when someone starts a build with that SUITE.
 
 pipeline {
     agent {

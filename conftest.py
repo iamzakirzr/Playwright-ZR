@@ -3,6 +3,7 @@ clients, repositories, chatbot, metrics) and never build them by hand."""
 
 from __future__ import annotations
 
+import importlib.util
 import os
 from pathlib import Path
 
@@ -18,6 +19,11 @@ from pages import CartPage, CheckoutPage, InventoryPage, LoginPage
 os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
 
 TESTS_ROOT = Path(__file__).parent / "tests"
+
+# Hermetic PR CI installs extras without Appium. Skip collecting mobile suites so
+# import of Appium/Selenium screen objects cannot fail collection of other tests.
+if importlib.util.find_spec("appium") is None:
+    collect_ignore_glob = ["tests/mobile/**"]
 
 
 # --------------------------------------------------------------------------- #

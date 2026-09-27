@@ -75,8 +75,9 @@ Tests that need a missing server or model **skip** with a message telling you wh
 
 ```
 tests/                         ← WHAT is asserted (thin, readable, one behaviour per test)
-  ui/ (visual/) api/ sql/ hybrid/ bdd/ mobile/{web,native}/
-  ai/{rag,search,prompts,chains,redteam,validation,chat_ui,agent,mcp,healing}/
+  ui/{essentials,visual,healing}/  api/  sql/  hybrid/  bdd/  mobile/{web,native}/  unit/
+  ai/{rag,search,prompts,chains,redteam,validation,chat_ui,agent,mcp,
+      conversation,langchain,langgraph,synthesis}/
         │  fixtures (conftest.py) inject ↓
 pages/        api/          db/               ai/
 Page Objects  Service       Repositories      chatbot/   ChatbotClient + adapters
@@ -85,14 +86,21 @@ Page Objects  Service       Repositories      chatbot/   ChatbotClient + adapter
                                               search/    Retriever strategies, IR metrics, RAG
                                               evaluators/ metrics (rule, classifier, LLM-judged)
                                               redteam/   attack library + runner
+                                              safety/    shared injection + PII patterns
+                                              synthesis/ golden + requirement→test-case gen
                                               chat_ui/   chat widget served via page.route
+                                              datasets/  golden_qa.json
 mobile/       Appium driver factory + screen objects
 visual/       screenshot comparator + opt-in vision judge
 data/         Faker factories (seeded, replayable)
 reporting/    Allure steps and attachments
-apps/         apps under test: shop_assistant (FastAPI agent + LangGraph agent), store_mcp (MCP server)
+apps/         apps under test: shop_assistant (FastAPI + LangGraph agents + shared helpers),
+              store_mcp (MCP server), playground (local Playwright essentials site)
+site/         AI QA Academy (VitePress learning site)
 config/settings.py             ← every URL, model, threshold and budget (env-overridable)
 ```
+
+Install via extras in [`pyproject.toml`](pyproject.toml): `ui` (alias `core`), `apps`, `ai`, `visual`, `mobile`, `dev`, `all`.
 
 ### OOP design patterns used (and where to look)
 
@@ -210,7 +218,7 @@ Reproducibility at temperature 0, semantic stability across seeds, latency and *
 structured results, `ToolError` on bad input, and run over **two transports**: in-process (fast) and
 a **stdio subprocess** (`python -m apps.store_mcp`, what Claude Desktop or Cursor launch).
 
-### 3.10 Self-healing locators: `tests/ai/healing/`
+### 3.10 Self-healing locators: `tests/ui/healing/`
 `BasePage.healable(name, selector, description)` returns a locator that, when the selector breaks,
 tries the JSON cache, then asks an LLM for candidates from trimmed page HTML, and accepts only a
 candidate matching **exactly one visible element**. Offline tests use a fake healer; the live test
@@ -345,44 +353,42 @@ All settings live in `config/settings.py`. Override any of them with an environm
 
 ## 7. CI/CD
 
-Two workflows, split by *when* they run:
+Two workflows, split by *determinism* and *cost*:
 
-**Automatic, on merge only:** [`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs
-when a change lands on `main` (a merged pull request). It runs nothing on pull requests, on a
-schedule or by hand.
+**Automatic on every PR and on push to `main`:** [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
 
-| Job | Selects | Matrix |
-|---|---|---|
-| `api-sql` | `api or sql or hybrid` | |
-| `ui` | `(ui or bdd) and not ai and not live` | chromium, firefox, webkit |
+| Job | When | Selects | Notes |
+|---|---|---|---|
+| `lint` | PR + main | ruff check + format | No project install |
+| `hermetic` | PR + main | `unit` / `sql` / `essentials` / `healing`, then AI offline | Local playground + SQLite + stubs only — no Sauce Demo, Restful Booker, or Ollama (`hybrid`/`api` stay main-only) |
+| `api-sql` | main only | `api or sql or hybrid` | Hits Restful Booker |
+| `ui` | main only | Sauce Demo UI + BDD (excludes essentials/healing already covered by hermetic) | chromium, firefox, webkit |
 
-**Deactivated, manual only:** [`.github/workflows/optional-suites.yml`](.github/workflows/optional-suites.yml)
-runs only from the Actions tab ("Run workflow", input `suite`):
+**Manual only:** [`.github/workflows/optional-suites.yml`](.github/workflows/optional-suites.yml)
+(`workflow_dispatch`, input `suite`):
 
 | Job | Selects | Matrix |
 |---|---|---|
 | `lint` | `ruff check` + `ruff format --check` | |
 | `mobile-web` | `mobile_web` | chromium, webkit |
 | `mobile-native` | `mobile_native` on an Android emulator with Appium 2 | |
-| `ai-offline` | `ai and not live and not judge` | |
-| `ai-live` | `ai and live and not judge` / `ai and judge and not strong_judge` | two tiers |
-| `docker` | builds the image, validates `docker-compose.yml` | |
+| `ai-offline` | `ai and not live and not judge and not strong_judge` | |
+| `ai-live` | `live and not judge` / `judge and not strong_judge` | Ollama **0.34.4** |
+| `docker` | builds the image, validates `docker-compose.yml` (Ollama image pinned to 0.34.4) | |
 | `report` | merges every job's Allure results into one HTML report (artifact) | |
 
-Because pull requests get no CI, run `make lint` and `make test` (or the pre-commit hook) before
-you open one: a broken change is found only after it is merged.
+Local equivalent of the PR gate: `make lint` and `make test-hermetic`.
 
-Shared install steps live in the composite action [`.github/actions/setup`](.github/actions/setup/action.yml).
-Publishing the Allure report to GitHub Pages is opt-in: enable Pages (source: GitHub Actions) and set
-the repository variable `DEPLOY_ALLURE_PAGES=true`.
+Shared install steps live in the composite action [`.github/actions/setup`](.github/actions/setup/action.yml)
+(`extras=` selects `pyproject.toml` optional dependencies). Publishing the Allure report to GitHub
+Pages is opt-in: enable Pages (source: GitHub Actions) and set `DEPLOY_ALLURE_PAGES=true`.
 
 The strong-judge tests (`-m strong_judge`) aren't selected even in the manual workflow, because a 7B judge takes about
 2 min per call on a CPU runner. Run them locally or on a GPU runner.
 
 **Other CI servers:** [`ci-templates/Jenkinsfile`](ci-templates/Jenkinsfile) and
-[`ci-templates/azure-pipelines.yml`](ci-templates/azure-pipelines.yml) mirror the same policy
-(functional stages on merge to `main`, everything else on a manual run).
-They are templates, not executed by this repository.
+[`ci-templates/azure-pipelines.yml`](ci-templates/azure-pipelines.yml) are templates, not executed
+by this repository; prefer the GitHub Actions policy above when updating them.
 
 ## 8. Known limitations (read before trusting a green run)
 

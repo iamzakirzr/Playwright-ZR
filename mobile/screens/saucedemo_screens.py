@@ -7,10 +7,7 @@ mobile browser engine and device.
 
 from __future__ import annotations
 
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait
-
-from mobile.screens.base_screen import BaseScreen, css
+from mobile.screens.base_screen import BaseScreen, _selenium_wait_tools, css
 from reporting import step
 
 #: A cold emulator's first navigation (DNS, TLS, JS bundle) is far slower than later element waits.
@@ -28,8 +25,9 @@ class MobileLoginScreen(BaseScreen):
     @step("Open {url}")
     def open(self, url: str) -> MobileLoginScreen:
         """Navigate the device browser to ``url`` and wait for the form."""
+        ec, web_driver_wait = _selenium_wait_tools()
         self.driver.get(url)
-        WebDriverWait(self.driver, FIRST_LOAD_TIMEOUT_S).until(ec.visibility_of_element_located(self.LOGIN))
+        web_driver_wait(self.driver, FIRST_LOAD_TIMEOUT_S).until(ec.visibility_of_element_located(self.LOGIN))
         return self
 
     @step("Log in as {username} (mobile)")

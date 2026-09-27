@@ -3,7 +3,8 @@
 # Change the suite with SUITE, e.g.  SUITE="live and not judge" docker compose up ...
 services:
   ollama:
-    image: ollama/ollama:latest
+    # Pin matches README / optional-suites CI: unpinned Ollama shifted small-model outputs.
+    image: ollama/ollama:0.34.4
     volumes:
       - ollama-models:/root/.ollama
     healthcheck:
@@ -14,7 +15,7 @@ services:
 
   models:
     # Pulls the bot and judge once; the named volume keeps them between runs.
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.34.4
     depends_on:
       ollama:
         condition: service_healthy

@@ -44,57 +44,9 @@ from apps.shop_assistant.catalog import (
     products_named_in,
     resolve_product,
 )
+from apps.shop_assistant.shared import TOOLS, describe_cart  # re-exported for tests/docs
 
 MAX_TOOL_ROUNDS = 3
-
-#: The product argument lists the catalogue as an ``enum``. With only a free-text description
-#: ("Product name"), qwen2.5:1.5b on some CPUs copied the description itself as the value.
-_PRODUCT_ARGUMENT = {"type": "string", "enum": list(PRODUCTS), "description": "The catalogue product the user named"}
-
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "add_to_cart",
-            "description": "Add a product to the shopping cart",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "product": _PRODUCT_ARGUMENT,
-                    "quantity": {"type": "integer", "minimum": 1},
-                },
-                "required": ["product", "quantity"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "remove_from_cart",
-            "description": "Remove some or all of a product from the shopping cart",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "product": _PRODUCT_ARGUMENT,
-                    "quantity": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "description": "How many to remove; to remove all, use the quantity shown in CURRENT CART",
-                    },
-                },
-                "required": ["product", "quantity"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "view_cart",
-            "description": "Show what is in the shopping cart and its total",
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
-]
 
 SYSTEM_PROMPT = (
     "You are the Sauce Demo Store shopping assistant.\n"
@@ -136,18 +88,6 @@ NO_TOOL_NUDGE = (
 )
 _ACTION_CLAIM = re.compile(r"\b(added|removed|put|placed|increased|updated|deleted)\b.*\b(cart|basket)\b", re.I)
 _NEGATION = re.compile(r"\b(not|no|nothing|never|yet|n't|cannot)\b|n't\b", re.I)
-
-
-def describe_cart(cart: Cart) -> str:
-    """One line per item plus the total, as the model sees it in CURRENT CART.
-
-    Giving the model the live cart every turn means it never has to remember or guess it:
-    before this, asked "what's in my cart now?", it invented three items and a total.
-    """
-    view = cart.as_dict()
-    if not view["items"]:
-        return "(empty)"
-    return "\n".join([*(f"- {line}" for line in cart_lines(view)), f"Total: ${view['total']:.2f}"])
 
 
 def claims_cart_action(text: str) -> bool:

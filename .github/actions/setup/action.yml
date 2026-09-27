@@ -1,5 +1,5 @@
 name: Set up test environment
-description: Python, CPU-only torch, project requirements and the requested Playwright browsers.
+description: Python, optional CPU torch, project extras and the requested Playwright browsers.
 
 inputs:
   browsers:
@@ -8,6 +8,12 @@ inputs:
   python-version:
     description: Python version
     default: "3.11"
+  extras:
+    description: Comma-separated pyproject optional-dependency extras to install
+    default: "ui,apps,ai,visual,mobile"
+  with-torch:
+    description: Install CPU-only torch before the project (needed for sentence-transformers / classifiers)
+    default: "true"
 
 runs:
   using: composite
@@ -19,8 +25,11 @@ runs:
     - name: Install Python dependencies
       shell: bash
       run: |
-        pip install torch --index-url https://download.pytorch.org/whl/cpu
-        pip install -r requirements.txt
+        if [ "${{ inputs.with-torch }}" = "true" ]; then
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+        fi
+        # shell-escape extras: "core,apps,ai" -> ".[core,apps,ai]"
+        pip install -e ".[${{ inputs.extras }}]"
     - name: Install Playwright browsers
       if: inputs.browsers != ''
       shell: bash

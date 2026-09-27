@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+/* Premium dark OKLCH palette — cyber/AI academy (Gemini Phase 1) */
+:root {
+  --background: oklch(0.13 0.015 250);
+  --foreground: oklch(0.96 0.01 240);
+  --card: oklch(0.17 0.02 250);
+  --card-foreground: oklch(0.96 0.01 240);
+  --popover: oklch(0.15 0.018 250);
+  --popover-foreground: oklch(0.96 0.01 240);
+  --primary: oklch(0.78 0.14 195);
+  --primary-foreground: oklch(0.14 0.02 250);
+  --secondary: oklch(0.22 0.025 250);
+  --secondary-foreground: oklch(0.92 0.02 240);
+  --muted: oklch(0.22 0.02 250);
+  --muted-foreground: oklch(0.68 0.03 240);
+  --accent: oklch(0.72 0.16 165);
+  --accent-foreground: oklch(0.14 0.02 250);
+  --destructive: oklch(0.58 0.2 25);
+  --destructive-foreground: oklch(0.98 0.01 240);
+  --border: oklch(0.28 0.03 250);
+  --input: oklch(0.24 0.025 250);
+  --ring: oklch(0.78 0.14 195);
+  --radius: 0.75rem;
+  --surface-elevated: oklch(0.19 0.022 250);
+  --grid-line: oklch(0.3 0.04 250 / 0.45);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface-elevated: var(--surface-elevated);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-code);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
+  min-height: 100dvh;
+}
+
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, oklch(0.45 0.12 195 / 0.22), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, oklch(0.4 0.1 165 / 0.15), transparent 50%),
+    linear-gradient(180deg, oklch(0.14 0.02 250), oklch(0.11 0.015 250));
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent);
+}
+
+@keyframes beam-drift {
+  0%,
+  100% {
+    transform: translate3d(-4%, 0, 0) rotate(0.5deg);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate3d(4%, 2%, 0) rotate(-0.5deg);
+    opacity: 0.55;
+  }
+}
+
+.hero-beam {
+  animation: beam-drift 14s ease-in-out infinite;
+}
+
+@keyframes node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.78 0.14 195 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px oklch(0.78 0.14 195 / 0);
+  }
+}
+
+.node-pulse {
+  animation: node-pulse 2.4s ease-in-out infinite;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.focus\:not-sr-only:focus {
+  position: absolute;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}

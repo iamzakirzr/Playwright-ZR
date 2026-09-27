@@ -1,20 +1,60 @@
 name: tests
 
-# Runs the functional suites (UI, API, SQL) only when a change lands on main, i.e. when a pull
-# request is merged. Nothing runs on pull requests, on a schedule or by hand here: the other
-# suites (lint, mobile, AI/LLM, Docker, Allure report) live in optional-suites.yml, which only
-# runs when started manually from the Actions tab.
+# PR gate: hermetic suites only (no Sauce Demo / Restful Booker / live Ollama).
+# Merge-to-main also runs the external UI/API suites that exercise public demo targets.
 on:
+  pull_request:
   push:
     branches: [main]
 
 concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: false
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "ruff==0.16.9"
+      - run: ruff check . --output-format=github
+      - run: ruff format --check .
+
+  hermetic:
+    name: Hermetic (unit / SQL / essentials / healing / AI offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          browsers: chromium
+          extras: ui,apps,ai,visual
+      - name: Unit + SQL + local UI essentials + healing
+        # Deliberately omit `hybrid` / `api`: those hit Restful Booker and belong on main-only.
+        run: >
+          pytest -m "(unit or sql or essentials or healing) and not live and not api and not hybrid"
+          --browser chromium -n auto --junitxml=reports/junit-hermetic.xml
+      - name: AI offline (no Ollama)
+        run: >
+          pytest -m "ai and not live and not judge and not strong_judge"
+          -n auto --junitxml=reports/junit-ai-offline.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-hermetic
+          path: |
+            reports/
+            test-results/
+
   api-sql:
-    name: API / SQL / hybrid
+    name: API / SQL / hybrid (external booker)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -22,6 +62,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           browsers: ""
+          extras: ui,apps
       - run: pytest -m "api or sql or hybrid" -n auto --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
@@ -31,6 +72,7 @@ jobs:
 
   ui:
     name: UI + BDD (${{ matrix.browser }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -42,8 +84,9 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           browsers: ${{ matrix.browser }}
-      - name: Run UI and BDD suites
-        run: pytest -m "(ui or bdd) and not ai and not live" --browser ${{ matrix.browser }} -n auto --junitxml=reports/junit.xml
+          extras: ui,apps,ai,visual
+      - name: Run Sauce Demo UI and BDD suites
+        run: pytest -m "(ui or bdd) and not ai and not live and not essentials and not healing" --browser ${{ matrix.browser }} -n auto --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:

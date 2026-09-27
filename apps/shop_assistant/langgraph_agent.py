@@ -57,9 +57,11 @@ from langgraph.prebuilt.tool_node import ToolInvocationError
 from pydantic import Field
 
 from ai.search.base import Retriever
-from apps.shop_assistant.catalog import PRODUCTS, Cart, cart_lines
+from apps.shop_assistant.catalog import PRODUCTS, Cart
+from apps.shop_assistant.shared import describe_cart
 
 #: The product argument's type: exactly the catalogue names, so the tool schema is an ``enum``.
+#: Must stay aligned with ``shared.PRODUCT_ARGUMENT["enum"]`` / ``CART_TOOL_NAMES``.
 ProductName = Literal[tuple(PRODUCTS)]  # type: ignore[valid-type]
 
 #: Model calls allowed per user turn. Each tool round costs two graph steps (agent, tools).
@@ -127,14 +129,6 @@ class AgentTurn:
     def tool_names(self) -> list[str]:
         """Names of the tools called, in order: the shape trajectory assertions compare."""
         return [call.name for call in self.tool_calls]
-
-
-def describe_cart(cart: Cart) -> str:
-    """The cart as the model sees it in the system prompt."""
-    view = cart.as_dict()
-    if not view["items"]:
-        return "(empty)"
-    return "\n".join(f"- {line}" for line in cart_lines(view)) + f"\nTotal: ${view['total']:.2f}"
 
 
 class LangGraphShopAgent:

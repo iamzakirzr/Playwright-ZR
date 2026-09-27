@@ -1,8 +1,6 @@
 # TEMPLATE: not executed by this repository (it runs on GitHub Actions).
-# Mirrors .github/workflows/tests.yml + optional-suites.yml for Azure DevOps.
-# Automatic runs happen only on merge to main and run the Functional stage (UI, API, SQL).
-# Lint and AI stages run only for a manually queued run ("Run pipeline").
-# Adapt the pool and add an Ollama service connection before using the AI-live stage.
+# Prefer .github/workflows/tests.yml: hermetic suites on every PR; Sauce Demo + Restful Booker
+# on merge to main; mobile/live AI on manual runs. Adapt the pool before using AI-live.
 
 trigger:
   branches:
