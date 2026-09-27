@@ -9,7 +9,7 @@ MARK_OFFLINE = not live and not judge and not strong_judge
 .DEFAULT_GOAL := help
 .PHONY: help setup models lint format test test-functional test-unit test-ui test-api test-sql bdd \
         test-visual test-mobile-web test-mobile-native test-ai-offline test-ai-live test-ai-judged \
-        test-ai-strong smoke report report-open docker-build docker-up docker-down clean
+        test-ai-strong smoke report report-open docker-build docker-up docker-down site site-build clean
 
 help: ## Show this list
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -87,6 +87,13 @@ report: ## Build the Allure HTML report from reports/allure-results
 
 report-open: report ## Build and open the Allure report
 	npx -y allure-commandline open reports/allure-report
+
+# ---------- learning site ----------
+site: ## Live preview of the learning site (site/) on http://localhost:5173
+	cd site && npm ci && npm run dev
+
+site-build: ## Build the learning site into site/.vitepress/dist
+	cd site && npm ci && npm run build
 
 # ---------- docker ----------
 docker-build: ## Build the test image

@@ -1,0 +1,48 @@
+/* Brand: calm indigo, generous reading width, readable code. */
+:root {
+  --vp-c-brand-1: #4f46e5;
+  --vp-c-brand-2: #6366f1;
+  --vp-c-brand-3: #818cf8;
+  --vp-c-brand-soft: rgba(99, 102, 241, 0.12);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #4f46e5 20%, #0ea5e9);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(79, 70, 229, 0.35), rgba(14, 165, 233, 0.35));
+  --vp-home-hero-image-filter: blur(56px);
+  --vp-font-family-base: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Primary buttons: white text needs the dark shade to stay readable (WCAG AA). */
+  --vp-button-brand-bg: #4f46e5;
+  --vp-button-brand-hover-bg: #4338ca;
+  --vp-button-brand-active-bg: #3730a3;
+}
+
+.dark {
+  --vp-c-brand-1: #a5b4fc;
+  --vp-c-brand-2: #818cf8;
+  --vp-c-brand-3: #6366f1;
+  --vp-button-brand-bg: #4f46e5;
+  --vp-button-brand-hover-bg: #6366f1;
+}
+
+.vp-doc p,
+.vp-doc li {
+  line-height: 1.75;
+}
+
+/* Wide tables scroll inside their own box on phones (VitePress sets display: block for this). */
+.vp-doc table {
+  max-width: 100%;
+}
+
+/* Diagrams wider than the screen scroll instead of widening the page. */
+.vp-doc .mermaid {
+  overflow-x: auto;
+}
+
+/* "Measured" callouts: the numbers the tests produced. */
+.vp-doc .custom-block.tip .custom-block-title {
+  letter-spacing: 0.02em;
+}
+
+.VPFeature .title {
+  font-size: 1.05rem;
+}

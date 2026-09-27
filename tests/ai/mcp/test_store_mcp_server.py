@@ -80,11 +80,13 @@ class TestToolResults:
 class TestErrors:
     """Errors must come back as tool errors (is_error=True) that the agent can read, not crash the server."""
 
-    def test_unknown_product_is_a_tool_error(self):
-        """Asking for a product that isn't sold returns an error result mentioning it."""
-        result = call("get_price", product="gaming laptop")
+    @pytest.mark.parametrize("product", ["gaming laptop", "Sauce Labs Water Bottle", "Sauce Labs Bike Helmet"])
+    def test_unknown_product_is_a_tool_error(self, product):
+        """A product that isn't sold returns an error mentioning it, even when it *looks* like a
+        catalogue name. Regression: "Sauce Labs Water Bottle" returned the Onesie's price."""
+        result = call("get_price", product=product)
         assert result.is_error
-        assert "gaming laptop" in result.content[0].text
+        assert product in result.content[0].text
 
     @pytest.mark.parametrize("k", [0, 11])
     def test_out_of_range_k_is_rejected(self, k):
