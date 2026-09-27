@@ -20,34 +20,12 @@ import re
 
 from ai.chatbot.base import ChatbotClient, ChatResponse
 from ai.prompts import default_registry
+from ai.safety import INJECTION_PATTERNS, PII_PATTERNS
 
 REFUSAL_MESSAGE = "I can't help with that request."
 
-#: Signatures of instruction-override attacks.
-INJECTION_PATTERNS = [
-    r"ignore (all |any |the )?(previous|prior|above) (instructions|rules|prompts?)",
-    r"disregard (all |the )?(previous|prior|above|system)",
-    r"(reveal|print|show|repeat|output) (me )?(your|the) (system|hidden|initial) (prompt|instructions|message)",
-    r"system override",
-    r"you are no longer",
-    r"you are now (dan|in developer mode|unrestricted|jailbroken)",
-    # Only as an instruction to the model: "my name is Dan" or "turn off developer mode on my
-    # phone" are ordinary customer messages and must not be refused.
-    r"(enable|enter|activate|switch to|act in|stay in) developer mode",
-    r"developer mode (is (now )?)?(enabled|activated)\b",
-    r"developer mode is (now )?on\b",
-    r"\b(act|pretend|roleplay) (as|to be) dan\b",
-    r"\byou are dan\b",
-    r"\bdo anything now\b",
-]
-
-#: PII shapes redacted from output.
-PII_PATTERNS = {
-    "ssn": r"\b\d{3}-\d{2}-\d{4}\b",
-    "card": r"\b(?:\d[ -]?){13,16}\b",
-    "phone": r"\+?\d{1,3}[ -]?\(?\d{3}\)?[ -]?\d{3}[ -]?\d{4}\b",
-    "email": r"\b[\w.+-]+@[\w-]+\.[\w.]+\b",
-}
+# Re-export for callers/tests that imported patterns from this module historically.
+__all__ = ["GuardedChatbot", "INJECTION_PATTERNS", "PII_PATTERNS", "REFUSAL_MESSAGE"]
 
 
 class GuardedChatbot(ChatbotClient):

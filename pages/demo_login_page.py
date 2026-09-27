@@ -1,6 +1,6 @@
 """Page object for the local demo login page used to teach self-healing locators.
 
-It is written against v1 of ``tests/ai/healing/html/login_v1.html``. Every element
+It is written against v1 of ``tests/ui/healing/html/login_v1.html``. Every element
 is declared with :meth:`BasePage.healable`, so it keeps working when v2 renames them.
 """
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pages.base_page import BasePage
 
-HTML_DIR = Path(__file__).resolve().parents[1] / "tests" / "ai" / "healing" / "html"
+HTML_DIR = Path(__file__).resolve().parents[1] / "tests" / "ui" / "healing" / "html"
 
 
 class DemoLoginPage(BasePage):

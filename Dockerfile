@@ -12,10 +12,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Dependencies first so code edits don't invalidate this (slow) layer.
-COPY requirements.txt .
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu \
- && pip install -r requirements.txt \
+# Metadata + packages first so code-only edits in tests/docs invalidate less.
+COPY pyproject.toml README.md LICENSE ./
+COPY ai ./ai
+COPY api ./api
+COPY apps ./apps
+COPY config ./config
+COPY data ./data
+COPY db ./db
+COPY mobile ./mobile
+COPY pages ./pages
+COPY reporting ./reporting
+COPY visual ./visual
+
+RUN pip install -U pip setuptools wheel \
+ && pip install torch --index-url https://download.pytorch.org/whl/cpu \
+ && pip install -e ".[core,apps,visual,mobile,ai]" \
  && python -m playwright install --with-deps chromium
 
 COPY . .

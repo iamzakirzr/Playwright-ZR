@@ -1,16 +1,16 @@
 ---
 title: CI/CD
-description: Playwright-ZR's CI policy - UI, API and SQL run automatically only on merge to main, everything else (lint, mobile, AI, Docker, Allure) by manual dispatch - and the trade-offs behind it.
+description: Playwright-ZR's CI policy - hermetic lint/unit/SQL/essentials/AI-offline on every PR, Sauce Demo and Restful Booker only on merge to main, live AI and mobile by manual dispatch.
 ---
 
 # CI/CD
 
 ::: tip In one minute
-- **Automatic**: `.github/workflows/tests.yml` runs only the deterministic functional suites (**UI, API, SQL**, plus hybrid and BDD) and only on **push to `main`**, which is what a merged pull request produces.
-- **Manual**: `.github/workflows/optional-suites.yml` holds **lint, mobile, AI, Docker and the Allure report**, and runs only when someone starts it from the Actions tab.
-- **The trade-off**: pull requests get **no CI signal**. The pre-commit hook and `make lint` plus `make test` locally are the gate before merge.
-- **AI suites are manual** because they need an Ollama server, take 10 to 20 minutes on CPU, and small models behave differently across machines.
-- Jenkins and Azure DevOps **templates** in `ci-templates/` mirror the same policy; a Dockerfile and `docker-compose.yml` run the whole stack in containers.
+- **PR + main**: `.github/workflows/tests.yml` runs **lint** and a **hermetic** job (unit, SQL/hybrid, local Playwright essentials, healing, AI offline). No Sauce Demo, Restful Booker, or Ollama on the PR gate.
+- **Main only**: the same workflow also runs **API** (Restful Booker) and **UI/BDD** (Sauce Demo) after merge.
+- **Manual**: `.github/workflows/optional-suites.yml` holds **mobile, live AI, Docker and Allure**, started from the Actions tab.
+- **Local PR gate**: `make lint` and `make test-hermetic`.
+- Ollama in Docker Compose is pinned to **0.34.4** (same as the live AI CI job).
 :::
 
 ## The idea
@@ -20,18 +20,19 @@ sounds safest, but it is slow, and for LLM tests it is **noisy**: a small model 
 give a different answer at temperature 0. A red build that is red for no reason trains people to ignore red
 builds.
 
-So this repository splits its suites by how **deterministic** and how **expensive** they are, and runs
-only the deterministic, cheap ones automatically.
+So this repository splits its suites by how **deterministic** and how **expensive** they are. Pull requests
+get a hermetic signal; public demo sites and live models stay off the critical path.
 
 ```mermaid
 flowchart TD
-  PR["Pull request"] -->|"no CI runs"| M["Merge to main"]
-  M --> TY["tests.yml (automatic)"]
-  TY --> J1["api-sql: api or sql or hybrid"]
-  TY --> J2["ui: chromium, firefox, webkit"]
-  H["Human: Actions tab, Run workflow"] --> OS["optional-suites.yml (manual)"]
-  OS --> L["lint, mobile, ai-offline, ai-live, docker"]
-  L --> R["report: merged Allure HTML"]
+  PR["Pull request"] --> TY["tests.yml"]
+  TY --> L["lint"]
+  TY --> H["hermetic: unit / SQL / essentials / healing / AI offline"]
+  M["Merge to main"] --> TY
+  TY --> J1["api-sql: Restful Booker + SQL"]
+  TY --> J2["ui: Sauce Demo, chromium/firefox/webkit"]
+  Human["Actions tab, Run workflow"] --> OS["optional-suites.yml"]
+  OS --> O["mobile, ai-live, docker, Allure"]
 ```
 
 ## How it works
@@ -39,20 +40,14 @@ flowchart TD
 ### Automatic: tests.yml
 
 [`.github/workflows/tests.yml`](https://github.com/iamzakirzr/Playwright-ZR/blob/main/.github/workflows/tests.yml)
-has a single trigger:
+triggers on `pull_request` and on `push` to `main`.
 
-```yaml
-on:
-  push:
-    branches: [main]
-```
-
-No `pull_request`, no `schedule`, no `workflow_dispatch`. Two jobs:
-
-| Job | Selects | Matrix |
-|---|---|---|
-| `api-sql` | `api or sql or hybrid`, parallel with `-n auto` | none |
-| `ui` | `(ui or bdd) and not ai and not live` | chromium, firefox, webkit |
+| Job | When | Selects | Matrix |
+|---|---|---|---|
+| `lint` | PR + main | ruff check + format | none |
+| `hermetic` | PR + main | `(unit or sql or hybrid or essentials or healing) and not live`, then AI offline | chromium |
+| `api-sql` | main only | `api or sql or hybrid` | none |
+| `ui` | main only | Sauce Demo UI + BDD (excludes essentials/healing) | chromium, firefox, webkit |
 
 The UI job runs on three engines because rendering differs per engine. The API job runs once because an HTTP
 call does not care which browser is installed. `fail-fast: false` lets every browser finish, so one engine's
@@ -88,11 +83,12 @@ so each job reads as checkout, setup, pytest, upload.
 - [`.pre-commit-config.yaml`](https://github.com/iamzakirzr/Playwright-ZR/blob/main/.pre-commit-config.yaml)
   runs ruff (lint with `--fix`, and format) plus whitespace, YAML, JSON and large-file checks on every commit.
   `make setup` installs the hook. It uses the same ruff version as the lint job, so a clean commit means a green lint job.
-- `make lint` and `make test` (functional plus offline AI) are the pre-merge gate.
+- `make lint` and `make test-hermetic` are the pre-merge gate (same suites as the PR jobs).
+- Dependencies install from `pyproject.toml` extras via `pip install -e ".[…]"`.
 - The [`Dockerfile`](https://github.com/iamzakirzr/Playwright-ZR/blob/main/Dockerfile) builds a test runner
   (Python 3.11, CPU-only torch, Chromium) whose default command runs everything that needs no model server.
   [`docker-compose.yml`](https://github.com/iamzakirzr/Playwright-ZR/blob/main/docker-compose.yml) adds an
-  Ollama service and a one-shot model pull; `SUITE="live and not judge" docker compose up ...` picks another tier.
+  Ollama **0.34.4** service and a one-shot model pull; `SUITE="live and not judge" docker compose up ...` picks another tier.
 
 ### Other CI servers
 

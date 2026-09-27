@@ -1,8 +1,7 @@
 name: optional suites (manual)
 
-# Deactivated: these suites no longer run automatically. Start them from the Actions tab
-# ("Run workflow") when you want them, e.g. while working through the AI chapters of the
-# learning path. The automatic pipeline (tests.yml) runs only UI, API and SQL on merge to main.
+# Mobile, live AI, Docker and Allure publishing stay manual. Lint + hermetic AI offline already
+# run on every PR via tests.yml; start this workflow from the Actions tab for the heavy tiers.
 on:
   workflow_dispatch:
     inputs:

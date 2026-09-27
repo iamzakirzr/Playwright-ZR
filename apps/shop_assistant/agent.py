@@ -44,6 +44,7 @@ from apps.shop_assistant.catalog import (
     products_named_in,
     resolve_product,
 )
+from apps.shop_assistant.shared import describe_cart  # re-exported for tests/docs
 
 MAX_TOOL_ROUNDS = 3
 
@@ -136,18 +137,6 @@ NO_TOOL_NUDGE = (
 )
 _ACTION_CLAIM = re.compile(r"\b(added|removed|put|placed|increased|updated|deleted)\b.*\b(cart|basket)\b", re.I)
 _NEGATION = re.compile(r"\b(not|no|nothing|never|yet|n't|cannot)\b|n't\b", re.I)
-
-
-def describe_cart(cart: Cart) -> str:
-    """One line per item plus the total, as the model sees it in CURRENT CART.
-
-    Giving the model the live cart every turn means it never has to remember or guess it:
-    before this, asked "what's in my cart now?", it invented three items and a total.
-    """
-    view = cart.as_dict()
-    if not view["items"]:
-        return "(empty)"
-    return "\n".join([*(f"- {line}" for line in cart_lines(view)), f"Total: ${view['total']:.2f}"])
 
 
 def claims_cart_action(text: str) -> bool:

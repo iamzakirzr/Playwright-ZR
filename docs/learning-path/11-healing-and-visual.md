@@ -14,8 +14,9 @@ Resolution order for a `healable` element:
 
 A healed selector is logged so the page-object owner fixes the source. Healing is a safety net,
 not a replacement for good locators.
-Tests: [`tests/ai/healing/test_self_healing.py`](../../tests/ai/healing/test_self_healing.py)
-(fake healer offline, local LLM live) with v1/v2 demo pages in `tests/ai/healing/html/`.
+Tests: [`tests/ui/healing/test_self_healing.py`](../../tests/ui/healing/test_self_healing.py)
+(fake healer offline, local LLM live) with v1/v2 demo pages in `tests/ui/healing/html/`.
+Healing lives under `tests/ui/` (UI locator repair), not under `tests/ai/` (LLM product eval).
 
 ## Visual regression: [`visual/comparator.py`](../../visual/comparator.py)
 - Baselines are per name, browser **and** OS (fonts render differently).

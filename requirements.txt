@@ -1,40 +1,5 @@
-# --- Core framework ---
-pytest>=8.3,<10
-pytest-playwright>=0.7,<1
-pytest-xdist>=3.6,<4
-pydantic>=2.8,<3
-pydantic-settings>=2.4,<3
-
-# --- Test data, reporting, BDD ---
-Faker>=30,<41
-allure-pytest>=2.13,<3
-pytest-bdd>=7,<9
-
-# --- Apps under test (AI shop assistant, MCP server) ---
-fastapi>=0.110,<1
-uvicorn>=0.29,<1
-httpx>=0.27,<1
-mcp>=2,<3
-
-# --- Visual testing ---
-pillow>=10,<13
-
-# --- Mobile native (Appium 2 client; tests skip without an Appium server) ---
-Appium-Python-Client>=4,<7
-
-# --- AI evaluation (open source) ---
-deepeval>=3.0,<5
-ragas>=0.3,<0.5
-# ragas 0.4.x imports a module removed in langchain-community 0.4
-langchain-community>=0.3.27,<0.4
-langchain-ollama>=0.3,<2
-# Agent graphs (apps/shop_assistant/langgraph_agent.py); tested on 1.2.x
-langgraph>=1.0,<2
-sentence-transformers>=3.0,<7
-# Traditional reference metrics (BLEU/ROUGE) via Hugging Face evaluate
-evaluate>=0.4,<0.5
-rouge_score>=0.1.2
-sacrebleu>=2.4,<3
-# transformers (pulled in by sentence-transformers) also runs the toxic-bert classifier
-# CPU-only torch keeps the install ~200MB instead of ~2GB:
+# Thin wrapper around pyproject extras. Prefer:
+#   pip install -e ".[all]"
+# CPU-only torch is still installed separately (see Makefile `setup` / CI setup action):
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
+-e ".[core,apps,visual,mobile,ai]"

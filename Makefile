@@ -7,7 +7,7 @@ BROWSER ?= chromium
 MARK_OFFLINE = not live and not judge and not strong_judge
 
 .DEFAULT_GOAL := help
-.PHONY: help setup models lint format test test-functional test-unit test-ui test-api test-sql bdd \
+.PHONY: help setup setup-core models lint format test test-functional test-hermetic test-unit test-ui test-api test-sql bdd \
         test-visual test-mobile-web test-mobile-native test-ai-offline test-ai-live test-ai-judged \
         test-ai-strong smoke report report-open docker-build docker-up docker-down site site-build clean
 
@@ -15,11 +15,16 @@ help: ## Show this list
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # ---------- setup ----------
-setup: ## Install Python deps, Chromium, and the git pre-commit hook
+setup: ## Install Python deps (editable extras), Chromium, and the git pre-commit hook
+	$(PY) -m pip install -U pip setuptools wheel
 	$(PY) -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-	$(PY) -m pip install -r requirements-dev.txt
+	$(PY) -m pip install -e ".[all,dev]"
 	$(PY) -m playwright install --with-deps chromium
 	pre-commit install
+
+setup-core: ## Lightweight install without AI / Appium / torch (SQL, API clients, lint)
+	$(PY) -m pip install -U pip setuptools wheel
+	$(PY) -m pip install -e ".[core,apps,dev]"
 
 models: ## Pull the Ollama models used by the live AI tests
 	ollama pull qwen2.5:1.5b
@@ -36,6 +41,10 @@ format: ## Auto-fix lint issues and reformat
 
 # ---------- functional ----------
 test: test-functional test-ai-offline ## Everything that needs no LLM server
+
+test-hermetic: ## PR-gate suite: unit, SQL, local essentials, healing, AI offline (no external demos)
+	$(PYTEST) -m "(unit or sql or hybrid or essentials or healing) and not live" --browser $(BROWSER) -n auto
+	$(PYTEST) -m "ai and $(MARK_OFFLINE)" -n auto
 
 test-functional: ## UI + API + SQL + hybrid + BDD (no AI)
 	$(PYTEST) -m "(unit or ui or api or sql or hybrid or bdd) and not ai and not live" --browser $(BROWSER) -n auto
