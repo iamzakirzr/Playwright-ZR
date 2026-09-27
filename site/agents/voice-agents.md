@@ -111,6 +111,7 @@ Assumes `pip install faster-whisper jiwer`, the `piper` command-line tool with a
 
 ```python
 """voice_pipeline.py: illustrative voice wrapper around the repository's LangGraph agent."""
+
 import re
 import subprocess
 import time
@@ -169,6 +170,7 @@ Three tests on top of it, in the style of the repository's agent tests:
 
 ```python
 """test_voice_pipeline.py: illustrative, not part of the test suite."""
+
 from voice_pipeline import agent, normalise, speak, transcribe, voice_turn, word_error_rate
 
 BACKPACK = "Sauce Labs Backpack"

@@ -59,12 +59,14 @@ The `@tool` decorator turns a typed Python function into a tool. Its type hints 
 from pydantic import BaseModel
 from langchain_ollama import ChatOllama
 
+
 class Intent(BaseModel):
-    label: str        # e.g. "cart", "policy", "off_topic"
+    label: str  # e.g. "cart", "policy", "off_topic"
     confidence: float
 
+
 classifier = ChatOllama(model="qwen2.5:1.5b", temperature=0).with_structured_output(Intent)
-result = classifier.invoke("put a bike light in my basket")   # an Intent instance, or an error
+result = classifier.invoke("put a bike light in my basket")  # an Intent instance, or an error
 ```
 
 Testing it: assert on the parsed fields, and test what happens when the small model returns something that doesn't parse. It will, sometimes.
@@ -106,6 +108,7 @@ Offline tests in [`tests/ai/langchain/test_langchain_units.py`](https://github.c
 def fake_model(messages):
     recorded.append(messages)
     return AIMessage(content=" fake answer ", usage_metadata={"input_tokens": 11, "output_tokens": 2, "total_tokens": 13})
+
 
 return LangChainChatbot(RunnableLambda(fake_model), retriever=BM25Retriever(load_documents()), canary="CANARY-1")
 ```

@@ -72,12 +72,12 @@ In pseudo-code, every agent framework does roughly this:
 
 ```python
 history.append(user_message)
-for _ in range(MAX_ROUNDS):            # bound the loop
+for _ in range(MAX_ROUNDS):  # bound the loop
     reply = llm(system_prompt, history, tools)
     if not reply.tool_calls:
-        break                          # the model answered in text
+        break  # the model answered in text
     for call in reply.tool_calls:
-        result = run_tool(call.name, call.arguments)   # the only place state changes
+        result = run_tool(call.name, call.arguments)  # the only place state changes
         history.append(tool_message(result))
 return reply.text
 ```

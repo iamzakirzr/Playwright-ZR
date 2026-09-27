@@ -142,6 +142,7 @@ def test_exposes_exactly_the_expected_tools(self):
     """No tool is missing and nothing unexpected is exposed (least privilege)."""
     assert {t.name for t in run_sync(_list_tools(server))} == EXPECTED_TOOLS
 
+
 def test_input_schemas_declare_required_parameters(self):
     """``get_price`` must require ``product``; ``search_policies`` must require ``query``."""
     schemas = {t.name: t.input_schema for t in run_sync(_list_tools(server))}

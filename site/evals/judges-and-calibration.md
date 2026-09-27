@@ -47,12 +47,14 @@ Most DeepEval metrics break the job into small prompts to the judge model. Faith
 G-Eval is different: you write the rubric as evaluation steps in English, and the judge scores against them. The repo's completeness rubric, from `ai/evaluators/factory.py`:
 
 ```python
-evaluation_steps=[
-    "List the facts in 'retrieval context' that are needed to fully answer 'input'.",
-    "Check which of those facts appear in 'actual output'.",
-    "Heavily penalise every needed fact that is missing, especially prices, limits and exceptions.",
-    "Do not penalise brevity when all needed facts are present.",
-],
+evaluation_steps = (
+    [
+        "List the facts in 'retrieval context' that are needed to fully answer 'input'.",
+        "Check which of those facts appear in 'actual output'.",
+        "Heavily penalise every needed fact that is missing, especially prices, limits and exceptions.",
+        "Do not penalise brevity when all needed facts are present.",
+    ],
+)
 ```
 
 ### Why judges fail
