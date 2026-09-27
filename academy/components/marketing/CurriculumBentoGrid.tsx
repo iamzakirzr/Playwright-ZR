@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { bentoTopics } from "@/lib/curriculum";
 import { cn } from "@/lib/utils";
 import type { BentoTopic } from "@/types/curriculum";
@@ -20,6 +20,8 @@ const spanClass: Record<BentoTopic["span"], string> = {
 };
 
 export function CurriculumBentoGrid(): React.JSX.Element {
+  const reduceMotion = useReducedMotion();
+
   return (
     <section className="relative mx-auto max-w-6xl px-6 py-24 sm:px-8">
       <div className="mb-12 max-w-2xl">
@@ -36,11 +38,11 @@ export function CurriculumBentoGrid(): React.JSX.Element {
         {bentoTopics.map((topic, index) => (
           <motion.div
             key={topic.id}
-            initial={{ opacity: 0, y: 16 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
-            transition={{ delay: index * 0.06, duration: 0.45 }}
-            whileHover={{ scale: 1.015 }}
+            transition={{ delay: reduceMotion ? 0 : index * 0.06, duration: reduceMotion ? 0 : 0.45 }}
+            whileHover={reduceMotion ? undefined : { scale: 1.015 }}
             className={cn(spanClass[topic.span])}
           >
             <Link

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +23,8 @@ const item = {
 };
 
 export function HeroSection(): React.JSX.Element {
+  const reduceMotion = useReducedMotion();
+
   return (
     <section className="relative isolate min-h-[100dvh] overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-grid" aria-hidden />
@@ -33,31 +35,34 @@ export function HeroSection(): React.JSX.Element {
 
       <div className="relative mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-center px-6 pb-24 pt-28 sm:px-8">
         <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
+          variants={reduceMotion ? undefined : container}
+          initial={reduceMotion ? false : "hidden"}
+          animate={reduceMotion ? undefined : "show"}
           className="max-w-3xl"
         >
           <motion.h1
-            variants={item}
+            variants={reduceMotion ? undefined : item}
             className="text-balance text-5xl leading-[0.98] font-semibold tracking-tight text-foreground sm:text-7xl"
           >
             AI QA Academy
           </motion.h1>
           <motion.p
-            variants={item}
+            variants={reduceMotion ? undefined : item}
             className="mt-6 max-w-xl text-pretty text-xl text-muted-foreground sm:text-2xl"
           >
             Learn how AI works by testing it
           </motion.p>
           <motion.p
-            variants={item}
+            variants={reduceMotion ? undefined : item}
             className="mt-4 max-w-xl text-pretty text-base text-muted-foreground/90 sm:text-lg"
           >
             LLMs, RAG, agents, and MCP — from the real Playwright-ZR Python
             framework. Every number comes from a test you can run.
           </motion.p>
-          <motion.div variants={item} className="mt-10 flex flex-wrap gap-3">
+          <motion.div
+            variants={reduceMotion ? undefined : item}
+            className="mt-10 flex flex-wrap gap-3"
+          >
             <Button asChild size="lg">
               <Link href="/learn">
                 Start learning

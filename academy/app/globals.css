@@ -107,6 +107,22 @@ body::before {
   animation: beam-drift 14s ease-in-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .hero-beam,
+  .node-pulse {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @keyframes node-pulse {
   0%,
   100% {
