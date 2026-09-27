@@ -58,7 +58,7 @@ const lesson_framework_overview: Lesson = {
       body: "Tests never build these objects themselves. They ask for them by name as pytest fixtures, and the fixtures in conftest.py construct them from the settings. That is dependency injection, and it is why swapping a browser, a base URL or a model is a configuration change, not a code change.",
     },
   ],
-  relatedRepoPaths: ["README.md", "pyproject.toml", ".github/workflows/tests.yml"],
+  relatedRepoPaths: ["README.md", "pyproject.toml", ".github/workflows/tests.yml", "site/framework/overview.md"],
 };
 
 const lesson_ui_testing: Lesson = {
@@ -106,7 +106,7 @@ const lesson_ui_testing: Lesson = {
       },
     },
   ],
-  relatedRepoPaths: ["pages/", "tests/ui/", "pages/login_page.py"],
+  relatedRepoPaths: ["pages/", "tests/ui/", "pages/login_page.py", "site/framework/ui-testing.md"],
 };
 
 const lesson_api_testing: Lesson = {
@@ -146,7 +146,7 @@ const lesson_api_testing: Lesson = {
       },
     },
   ],
-  relatedRepoPaths: ["api/booking_client.py", "api/schemas/", "tests/api/"],
+  relatedRepoPaths: ["api/booking_client.py", "api/schemas/", "tests/api/", "site/framework/api-testing.md"],
 };
 
 const lesson_sql_and_hybrid: Lesson = {
@@ -172,7 +172,7 @@ const lesson_sql_and_hybrid: Lesson = {
       body: "The repository pattern is the same idea as page objects and service clients: keep the \"how\" (SQL) out of the test, keep the \"what\" (the rule being checked) in it.",
     },
   ],
-  relatedRepoPaths: ["db/", "tests/sql/", "tests/hybrid/"],
+  relatedRepoPaths: ["db/", "tests/sql/", "tests/hybrid/", "site/framework/sql-and-hybrid.md"],
 };
 
 const lesson_ci_cd: Lesson = {
@@ -198,7 +198,7 @@ const lesson_ci_cd: Lesson = {
       body: "So this repository splits its suites by how deterministic and how expensive they are. Pull requests get a hermetic signal; public demo sites and live models stay off the critical path.",
     },
   ],
-  relatedRepoPaths: [".github/workflows/tests.yml", "conftest.py"],
+  relatedRepoPaths: [".github/workflows/tests.yml", "conftest.py", "site/framework/ci-cd.md"],
 };
 
 const lesson_how_llms_work: Lesson = {
@@ -332,7 +332,7 @@ const lesson_rag: Lesson = {
       body: "Retrieve top k=3 via hybrid search. Below the floor → abstain. Otherwise augment with the grounded_qa system prompt and generate, returning answer + passages for judging.",
       code: {
         language: "python",
-        filename: "apps/shop_assistant (grounded_qa)",
+        filename: "ai/prompts/library.json",
         code: `# grounded_qa system prompt (abbreviated from the shop assistant)
 # "Answer ONLY from the CONTEXT below. Include every relevant fact
 #  from it, such as prices, limits and exceptions. If the context
@@ -341,7 +341,7 @@ const lesson_rag: Lesson = {
       },
     },
   ],
-  relatedRepoPaths: ["apps/shop_assistant/", "tests/ai/rag/", "site/foundations/rag.md"],
+  relatedRepoPaths: ["apps/shop_assistant/", "ai/prompts/library.json", "tests/ai/rag/", "site/foundations/rag.md"],
 };
 
 const lesson_evaluating_llms: Lesson = {
@@ -367,7 +367,7 @@ const lesson_evaluating_llms: Lesson = {
       body: "Testing an LLM is essay grading. Ask the shop assistant \"How many days do I have to return an item?\" and all of these are correct:",
     },
   ],
-  relatedRepoPaths: ["ai/evaluators/", "tests/ai/"],
+  relatedRepoPaths: ["ai/evaluators/", "tests/ai/", "site/evals/evaluating-llms.md"],
 };
 
 const lesson_judges_and_calibration: Lesson = {
@@ -417,7 +417,7 @@ const lesson_judges_and_calibration: Lesson = {
       ],
     },
   ],
-  relatedRepoPaths: ["ai/evaluators/factory.py", "tests/ai/rag/test_faithfulness.py", "ai/evaluators/judge.py"],
+  relatedRepoPaths: ["ai/evaluators/factory.py", "tests/ai/rag/test_faithfulness.py", "ai/evaluators/judge.py", "site/evals/judges-and-calibration.md"],
 };
 
 const lesson_production_metrics: Lesson = {
@@ -443,7 +443,7 @@ const lesson_production_metrics: Lesson = {
       body: "AI features need the same shift, because an LLM never reaches 100%. A 1.5B model in this repo reliably states the fact a question needs but often drops the extras. You cannot make that test green by wishing. You *can* record where it is today, and fail the build if it gets worse.",
     },
   ],
-  relatedRepoPaths: ["tests/ai/rag/test_production_metrics.py"],
+  relatedRepoPaths: ["tests/ai/rag/test_production_metrics.py", "site/evals/production-metrics.md"],
 };
 
 const lesson_performance_evals: Lesson = {
@@ -520,7 +520,7 @@ const lesson_red_teaming: Lesson = {
       body: "The categories this repo covers, mapped to the OWASP Top 10 for LLM Applications:",
     },
   ],
-  relatedRepoPaths: ["ai/safety/patterns.py", "tests/ai/"],
+  relatedRepoPaths: ["ai/safety/patterns.py", "tests/ai/", "site/evals/red-teaming.md"],
 };
 
 const lesson_what_is_an_agent: Lesson = {
@@ -546,7 +546,7 @@ const lesson_what_is_an_agent: Lesson = {
       body: "An agent is what you get when you let that text trigger actions. You describe some functions to the model (\"add_to_cart(product, quantity): add a product to the shopping cart\"). Instead of answering in prose, the model can now reply with a structured request: \"call add_to_cart with product = Sauce Labs Backpack, quantity = 2\". Your program runs the function, and hands the result back to the model. The model reads the result and decides what to do next.",
     },
   ],
-  relatedRepoPaths: ["apps/shop_assistant/", "site/agents/"],
+  relatedRepoPaths: ["apps/shop_assistant/", "site/agents/", "site/agents/what-is-an-agent.md"],
 };
 
 const lesson_testing_agents: Lesson = {
@@ -572,7 +572,7 @@ const lesson_testing_agents: Lesson = {
       body: "1. State. Did the world change as the user asked? Read it from the system of record, never from the chat. 2. Trajectory. Did the agent get there the right way? The trajectory is the ordered list of tool calls with their arguments. A correct cart reached by a wrong path (two adds and a remove instead of one add) is a bug waiting to happen. 3. Text. Only for what the user must be told: the total, how many are left, a refusal. Check it with rules where you can, and with a calibrated judge only where you must.",
     },
   ],
-  relatedRepoPaths: ["apps/shop_assistant/shared.py", "tests/ai/"],
+  relatedRepoPaths: ["apps/shop_assistant/shared.py", "tests/ai/", "site/agents/testing-agents.md"],
 };
 
 const lesson_building_agents: Lesson = {
@@ -597,7 +597,7 @@ const lesson_building_agents: Lesson = {
       body: "- how to describe tools so the model calls them correctly; - when to stop the loop; - what to do with bad arguments; - what the model needs to see on each call; - what to do when the model lies about what it did; - what to do when the request is off topic; - what happens to state when a call fails halfway.",
     },
   ],
-  relatedRepoPaths: ["apps/shop_assistant/"],
+  relatedRepoPaths: ["apps/shop_assistant/", "site/agents/building-agents.md"],
 };
 
 const lesson_langchain: Lesson = {
