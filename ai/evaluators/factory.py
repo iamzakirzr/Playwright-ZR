@@ -199,7 +199,8 @@ class MetricFactory:
     # -- Conversation (multi-turn) ---------------------------------------------
     # Calibrated on a good and a bad 3-turn conversation (tests/ai/conversation):
     #   completeness   3B: good 1.0 / bad 0.4    ok on the default judge
-    #   role_adherence 3B: good 0.67 / bad 0.0   ok on the default judge (threshold 0.5)
+    #   role_adherence 3B: good 0.67 / bad 0.0 locally, 0.0 / 0.0 in CI; it quotes user turns as the
+    #                  bot's, so it fails. 7B: good 1.0 / bad 0.67, strong judge (threshold 0.8)
     #   turn_relevancy 3B: good 1.0 / bad 1.0    fails; 7B: good 1.0 / bad 0.33, needs the strong judge
     #   knowledge_     3B and 7B: good 1.0 / bad 1.0 on a bot that re-asks the order number;
     #   retention      not trusted as a gate (see RetentionProbeMetric for the deterministic check)

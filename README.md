@@ -219,14 +219,16 @@ opt-in vision-LLM description of a side-by-side composite; it is **advisory**, p
 
 ### 3.12 Multi-turn conversations: `tests/ai/conversation/`, `tests/ai/agent/test_agent_conversation.py`
 `run_conversation` builds DeepEval `ConversationalTestCase`s from any bot. Calibration decides
-which judged metrics may gate: completeness and role adherence (3B judge), turn relevancy (7B
-judge only), knowledge retention (failed on both, so the rule-based `RetentionProbeMetric` is used
+which judged metrics may gate: completeness (3B judge), role adherence and turn relevancy (7B
+judge only; the 3B judge confused speakers in CI), knowledge retention (failed on both, so the rule-based `RetentionProbeMetric` is used
 instead). The first run of the shopping conversation found three agent defects: "remove one
 backpack" removed all of them, the model ignored an optional `quantity`, and it invented cart
 contents. A first fix with regex guards over the user's text was rejected in code review (every
 new phrasing needed another rule). The structural fix: the live cart goes into the system prompt
 every turn, `quantity` is required on removal, and malformed arguments are repaired from their
-shape, never from the user's words.
+shape. When CI showed the model copying the schema text (`"product": "Product name"`), `product`
+became an `enum` of catalogue names; an unusable product falls back to the one product the user
+named (only if exactly one), never to a guess, and never decides the action or quantity.
 
 ### 3.13 LangChain app under test: `tests/ai/langchain/`
 `LangChainChatbot` is an LCEL RAG chain (retrieve, then messages, then `ChatOllama`) behind the same

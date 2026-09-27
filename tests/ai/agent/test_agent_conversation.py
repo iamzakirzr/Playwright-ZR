@@ -3,8 +3,8 @@
 One realistic conversation (add, policy question, remove, check) is scored three ways:
 1. **State**: the cart API shows the net result (never trust the chat text alone).
 2. **Rule-based memory**: the last reply states the remaining quantity (``RetentionProbeMetric``).
-3. **Judged**: conversation completeness and role adherence, the two conversational metrics
-   that passed calibration on the default 3B judge (see ``ai/evaluators/factory.py``).
+3. **Judged**: conversation completeness on the default 3B judge, and role adherence on the
+   7B judge, each where it passed calibration (see ``tests/ai/conversation``).
 """
 
 import pytest
@@ -72,9 +72,15 @@ def test_last_reply_states_the_remaining_quantity(conversation):
     assert probe.is_successful(), f"{probe.reason}\n{trajectory(transcript)}"
 
 
-def test_conversation_is_complete_and_in_role(conversation, judge, settings):
-    """Every user goal met, every turn in role, judged by the calibrated 3B judge."""
+def test_conversation_is_complete(conversation, judge):
+    """Every user goal met, judged by the 3B judge (calibrated for completeness)."""
     _, case, _transcript = conversation
-    factory = MetricFactory(judge)
 
-    assert_test(case, [factory.conversation_completeness(threshold=0.7), factory.role_adherence(threshold=0.5)])
+    assert_test(case, [MetricFactory(judge).conversation_completeness(threshold=0.7)])
+
+
+def test_every_reply_stays_in_role(conversation, strong_metrics):
+    """No reply leaves the shopping-assistant role; needs the 7B judge (the 3B one confuses speakers)."""
+    _, case, _transcript = conversation
+
+    assert_test(case, [strong_metrics.role_adherence(threshold=0.8)])

@@ -152,5 +152,8 @@ class GoldenQualityGate:
         metric = FaithfulnessMetric(threshold=self.faithfulness_threshold, model=self.judge, async_mode=False)
         metric.measure(LLMTestCase(input=golden.input, actual_output=golden.expected_output, retrieval_context=golden.context))
         if metric.score < self.faithfulness_threshold:
-            return [f"expected answer not grounded (faithfulness {metric.score:.2f}): {metric.reason}"]
+            # The judge's own summary can contradict its verdicts ("0.00 because there are no
+            # contradictions"), so report the per-claim verdicts it actually gave.
+            judged = [f"{claim!r}: {verdict.verdict}" for claim, verdict in zip(metric.claims, metric.verdicts, strict=False)]
+            return [f"expected answer not grounded (faithfulness {metric.score:.2f}): {'; '.join(judged) or metric.reason}"]
         return []
