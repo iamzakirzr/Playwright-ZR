@@ -86,7 +86,7 @@ mobile/       Appium driver factory + screen objects
 visual/       screenshot comparator + opt-in vision judge
 data/         Faker factories (seeded, replayable)
 reporting/    Allure steps and attachments
-apps/         apps under test: shop_assistant (FastAPI agent), store_mcp (MCP server)
+apps/         apps under test: shop_assistant (FastAPI agent + LangGraph agent), store_mcp (MCP server)
 config/settings.py             ← every URL, model, threshold and budget (env-overridable)
 ```
 
@@ -234,6 +234,15 @@ named (only if exactly one), never to a guess, and never decides the action or q
 `LangChainChatbot` is an LCEL RAG chain (retrieve, then messages, then `ChatOllama`) behind the same
 `ChatbotClient` interface, so the golden-set, faithfulness and canary checks run against a
 LangChain app unchanged. Unit tests swap the model for a recording `RunnableLambda`.
+
+### 3.13b Building an agent with LangChain and LangGraph: `tests/ai/langgraph/`
+[`apps/shop_assistant/langgraph_agent.py`](apps/shop_assistant/langgraph_agent.py) rebuilds the shop
+assistant with `@tool` functions (typed arguments become the schema: an `enum` of product names),
+a `StateGraph` (`retrieve -> agent -> tools -> agent`), `ToolNode` error feedback, a checkpointer for
+memory, and a `recursion_limit` loop bound. Tested offline with `ScriptedChatModel` (a chat model
+double that can `bind_tools`) and live on qwen2.5:1.5b. Measured while building it: in agentic-RAG
+mode the model called the search tool in 0 of 6 policy questions and invented answers, so retrieval
+is a graph node by default. Walkthrough: [learning-path chapter 15](docs/learning-path/15-building-agents-with-langchain.md).
 
 ### 3.14 Synthetic data: `tests/ai/synthesis/`
 - **Goldens**: DeepEval's `Synthesizer` with a local model, then `GoldenQualityGate` (complete,

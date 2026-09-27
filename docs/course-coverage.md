@@ -26,7 +26,7 @@ different tool or scope · **Not covered** = out of scope, with the reason.
 | API testing with Playwright | Covered | [`api/`](../api), [`tests/api`](../tests/api) |
 | Recording tests (codegen) | Covered (docs) | [chapter 13](learning-path/13-playwright-essentials.md) |
 | Allure and HTML reports | Covered | [`reporting/`](../reporting), `make report` |
-| Docker and GitHub Actions | Covered | [`Dockerfile`](../Dockerfile), [`.github/workflows/tests.yml`](../.github/workflows/tests.yml) |
+| Docker and GitHub Actions | Covered | [`Dockerfile`](../Dockerfile), [`.github/workflows/tests.yml`](../.github/workflows/tests.yml) (UI/API/SQL on merge) and [`optional-suites.yml`](../.github/workflows/optional-suites.yml) (manual) |
 | TypeScript, C# and Java bindings | Not covered | This repo is Python; the concepts carry over one to one |
 
 ## Generative AI in software testing / AI-driven test automation
@@ -54,6 +54,12 @@ different tool or scope · **Not covered** = out of scope, with the reason.
 | Testing a LangChain application | Covered | [`ai/chatbot/langchain_client.py`](../ai/chatbot/langchain_client.py), [`tests/ai/langchain`](../tests/ai/langchain) |
 | Chatbot testing, multi-turn | Covered | [`tests/ai/agent/test_agent_conversation.py`](../tests/ai/agent/test_agent_conversation.py), [`tests/ai/conversation`](../tests/ai/conversation) |
 | AI agents and tool calling | Covered | [`apps/shop_assistant`](../apps/shop_assistant), [`tests/ai/agent`](../tests/ai/agent) |
+| Building an agent with LangChain tools (`@tool`, `bind_tools`) | Covered | [`langgraph_agent.py`](../apps/shop_assistant/langgraph_agent.py), [chapter 15](learning-path/15-building-agents-with-langchain.md) |
+| LangGraph: state graph, `ToolNode`, conditional routing | Covered | same; graph shape pinned by [`test_langgraph_agent_units.py`](../tests/ai/langgraph/test_langgraph_agent_units.py) |
+| Agent memory (checkpointer, threads) and loop bounds | Covered | `InMemorySaver` + `recursion_limit`; memory, isolation and bound tests in the same file |
+| Agentic RAG (retrieval as a tool) vs. retrieval node | Covered | `retrieval="tool"` / `"node"`; measured: the 1.5B model used the tool 0/6 times |
+| Unit-testing LangChain code without a model | Covered | [`ScriptedChatModel`](../ai/chatbot/scripted_chat_model.py) (can `bind_tools`), recording `RunnableLambda` in [`tests/ai/langchain`](../tests/ai/langchain) |
+| LangSmith tracing | Partly | Documented in chapter 15 (env vars only); needs a hosted account, so tests assert on the graph's own trajectory instead |
 | MCP server testing | Covered | [`tests/ai/mcp`](../tests/ai/mcp) |
 | Synthetic golden generation | Covered | DeepEval `Synthesizer` + quality gate, [`tests/ai/synthesis`](../tests/ai/synthesis) |
 | AI safety testing | Covered | [`ai/redteam`](../ai/redteam), [`tests/ai/redteam`](../tests/ai/redteam) |

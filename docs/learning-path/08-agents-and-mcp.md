@@ -12,6 +12,8 @@ over Ollama. [`agent.py`](../../apps/shop_assistant/agent.py) has the guards the
 needed: argument normalisation, an "action claimed but no tool called" check, and a hybrid scope
 guard (regex allow-list first, LLM classifier second).
 Its client is [`api/shop_assistant_client.py`](../../api/shop_assistant_client.py), a service object like chapter 03.
+The same assistant rebuilt with LangChain tools and a LangGraph graph is chapter 15; read this
+hand-written version first, so you can see what the framework replaces.
 
 ## Read the tests
 1. [`tests/ai/agent/test_agent_units.py`](../../tests/ai/agent/test_agent_units.py): guards and tool
