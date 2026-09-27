@@ -1,19 +1,13 @@
 # TEMPLATE: not executed by this repository (it runs on GitHub Actions).
-# Shows the same stages as .github/workflows/tests.yml for Azure DevOps.
+# Mirrors .github/workflows/tests.yml + optional-suites.yml for Azure DevOps.
+# Automatic runs happen only on merge to main and run the Functional stage (UI, API, SQL).
+# Lint and AI stages run only for a manually queued run ("Run pipeline").
 # Adapt the pool and add an Ollama service connection before using the AI-live stage.
 
 trigger:
   branches:
     include: [main]
-pr:
-  branches:
-    include: ["*"]
-schedules:
-  - cron: "17 2 * * *"
-    displayName: Nightly
-    branches:
-      include: [main]
-    always: true
+pr: none
 
 parameters:
   - name: browsers
@@ -28,6 +22,7 @@ pool:
 
 stages:
   - stage: Lint
+    condition: eq(variables['Build.Reason'], 'Manual')
     jobs:
       - job: ruff
         steps:
@@ -37,7 +32,7 @@ stages:
             displayName: ruff
 
   - stage: Functional
-    dependsOn: Lint
+    dependsOn: []
     jobs:
       - job: api_sql
         displayName: API / SQL / hybrid
@@ -66,7 +61,8 @@ stages:
                 artifact: traces-${{ browser }}
 
   - stage: AI
-    dependsOn: Lint
+    dependsOn: []
+    condition: eq(variables['Build.Reason'], 'Manual')
     jobs:
       - job: ai_offline
         displayName: AI offline

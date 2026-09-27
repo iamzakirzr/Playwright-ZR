@@ -332,14 +332,23 @@ All settings live in `config/settings.py`. Override any of them with an environm
 
 ## 7. CI/CD
 
-[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs on every push and PR, **nightly**,
-and on demand (`workflow_dispatch` with `suite` and `browser` inputs):
+Two workflows, split by *when* they run:
+
+**Automatic, on merge only:** [`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs
+when a change lands on `main` (a merged pull request). It runs nothing on pull requests, on a
+schedule or by hand.
+
+| Job | Selects | Matrix |
+|---|---|---|
+| `api-sql` | `api or sql or hybrid` | |
+| `ui` | `(ui or bdd) and not ai and not live` | chromium, firefox, webkit |
+
+**Deactivated, manual only:** [`.github/workflows/optional-suites.yml`](.github/workflows/optional-suites.yml)
+runs only from the Actions tab ("Run workflow", input `suite`):
 
 | Job | Selects | Matrix |
 |---|---|---|
 | `lint` | `ruff check` + `ruff format --check` | |
-| `api-sql` | `api or sql or hybrid` | |
-| `ui` | `(ui or bdd) and not ai and not live` | chromium, firefox, webkit |
 | `mobile-web` | `mobile_web` | chromium, webkit |
 | `mobile-native` | `mobile_native` on an Android emulator with Appium 2 | |
 | `ai-offline` | `ai and not live and not judge` | |
@@ -347,15 +356,19 @@ and on demand (`workflow_dispatch` with `suite` and `browser` inputs):
 | `docker` | builds the image, validates `docker-compose.yml` | |
 | `report` | merges every job's Allure results into one HTML report (artifact) | |
 
+Because pull requests get no CI, run `make lint` and `make test` (or the pre-commit hook) before
+you open one: a broken change is found only after it is merged.
+
 Shared install steps live in the composite action [`.github/actions/setup`](.github/actions/setup/action.yml).
 Publishing the Allure report to GitHub Pages is opt-in: enable Pages (source: GitHub Actions) and set
 the repository variable `DEPLOY_ALLURE_PAGES=true`.
 
-The strong-judge tests (`-m strong_judge`) aren't selected in CI because a 7B judge takes about
+The strong-judge tests (`-m strong_judge`) aren't selected even in the manual workflow, because a 7B judge takes about
 2 min per call on a CPU runner. Run them locally or on a GPU runner.
 
 **Other CI servers:** [`ci-templates/Jenkinsfile`](ci-templates/Jenkinsfile) and
-[`ci-templates/azure-pipelines.yml`](ci-templates/azure-pipelines.yml) mirror the same stages.
+[`ci-templates/azure-pipelines.yml`](ci-templates/azure-pipelines.yml) mirror the same policy
+(functional stages on merge to `main`, everything else on a manual run).
 They are templates, not executed by this repository.
 
 ## 8. Known limitations (read before trusting a green run)
