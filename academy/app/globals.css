@@ -210,7 +210,9 @@ body::before {
 
 @media (prefers-reduced-motion: reduce) {
   .book-float,
-  .cta-breathe {
+  .cta-breathe,
+  .hero-beam,
+  .node-pulse {
     animation: none !important;
   }
 
