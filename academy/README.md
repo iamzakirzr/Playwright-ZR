@@ -1,35 +1,25 @@
 # AI QA Academy (Next.js)
 
-Premium e-learning shell for [Playwright-ZR](https://github.com/iamzakirzr/Playwright-ZR), built to the Gemini UI overhaul plan:
+Tool-category dashboard for learning Playwright-ZR surfaces.
 
-- **Next.js 15** + **React 19** + **Tailwind CSS v4**
-- **Shadcn-style** primitives (`components/ui`)
-- **Framer Motion** marketing hero + bento
-- **Shiki** IDE-like code blocks
-- **RAG visualizer** on the RAG lesson
+## Structure
 
-Content is mapped from `site/` and the Python repository. It does **not** invent TypeScript API frameworks or LangTools demos that are not in this repo.
+- `/` — dashboard of categories (UI, API, DB, AI Evals, RAG, Agents/MCP, Mobile)
+- `/tools/[category]` — tools in a category
+- `/tools/[category]/[tool]` — curated learning function calls
+- `/learn` — deeper lesson pages (linked from calls)
+
+Design source: `DESIGN.md`. Catalog: `lib/tools-catalog.ts`.
 
 ## Develop
 
 ```bash
-cd academy
-npm ci
+npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Learn shell: `/learn`.
+## Build
 
-## Deploy
-
-The legacy VitePress docs remain in `/site` (current Vercel `rootDirectory`). To ship this Next app, point a Vercel project `rootDirectory` at `academy` (see `vercel.json` here).
-
-## Phases
-
-| Phase | Status |
-| --- | --- |
-| 1 Foundation & theming | Done (`globals.css` OKLCH `@theme`, `lib/utils.ts`) |
-| 2 Design system | Done (Button, Card, Badge, Accordion, Tabs) |
-| 3 Landing / marketing | Done (Hero, CurriculumBentoGrid) |
-| 4 Learn UI | Done (sidebar layout, CodeBlock, RAGVisualizer) |
-| 5 Content map | Done (27 lessons mapped from `site/**/*.md` + verified Python samples) |
+```bash
+npm run build
+```

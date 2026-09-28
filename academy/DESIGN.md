@@ -1,35 +1,41 @@
-# AI QA Academy — Pastel Discover (mobile-first)
+# AI QA Academy — Tools Dashboard
 
-## Intent
+## Purpose
 
-An intuitive learning platform that helps users stay **organized, motivated, and confident** while growing advanced QA skills at their own pace. Soft teal pastels, rounded interactive track cards, welcome → discover flow. **No calendar scheduling.**
+Help QA engineers stay organized while learning the **real tools in Playwright-ZR**.  
+Structure is flat and practical:
 
-## Visual language
+1. **Dashboard** — categories (UI, API, DB, AI Evals, …)
+2. **Category** — tools in that category
+3. **Tool** — curated **learning function calls** (+ related tests / lessons)
 
-| Role | Direction |
-| --- | --- |
-| Canvas | Soft mint-teal wash → off-white |
-| Primary | Vibrant teal CTA / active pills |
-| Cards | Pastel mint, sand, blush, sage — large radius (~28px) |
-| Ink | Charcoal headings, muted grey body |
-| Display | Outfit |
-| Body | Figtree |
-| Code | JetBrains Mono on dark `--code-bg` |
+No calendar. No dense marketing chrome. Drive learning by practicing the calls each tool exposes.
 
-## Screens
+## Categories (milestones)
 
-1. **Welcome** — full-bleed soft wash; brand **AI QA Academy** as hero signal; one headline; one supporting sentence; circular teal arrow CTA; stylized book-stack visual (no floating badges).
-2. **Discover** — header + “Grow with expert-led QA lessons”; search/filter pills (`All`, `Playwright`, `API`, `Judges`, `RAG`, …); **2×2 pastel course cards** labeled Playwright / Typed API / LLM Judges / RAG (not Data Science / ML); “Core tracks” list (mentor-row pattern) linking curriculum tracks.
-3. **Learn browse** — same card/list language; lesson rows with icon + title + arrow. **Never** a month calendar or timetable.
+| ID | Category | Milestone |
+| --- | --- | --- |
+| `ui` | UI Tools | Page objects, healing, visual compare |
+| `api` | API Tools | Service clients + pydantic contracts |
+| `db` | DB Tools | SQLite repositories + hybrid checks |
+| `ai-evals` | AI Evals | Judges, factory metrics, deterministic gates |
+| `rag` | RAG & Search | Retriever + `RagPipeline.answer` |
+| `agents-mcp` | Agents & MCP | Shop assistant + store MCP tools |
+| `mobile` | Mobile Tools | Appium screen objects |
 
-## Composition rules
+## Phases
 
-1. First viewport: brand, one headline, one sentence, one CTA, one dominant visual.
-2. No cards in the hero. Cards only for interactive track selection.
-3. One job per section.
-4. Motion: welcome rise-in, card stagger, CTA pulse — all gated by `prefers-reduced-motion`.
-5. Content stays faithful to Playwright-ZR / `site/` — no invented stacks.
+1. **Catalog** — typed `tools-catalog` grounded in repo paths and real method names  
+2. **Dashboard** — home lists categories with counts  
+3. **Category pages** — list tools for one category  
+4. **Tool pages** — learning function calls, signatures, why they matter, related tests  
+5. **Cross-links** — deep lessons under `/learn` remain available  
+6. **Verify** — lint/build green; mobile-readable lists
 
-## Subagent
+## Community alignment
 
-Use `.cursor/agents/academy-mobile-design.md` for future pastel/mobile design passes.
+Taxonomy mirrors common QA + AI eval practice (Playwright POMs, API clients, SQL repos, DeepEval-style RAG/judge/MCP metrics) while staying faithful to **this** repository’s Python surfaces — no invented TypeScript stacks.
+
+## Done when
+
+Every category above has ≥1 tool; every tool has ≥3 curated learning calls; dashboard → category → tool navigates cleanly; `npm run build` passes.
