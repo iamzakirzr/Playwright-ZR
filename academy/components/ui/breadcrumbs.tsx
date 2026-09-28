@@ -46,7 +46,11 @@ export function Breadcrumbs(): React.JSX.Element | null {
           const last = index === crumbs.length - 1;
           return (
             <Fragment key={crumb.href}>
-              {index > 0 ? <span aria-hidden className="text-border">/</span> : null}
+              {index > 0 ? (
+                <span aria-hidden className="px-0.5 text-muted-foreground/50">
+                  /
+                </span>
+              ) : null}
               <li className="min-w-0 truncate">
                 {last ? (
                   <span className="font-medium text-foreground" aria-current="page">
