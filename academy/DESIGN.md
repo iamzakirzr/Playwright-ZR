@@ -1,35 +1,41 @@
-# AI QA Academy — Pastel Discover (mobile-first)
+# AI QA Academy — CV Tools Learning Dashboard
 
-## Intent
+## Purpose
 
-An intuitive learning platform that helps users stay **organized, motivated, and confident** while growing advanced QA skills at their own pace. Soft teal pastels, rounded interactive track cards, welcome → discover flow. **No calendar scheduling.**
+An independent learning app for QA engineers. Categories and tools come from a
+senior QA skill profile (automation, frameworks, API/performance, data, cloud/CI,
+Salesforce, AI evals, collaboration). Every tool links to **that product’s official
+documentation** — not an internal code repository.
 
-## Visual language
+Flow: **Dashboard → Category → Tool → curated learning APIs/concepts**.
 
-| Role | Direction |
-| --- | --- |
-| Canvas | Soft mint-teal wash → off-white |
-| Primary | Vibrant teal CTA / active pills |
-| Cards | Pastel mint, sand, blush, sage — large radius (~28px) |
-| Ink | Charcoal headings, muted grey body |
-| Display | Outfit |
-| Body | Figtree |
-| Code | JetBrains Mono on dark `--code-bg` |
+## Categories (milestones)
 
-## Screens
+| ID | Category | Source skills |
+| --- | --- | --- |
+| `test-automation` | Test Automation Tools | AccelQ, Playwright, Selenium, Cypress, Cucumber, Appium, Squish |
+| `frameworks` | Automation Frameworks | TestNG, PyTest, NUnit, Mocha, Robot Framework, Nightwatch, WebdriverIO, BDD |
+| `api-performance` | API & Performance | REST API testing, JMeter, K6, Artillery |
+| `databases` | Databases & Data | SQL, PostgreSQL, Snowflake |
+| `cloud-cicd` | Cloud & CI/CD | AWS, Azure, Azure DevOps, Jenkins, Docker, Git, Bitbucket |
+| `salesforce` | Salesforce | Service Cloud, Experience Cloud, Flows |
+| `ai-evals` | AI & LLM Evaluation | DeepEval, RAGAS, LangSmith, RAG, Agentic AI, Copilot |
+| `collaboration` | Collaboration & QA Ops | JIRA, STLC / defect management practices |
 
-1. **Welcome** — full-bleed soft wash; brand **AI QA Academy** as hero signal; one headline; one supporting sentence; circular teal arrow CTA; stylized book-stack visual (no floating badges).
-2. **Discover** — header + “Grow with expert-led QA lessons”; search/filter pills (`All`, `Playwright`, `API`, `Judges`, `RAG`, …); **2×2 pastel course cards** labeled Playwright / Typed API / LLM Judges / RAG (not Data Science / ML); “Core tracks” list (mentor-row pattern) linking curriculum tracks.
-3. **Learn browse** — same card/list language; lesson rows with icon + title + arrow. **Never** a month calendar or timetable.
+## Phases
 
-## Composition rules
+1. Catalog typed from CV + official docs URLs  
+2. Dashboard lists all categories  
+3. Category pages list tools  
+4. Tool pages list ≥3 learning concepts/APIs each, with docs links  
+5. UI has no repository path / internal code references  
+6. Local build + UI walkthrough (no CI required for acceptance)
 
-1. First viewport: brand, one headline, one sentence, one CTA, one dominant visual.
-2. No cards in the hero. Cards only for interactive track selection.
-3. One job per section.
-4. Motion: welcome rise-in, card stagger, CTA pulse — all gated by `prefers-reduced-motion`.
-5. Content stays faithful to Playwright-ZR / `site/` — no invented stacks.
+## Done when
 
-## Subagent
-
-Use `.cursor/agents/academy-mobile-design.md` for future pastel/mobile design passes.
+- Every CV tool family above is represented  
+- Every tool has ≥3 docs-backed learning items  
+- Navigation works dashboard → category → tool  
+- `npm run build` passes locally  
+- UI eval confirms mobile/desktop lists and external docs links  
+- PR merged to `main`

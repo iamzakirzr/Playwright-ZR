@@ -71,7 +71,7 @@ export function CurriculumSidebar(): React.JSX.Element {
     <>
       <div className="flex items-center justify-between border-b border-border/60 bg-[oklch(0.97_0.015_185)] px-4 py-3 lg:hidden">
         <Link href="/" className="font-display text-sm font-semibold text-foreground">
-          AI QA Academy
+          Dashboard
         </Link>
         <Button
           type="button"
