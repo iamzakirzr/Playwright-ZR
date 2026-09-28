@@ -35,13 +35,13 @@ export function ThemeToggle(): React.JSX.Element {
             aria-pressed={active}
             onClick={() => setTheme(value)}
             className={cn(
-              "inline-flex size-8 items-center justify-center rounded-full transition-colors",
+              "inline-flex size-9 items-center justify-center rounded-full transition-colors",
               active
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon className="size-3.5" />
+            <Icon className="size-4" aria-hidden />
           </button>
         );
       })}
