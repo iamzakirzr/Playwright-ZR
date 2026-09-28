@@ -39,3 +39,7 @@ Taxonomy mirrors common QA + AI eval practice (Playwright POMs, API clients, SQL
 ## Done when
 
 Every category above has ≥1 tool; every tool has ≥3 curated learning calls; dashboard → category → tool navigates cleanly; `npm run build` passes.
+
+## Catalog depth (loop)
+
+Must include core surfaces learners hit first: `CheckoutPage`, `SelfHealingLocator`, `BookingRepository`, judge helpers (`deepeval_judge` / `ragas_judge`), plus the original POM/API/DB/eval/RAG/MCP/mobile set.
