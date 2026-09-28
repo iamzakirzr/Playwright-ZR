@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/dashboard/AppShell";
 import { ToolList } from "@/components/dashboard/ToolList";
 import { getCategory, toolCategories } from "@/lib/tools-catalog";
+import { categoryMeta } from "@/lib/category-meta";
 
 export function generateStaticParams(): { category: string }[] {
   return toolCategories.map((category) => ({ category: category.id }));
@@ -28,21 +28,23 @@ export default async function CategoryPage({
   if (!category) {
     notFound();
   }
+  const meta = categoryMeta[category.id];
 
   return (
     <AppShell>
-      <main id="main" className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <p className="text-sm text-muted-foreground">
-          <Link href="/" className="text-primary hover:underline">
-            Dashboard
-          </Link>
-          <span aria-hidden> / </span>
-          {category.title}
-        </p>
-        <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+      <main id="main" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-border bg-secondary/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            {meta.difficulty}
+          </span>
+          <span className="rounded-full border border-border bg-secondary/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            {category.tools.length} tools
+          </span>
+        </div>
+        <h1 className="font-display mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
           {category.title}
         </h1>
-        <p className="mt-3 text-muted-foreground leading-relaxed">{category.summary}</p>
+        <p className="mt-3 max-w-2xl text-muted-foreground leading-relaxed">{category.summary}</p>
         <div className="mt-8">
           <ToolList categoryId={category.id} tools={category.tools} />
         </div>

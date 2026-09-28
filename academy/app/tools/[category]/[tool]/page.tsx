@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/dashboard/AppShell";
 import { LearningCallList } from "@/components/dashboard/LearningCallList";
@@ -38,19 +37,11 @@ export default async function ToolPage({
 
   return (
     <AppShell>
-      <main id="main" className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <p className="text-sm text-muted-foreground">
-          <Link href="/" className="text-primary hover:underline">
-            Dashboard
-          </Link>
-          <span aria-hidden> / </span>
-          <Link href={`/tools/${category.id}`} className="text-primary hover:underline">
-            {category.title}
-          </Link>
-          <span aria-hidden> / </span>
-          {tool.name}
+      <main id="main" className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {category.title}
         </p>
-        <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
           {tool.name}
         </h1>
         <p className="mt-3 text-muted-foreground leading-relaxed">{tool.summary}</p>
@@ -58,7 +49,7 @@ export default async function ToolPage({
           href={tool.docsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+          className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
         >
           {tool.docsLabel} — official docs ↗
         </a>

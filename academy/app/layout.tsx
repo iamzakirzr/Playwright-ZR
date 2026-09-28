@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Figtree, JetBrains_Mono, Outfit } from "next/font/google";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
 const display = Outfit({
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
     template: "%s · AI QA Academy",
   },
   description:
-    "Learn QA tools by category — automation, frameworks, API/performance, databases, cloud/CI, Salesforce, AI evals — with links to official documentation.",
+    "Modern QA learning academy — tools, frameworks, and AI evals with official docs and fluid navigation.",
 };
 
 export default function RootLayout({
@@ -35,15 +36,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): React.JSX.Element {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${display.variable} ${body.variable} ${code.variable} antialiased`}>
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
-        >
-          Skip to content
-        </a>
-        {children}
+        <ThemeProvider>
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+          >
+            Skip to content
+          </a>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
