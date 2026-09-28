@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,11 +32,12 @@ const stages: readonly { id: Stage; title: string; detail: string }[] = [
 ] as const;
 
 export function RAGVisualizer(): React.JSX.Element {
+  const reduceMotion = useReducedMotion();
   const [active, setActive] = useState<Stage>("split");
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    if (!playing) {
+    if (!playing || reduceMotion) {
       return;
     }
     const order: Stage[] = ["split", "embed", "search", "generate"];
@@ -47,7 +48,7 @@ export function RAGVisualizer(): React.JSX.Element {
       });
     }, 2200);
     return () => window.clearInterval(timer);
-  }, [playing]);
+  }, [playing, reduceMotion]);
 
   const activeMeta = stages.find((stage) => stage.id === active);
 
@@ -64,19 +65,21 @@ export function RAGVisualizer(): React.JSX.Element {
           type="button"
           size="sm"
           variant="outline"
+          disabled={Boolean(reduceMotion)}
           onClick={() => setPlaying((value) => !value)}
         >
           {playing ? "Pause" : "Play"}
         </Button>
       </div>
 
-      <div className="relative grid gap-3 sm:grid-cols-4">
+      <div className="relative grid gap-3 sm:grid-cols-4" role="group" aria-label="RAG pipeline stages">
         {stages.map((stage, index) => {
           const isActive = stage.id === active;
           return (
             <button
               key={stage.id}
               type="button"
+              aria-pressed={isActive}
               onClick={() => {
                 setPlaying(false);
                 setActive(stage.id);
@@ -106,11 +109,12 @@ export function RAGVisualizer(): React.JSX.Element {
       <AnimatePresence mode="wait">
         <motion.div
           key={active}
-          initial={{ opacity: 0, y: 8 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.28 }}
+          exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+          transition={{ duration: reduceMotion ? 0 : 0.28 }}
           className="mt-6 rounded-xl border border-border/60 bg-background/50 p-4"
+          aria-live="polite"
         >
           <p className="font-[family-name:var(--font-code)] text-xs tracking-widest text-primary uppercase">
             {activeMeta?.title}
