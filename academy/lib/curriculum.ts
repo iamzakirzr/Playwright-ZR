@@ -4,7 +4,8 @@ export const bentoTopics: readonly BentoTopic[] = [
   {
     id: "playwright-ui",
     title: "Playwright UI Testing",
-    description: "Page objects, web-first assertions, storage_state, traces, and self-healing locators from Playwright-ZR.",
+    description:
+      "Own locators in page objects, assert with web-first expect(), keep traces when a run fails.",
     href: "/learn/ui-testing",
     accent: "cyan",
     span: "wide",
@@ -12,7 +13,8 @@ export const bentoTopics: readonly BentoTopic[] = [
   {
     id: "api-contracts",
     title: "Typed API Automation",
-    description: "Service clients + pydantic schemas so renamed or retyped fields fail the suite — even on HTTP 200.",
+    description:
+      "Service clients + pydantic: a renamed field fails the suite even when status is still 200.",
     href: "/learn/api-testing",
     accent: "teal",
     span: "normal",
@@ -20,7 +22,8 @@ export const bentoTopics: readonly BentoTopic[] = [
   {
     id: "llm-judges",
     title: "LLM-as-a-Judge Calibration",
-    description: "A judge may gate only after it separates known-good from known-bad. This repo's 3B judge fails eight metrics.",
+    description:
+      "Prove the judge separates known-good from known-bad before it may gate a build. Eight metrics need a stronger judge here.",
     href: "/learn/judges-and-calibration",
     accent: "mint",
     span: "tall",
@@ -28,7 +31,8 @@ export const bentoTopics: readonly BentoTopic[] = [
   {
     id: "rag-eval",
     title: "RAG Architecture Evaluation",
-    description: "Retrieve → augment → generate, then score faithfulness, abstention, and IR metrics on a fictional store policy.",
+    description:
+      "Retrieve, augment, generate — then score faithfulness and retrieval on a policy the model cannot know from training.",
     href: "/learn/rag",
     accent: "slate",
     span: "normal",
@@ -841,37 +845,37 @@ export const curriculumTracks: readonly CurriculumTrack[] = [
   {
     id: "framework",
     title: "QA framework",
-    description: "UI, API, SQL, hybrid, and hermetic CI from Playwright-ZR.",
+    description: "Page objects, service clients, SQL repositories, and the hermetic CI gate.",
     lessons: [lesson_framework_overview, lesson_ui_testing, lesson_api_testing, lesson_sql_and_hybrid, lesson_ci_cd],
   },
   {
     id: "foundations",
     title: "Foundations",
-    description: "LLMs, prompting, search, and RAG grounded in runnable tests.",
+    description: "How models work, how prompts fail, and how retrieval is tested.",
     lessons: [lesson_how_llms_work, lesson_prompting, lesson_prompt_chaining, lesson_ai_search, lesson_rag],
   },
   {
     id: "evals",
     title: "Evaluating AI",
-    description: "Metrics, calibrated judges, performance, observability, and red teaming.",
+    description: "What to measure, which judge to trust, and how to attack the system.",
     lessons: [lesson_evaluating_llms, lesson_judges_and_calibration, lesson_production_metrics, lesson_performance_evals, lesson_observability, lesson_red_teaming],
   },
   {
     id: "agents",
     title: "Agents",
-    description: "State, trajectory, text — plus shop assistant, LangChain, and LangGraph.",
+    description: "Tool loops, trajectories, and the shop-assistant patterns in this repo.",
     lessons: [lesson_what_is_an_agent, lesson_testing_agents, lesson_building_agents, lesson_langchain, lesson_langgraph, lesson_voice_agents],
   },
   {
     id: "mcp",
     title: "MCP",
-    description: "Protocol basics, contract tests, Playwright MCP.",
+    description: "How MCP servers expose tools — and how to contract-test them.",
     lessons: [lesson_how_mcp_works, lesson_testing_mcp_servers, lesson_playwright_mcp],
   },
   {
     id: "industry",
     title: "AI for QA at work",
-    description: "How teams adopt AI in testing and a playbook to start.",
+    description: "Industry patterns and a concrete adoption playbook for QA teams.",
     lessons: [lesson_ai_in_qa_at_companies, lesson_adoption_playbook],
   },
 ] as const;

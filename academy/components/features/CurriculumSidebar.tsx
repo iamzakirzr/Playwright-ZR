@@ -70,7 +70,7 @@ export function CurriculumSidebar(): React.JSX.Element {
   return (
     <>
       <div className="flex items-center justify-between border-b border-border/70 px-4 py-3 lg:hidden">
-        <Link href="/" className="text-sm font-semibold text-primary">
+        <Link href="/" className="font-display text-sm font-semibold text-primary">
           AI QA Academy
         </Link>
         <Button
@@ -94,17 +94,21 @@ export function CurriculumSidebar(): React.JSX.Element {
 
       <aside
         className={cn(
-          "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border/70 bg-card/40 p-4 lg:flex",
+          "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-surface-elevated/90 p-4 lg:flex",
           collapsed ? "w-[72px]" : "w-72",
         )}
       >
         <div className="mb-6 flex items-center justify-between gap-2">
           {!collapsed ? (
-            <Link href="/" className="text-sm font-semibold tracking-tight text-primary">
+            <Link href="/" className="font-display text-sm font-semibold tracking-tight text-foreground">
               AI QA Academy
             </Link>
           ) : (
-            <Link href="/" className="text-xs font-semibold text-primary" aria-label="AI QA Academy">
+            <Link
+              href="/"
+              className="font-display text-xs font-semibold text-primary"
+              aria-label="AI QA Academy"
+            >
               AQ
             </Link>
           )}

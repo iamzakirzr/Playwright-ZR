@@ -24,16 +24,16 @@ export async function CodeBlock({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-border/80 bg-[oklch(0.12_0.02_250)]",
+        "overflow-hidden rounded-xl border border-[oklch(0.3_0.03_255)] bg-[var(--code-bg)] shadow-sm",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-2">
-        <span className="font-[family-name:var(--font-code)] text-xs text-muted-foreground">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
+        <span className="font-[family-name:var(--font-code)] text-xs text-white/65">
           {filename ?? language}
         </span>
         <div className="flex items-center gap-2">
-          <span className="font-[family-name:var(--font-code)] text-[10px] tracking-wider text-primary/80 uppercase">
+          <span className="font-[family-name:var(--font-code)] text-[10px] tracking-wider text-[oklch(0.78_0.1_185)] uppercase">
             {language}
           </span>
           <CopyButton value={trimmed} />
