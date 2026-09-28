@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
+import { Figtree, JetBrains_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 
-const display = Fraunces({
+const display = Outfit({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
 });
 
-const body = IBM_Plex_Sans({
+const body = Figtree({
   variable: "--font-body",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s · AI QA Academy",
   },
   description:
-    "A hands-on academy for testing AI systems — LLMs, RAG, agents, and MCP — taught from the Playwright-ZR Python framework.",
+    "Stay organized and confident while learning advanced QA — Playwright, typed APIs, LLM judges, RAG, agents, and MCP — at your own pace from Playwright-ZR.",
 };
 
 export default function RootLayout({
@@ -39,7 +39,7 @@ export default function RootLayout({
       <body className={`${display.variable} ${body.variable} ${code.variable} antialiased`}>
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
         >
           Skip to content
         </a>

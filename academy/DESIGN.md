@@ -1,36 +1,35 @@
-# AI QA Academy — Ink Studio design
+# AI QA Academy — Pastel Discover (mobile-first)
 
 ## Intent
 
-Replace the dark neon “cyber AI” look with a **light editorial studio**: cool stone canvas, navy ink type, deep teal actions. Brand reads as a learning product first; code stays dark for contrast.
+An intuitive learning platform that helps users stay **organized, motivated, and confident** while growing advanced QA skills at their own pace. Soft teal pastels, rounded interactive track cards, welcome → discover flow. **No calendar scheduling.**
 
-## Tokens
+## Visual language
 
 | Role | Direction |
 | --- | --- |
-| Background | Cool stone OKLCH (~0.96, hue 250) |
-| Ink | Navy foreground |
-| Primary | Deep teal (~hue 185) |
-| Accent | Muted gold for rare emphasis |
-| Display | Fraunces |
-| Body | IBM Plex Sans |
+| Canvas | Soft mint-teal wash → off-white |
+| Primary | Vibrant teal CTA / active pills |
+| Cards | Pastel mint, sand, blush, sage — large radius (~28px) |
+| Ink | Charcoal headings, muted grey body |
+| Display | Outfit |
+| Body | Figtree |
 | Code | JetBrains Mono on dark `--code-bg` |
+
+## Screens
+
+1. **Welcome** — full-bleed soft wash; brand **AI QA Academy** as hero signal; one headline; one supporting sentence; circular teal arrow CTA; stylized book-stack visual (no floating badges).
+2. **Discover** — header + “Grow with expert-led QA lessons”; search/filter pills (`All`, `Playwright`, `API`, `Judges`, `RAG`, …); **2×2 pastel course cards** labeled Playwright / Typed API / LLM Judges / RAG (not Data Science / ML); “Core tracks” list (mentor-row pattern) linking curriculum tracks.
+3. **Learn browse** — same card/list language; lesson rows with icon + title + arrow. **Never** a month calendar or timetable.
 
 ## Composition rules
 
-1. Hero is full-bleed ink band; **AI QA Academy** is the hero wordmark.
-2. First viewport: brand + one line + one supporting sentence + CTA group only.
-3. Curriculum pathways use left accent bars, not heavy card chrome in the hero.
-4. Lessons use a left-rule “In one minute” callout instead of a boxed tip card.
-5. Motion respects `prefers-reduced-motion`.
+1. First viewport: brand, one headline, one sentence, one CTA, one dominant visual.
+2. No cards in the hero. Cards only for interactive track selection.
+3. One job per section.
+4. Motion: welcome rise-in, card stagger, CTA pulse — all gated by `prefers-reduced-motion`.
+5. Content stays faithful to Playwright-ZR / `site/` — no invented stacks.
 
-## Content review (applied)
+## Subagent
 
-- Strip meta copy (“Gemini’s stack”) from the marketing surface.
-- Bento blurbs shortened to outcome-first sentences.
-- Curriculum index lists lessons as a track rail (title + summary + minutes).
-- Tips remain sourced from `site/` — no invented TypeScript/LangTools stacks.
-
-## Figma
-
-Figma MCP authentication timed out in this environment. This document is the design source of truth until a Figma file can be authored with `/figma-generate-design` after auth.
+Use `.cursor/agents/academy-mobile-design.md` for future pastel/mobile design passes.

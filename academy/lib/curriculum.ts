@@ -1,4 +1,73 @@
-import type { BentoTopic, CurriculumTrack, Lesson } from "@/types/curriculum";
+import type {
+  BentoTopic,
+  CurriculumTrack,
+  DiscoverCard,
+  Lesson,
+} from "@/types/curriculum";
+
+/** Pastel Discover course cards — core QA headings (not Data Science / ML). */
+export const discoverCards: readonly DiscoverCard[] = [
+  {
+    id: "playwright",
+    title: "Playwright",
+    shortLabel: "UI",
+    description:
+      "Page objects, web-first expect(), traces when a run fails.",
+    href: "/learn/ui-testing",
+    accent: "mint",
+    filter: "playwright",
+  },
+  {
+    id: "typed-api",
+    title: "Typed API",
+    shortLabel: "Contracts",
+    description:
+      "Service clients + pydantic — renamed fields fail even on HTTP 200.",
+    href: "/learn/api-testing",
+    accent: "sand",
+    filter: "api",
+  },
+  {
+    id: "llm-judges",
+    title: "LLM Judges",
+    shortLabel: "Evals",
+    description:
+      "Calibrate known-good vs known-bad before a judge gates a build.",
+    href: "/learn/judges-and-calibration",
+    accent: "blush",
+    filter: "judges",
+  },
+  {
+    id: "rag",
+    title: "RAG",
+    shortLabel: "Retrieval",
+    description:
+      "Faithfulness and retrieval scores on a policy the model cannot memorize.",
+    href: "/learn/rag",
+    accent: "sage",
+    filter: "rag",
+  },
+  {
+    id: "agents",
+    title: "Agents",
+    shortLabel: "Loops",
+    description:
+      "Tool loops, trajectories, and shop-assistant patterns in this repo.",
+    href: "/learn/what-is-an-agent",
+    accent: "sky",
+    filter: "agents",
+  },
+  {
+    id: "mcp",
+    title: "MCP",
+    shortLabel: "Tools",
+    description:
+      "Contract-test MCP servers the same way you test any API surface.",
+    href: "/learn/how-mcp-works",
+    accent: "lilac",
+    filter: "mcp",
+  },
+] as const;
 
 export const bentoTopics: readonly BentoTopic[] = [
   {

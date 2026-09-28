@@ -2,30 +2,28 @@ import Link from "next/link";
 
 export function StudioPromise(): React.JSX.Element {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-28 sm:px-8">
-      <div className="grid gap-10 border-t border-border pt-16 md:grid-cols-[1.2fr_1fr] md:gap-16">
-        <div>
-          <p className="font-[family-name:var(--font-code)] text-xs tracking-[0.2em] text-primary uppercase">
-            Why this academy
-          </p>
-          <h2 className="font-display mt-3 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">
-            Numbers you can reproduce — not slideware.
-          </h2>
-          <p className="mt-5 max-w-xl text-muted-foreground leading-relaxed">
-            Lessons stay faithful to Playwright-ZR: hermetic PR CI, pydantic API
-            contracts, calibrated LLM judges, and a fictional store policy so RAG
-            answers cannot leak from pre-training. If a tip cites a score, a test
-            in this repository produced it.
-          </p>
-        </div>
-        <ul className="space-y-5 text-sm text-ink-soft">
-          <li className="border-b border-border pb-4">
+    <section className="mx-auto max-w-lg px-5 pb-24 sm:px-8 lg:max-w-3xl">
+      <div className="rounded-[2rem] bg-[linear-gradient(160deg,oklch(0.9_0.05_185),oklch(0.96_0.02_185))] px-6 py-10 sm:px-8">
+        <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+          Why this academy
+        </p>
+        <h2 className="font-display mt-3 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">
+          Organized practice — not slideware.
+        </h2>
+        <p className="mt-4 max-w-xl text-muted-foreground leading-relaxed">
+          Lessons stay faithful to Playwright-ZR: hermetic PR CI, pydantic API
+          contracts, calibrated LLM judges, and a fictional store policy so RAG
+          answers cannot leak from pre-training. Grow advanced QA skills at your
+          own pace — no timetable required.
+        </p>
+        <ul className="mt-8 space-y-4 text-sm">
+          <li className="border-b border-foreground/10 pb-4">
             <span className="font-medium text-foreground">UI · API · SQL first</span>
             <p className="mt-1 text-muted-foreground">
               Classic automation layers before AI evals — same fixtures the AI suites reuse.
             </p>
           </li>
-          <li className="border-b border-border pb-4">
+          <li className="border-b border-foreground/10 pb-4">
             <span className="font-medium text-foreground">Judges that earn the gate</span>
             <p className="mt-1 text-muted-foreground">
               Calibration on known-good and known-bad answers before any metric may block a build.

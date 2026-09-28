@@ -1,12 +1,12 @@
-import { CurriculumBentoGrid } from "@/components/marketing/CurriculumBentoGrid";
-import { HeroSection } from "@/components/marketing/HeroSection";
+import { DiscoverHome } from "@/components/marketing/DiscoverHome";
 import { StudioPromise } from "@/components/marketing/StudioPromise";
+import { WelcomeHero } from "@/components/marketing/WelcomeHero";
 
 export default function HomePage(): React.JSX.Element {
   return (
     <main id="main">
-      <HeroSection />
-      <CurriculumBentoGrid />
+      <WelcomeHero />
+      <DiscoverHome />
       <StudioPromise />
     </main>
   );

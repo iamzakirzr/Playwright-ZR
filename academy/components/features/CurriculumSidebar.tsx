@@ -49,9 +49,9 @@ export function CurriculumSidebar(): React.JSX.Element {
                     aria-label={lesson.title}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "block rounded-lg px-2 py-2 text-sm transition-colors",
+                      "block rounded-2xl px-2 py-2 text-sm transition-colors",
                       active
-                        ? "bg-primary/15 text-primary"
+                        ? "bg-primary/15 font-medium text-primary"
                         : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                       collapsed && "truncate text-center text-xs",
                     )}
@@ -69,14 +69,15 @@ export function CurriculumSidebar(): React.JSX.Element {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-border/70 px-4 py-3 lg:hidden">
-        <Link href="/" className="font-display text-sm font-semibold text-primary">
+      <div className="flex items-center justify-between border-b border-border/60 bg-[oklch(0.97_0.015_185)] px-4 py-3 lg:hidden">
+        <Link href="/" className="font-display text-sm font-semibold text-foreground">
           AI QA Academy
         </Link>
         <Button
           type="button"
           size="icon"
           variant="ghost"
+          className="rounded-2xl"
           aria-label={open ? "Close curriculum" : "Open curriculum"}
           aria-expanded={open}
           aria-controls={panelId}
@@ -87,14 +88,14 @@ export function CurriculumSidebar(): React.JSX.Element {
       </div>
 
       {open ? (
-        <div id={panelId} className="border-b border-border/70 bg-card p-4 lg:hidden">
+        <div id={panelId} className="max-h-[70dvh] overflow-y-auto border-b border-border/60 bg-card p-4 lg:hidden">
           {nav}
         </div>
       ) : null}
 
       <aside
         className={cn(
-          "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-surface-elevated/90 p-4 lg:flex",
+          "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border/70 bg-surface-elevated/95 p-4 lg:flex",
           collapsed ? "w-[72px]" : "w-72",
         )}
       >
