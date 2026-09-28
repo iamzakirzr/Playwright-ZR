@@ -53,10 +53,10 @@ export function RAGVisualizer(): React.JSX.Element {
   const activeMeta = stages.find((stage) => stage.id === active);
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-card/60 p-6">
+    <div className="rounded-2xl border border-border bg-surface-elevated p-6 shadow-sm">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold">RAG pipeline visualizer</h3>
+          <h3 className="font-display text-lg font-semibold">RAG pipeline visualizer</h3>
           <p className="text-sm text-muted-foreground">
             Interactive diagram: Text Splitting → Embedding → Semantic Search → Generate
           </p>
@@ -113,7 +113,7 @@ export function RAGVisualizer(): React.JSX.Element {
           animate={{ opacity: 1, y: 0 }}
           exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
           transition={{ duration: reduceMotion ? 0 : 0.28 }}
-          className="mt-6 rounded-xl border border-border/60 bg-background/50 p-4"
+          className="mt-6 rounded-xl border border-border bg-secondary/50 p-4"
           aria-live="polite"
         >
           <p className="font-[family-name:var(--font-code)] text-xs tracking-widest text-primary uppercase">

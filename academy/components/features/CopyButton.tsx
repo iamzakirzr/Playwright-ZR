@@ -16,7 +16,7 @@ export function CopyButton({ value }: CopyButtonProps): React.JSX.Element {
       type="button"
       size="sm"
       variant="ghost"
-      className="h-7 px-2 text-muted-foreground hover:text-foreground"
+      className="h-7 px-2 text-white/70 hover:bg-white/10 hover:text-white"
       aria-label={copied ? "Copied" : "Copy code"}
       onClick={async () => {
         await navigator.clipboard.writeText(value);

@@ -37,6 +37,27 @@ export interface CurriculumTrack {
   readonly lessons: readonly Lesson[];
 }
 
+export type PastelAccent = "mint" | "sand" | "blush" | "sage" | "sky" | "lilac";
+
+export type DiscoverFilter =
+  | "all"
+  | "playwright"
+  | "api"
+  | "judges"
+  | "rag"
+  | "agents"
+  | "mcp";
+
+export interface DiscoverCard {
+  readonly id: string;
+  readonly title: string;
+  readonly shortLabel: string;
+  readonly description: string;
+  readonly href: string;
+  readonly accent: PastelAccent;
+  readonly filter: Exclude<DiscoverFilter, "all">;
+}
+
 export interface BentoTopic {
   readonly id: string;
   readonly title: string;
