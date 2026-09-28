@@ -1,27 +1,30 @@
 export type ToolCategoryId =
-  | "ui"
-  | "api"
-  | "db"
+  | "test-automation"
+  | "frameworks"
+  | "api-performance"
+  | "databases"
+  | "cloud-cicd"
+  | "salesforce"
   | "ai-evals"
-  | "rag"
-  | "agents-mcp"
-  | "mobile";
+  | "collaboration";
 
 export interface LearningCall {
   readonly id: string;
+  /** Official API / concept name from the vendor docs */
   readonly signature: string;
   readonly summary: string;
   readonly why: string;
-  readonly repoPath: string;
-  readonly relatedTest?: string;
-  readonly lessonSlug?: string;
+  /** Deep-link into the tool's original documentation */
+  readonly docsUrl: string;
 }
 
 export interface AcademyTool {
   readonly id: string;
   readonly name: string;
   readonly summary: string;
-  readonly repoPath: string;
+  /** Landing page for the tool's official docs */
+  readonly docsUrl: string;
+  readonly docsLabel: string;
   readonly calls: readonly LearningCall[];
 }
 

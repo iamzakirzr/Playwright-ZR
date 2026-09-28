@@ -13,8 +13,8 @@ export default function DashboardPage(): React.JSX.Element {
           Learn QA tools by category
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground leading-relaxed">
-          UI, API, DB, AI evals, RAG, agents/MCP, and mobile — each category lists
-          the real Playwright-ZR tools and the function calls that drive practice.
+          Automation, frameworks, API & performance, databases, cloud/CI, Salesforce,
+          AI evals, and collaboration — each tool links to its official documentation.
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2">

@@ -1,45 +1,41 @@
-# AI QA Academy — Tools Dashboard
+# AI QA Academy — CV Tools Learning Dashboard
 
 ## Purpose
 
-Help QA engineers stay organized while learning the **real tools in Playwright-ZR**.  
-Structure is flat and practical:
+An independent learning app for QA engineers. Categories and tools come from a
+senior QA skill profile (automation, frameworks, API/performance, data, cloud/CI,
+Salesforce, AI evals, collaboration). Every tool links to **that product’s official
+documentation** — not an internal code repository.
 
-1. **Dashboard** — categories (UI, API, DB, AI Evals, …)
-2. **Category** — tools in that category
-3. **Tool** — curated **learning function calls** (+ related tests / lessons)
-
-No calendar. No dense marketing chrome. Drive learning by practicing the calls each tool exposes.
+Flow: **Dashboard → Category → Tool → curated learning APIs/concepts**.
 
 ## Categories (milestones)
 
-| ID | Category | Milestone |
+| ID | Category | Source skills |
 | --- | --- | --- |
-| `ui` | UI Tools | Page objects, healing, visual compare |
-| `api` | API Tools | Service clients + pydantic contracts |
-| `db` | DB Tools | SQLite repositories + hybrid checks |
-| `ai-evals` | AI Evals | Judges, factory metrics, deterministic gates |
-| `rag` | RAG & Search | Retriever + `RagPipeline.answer` |
-| `agents-mcp` | Agents & MCP | Shop assistant + store MCP tools |
-| `mobile` | Mobile Tools | Appium screen objects |
+| `test-automation` | Test Automation Tools | AccelQ, Playwright, Selenium, Cypress, Cucumber, Appium, Squish |
+| `frameworks` | Automation Frameworks | TestNG, PyTest, NUnit, Mocha, Robot Framework, Nightwatch, WebdriverIO, BDD |
+| `api-performance` | API & Performance | REST API testing, JMeter, K6, Artillery |
+| `databases` | Databases & Data | SQL, PostgreSQL, Snowflake |
+| `cloud-cicd` | Cloud & CI/CD | AWS, Azure, Azure DevOps, Jenkins, Docker, Git, Bitbucket |
+| `salesforce` | Salesforce | Service Cloud, Experience Cloud, Flows |
+| `ai-evals` | AI & LLM Evaluation | DeepEval, RAGAS, LangSmith, RAG, Agentic AI, Copilot |
+| `collaboration` | Collaboration & QA Ops | JIRA, STLC / defect management practices |
 
 ## Phases
 
-1. **Catalog** — typed `tools-catalog` grounded in repo paths and real method names  
-2. **Dashboard** — home lists categories with counts  
-3. **Category pages** — list tools for one category  
-4. **Tool pages** — learning function calls, signatures, why they matter, related tests  
-5. **Cross-links** — deep lessons under `/learn` remain available  
-6. **Verify** — lint/build green; mobile-readable lists
-
-## Community alignment
-
-Taxonomy mirrors common QA + AI eval practice (Playwright POMs, API clients, SQL repos, DeepEval-style RAG/judge/MCP metrics) while staying faithful to **this** repository’s Python surfaces — no invented TypeScript stacks.
+1. Catalog typed from CV + official docs URLs  
+2. Dashboard lists all categories  
+3. Category pages list tools  
+4. Tool pages list ≥3 learning concepts/APIs each, with docs links  
+5. UI has no repository path / internal code references  
+6. Local build + UI walkthrough (no CI required for acceptance)
 
 ## Done when
 
-Every category above has ≥1 tool; every tool has ≥3 curated learning calls; dashboard → category → tool navigates cleanly; `npm run build` passes.
-
-## Catalog depth (loop)
-
-Must include core surfaces learners hit first: `CheckoutPage`, `SelfHealingLocator`, `BookingRepository`, judge helpers (`deepeval_judge` / `ragas_judge`), plus the original POM/API/DB/eval/RAG/MCP/mobile set.
+- Every CV tool family above is represented  
+- Every tool has ≥3 docs-backed learning items  
+- Navigation works dashboard → category → tool  
+- `npm run build` passes locally  
+- UI eval confirms mobile/desktop lists and external docs links  
+- PR merged to `main`

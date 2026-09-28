@@ -22,8 +22,8 @@ export function ToolList({
                 {tool.name}
               </span>
               <span className="mt-1 block text-sm text-muted-foreground">{tool.summary}</span>
-              <span className="mt-2 block font-[family-name:var(--font-code)] text-xs text-primary">
-                {tool.repoPath} · {tool.calls.length} calls
+              <span className="mt-2 block text-xs text-primary">
+                {tool.docsLabel} · {tool.calls.length} learning items
               </span>
             </span>
             <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground" />

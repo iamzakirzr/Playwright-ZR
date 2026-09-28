@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { LearningCall } from "@/types/tools";
 
 export function LearningCallList({
@@ -23,20 +22,14 @@ export function LearningCallList({
           </div>
           <p className="mt-2 text-sm font-medium text-foreground">{call.summary}</p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{call.why}</p>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
-            <span className="font-[family-name:var(--font-code)]">{call.repoPath}</span>
-            {call.relatedTest ? (
-              <span className="font-[family-name:var(--font-code)]">{call.relatedTest}</span>
-            ) : null}
-            {call.lessonSlug ? (
-              <Link
-                href={`/learn/${call.lessonSlug}`}
-                className="font-medium text-primary hover:underline"
-              >
-                Lesson →
-              </Link>
-            ) : null}
-          </div>
+          <a
+            href={call.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+          >
+            Official docs →
+          </a>
         </li>
       ))}
     </ol>

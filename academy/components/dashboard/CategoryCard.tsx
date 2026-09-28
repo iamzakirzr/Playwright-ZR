@@ -24,7 +24,7 @@ export function CategoryCard({
         {category.summary}
       </p>
       <p className="mt-4 text-xs font-medium tracking-wide text-ink-soft uppercase">
-        {category.tools.length} tools · {callCount} learning calls
+        {category.tools.length} tools · {callCount} learning items
       </p>
     </Link>
   );

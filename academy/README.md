@@ -1,25 +1,20 @@
-# AI QA Academy (Next.js)
+# AI QA Academy
 
-Tool-category dashboard for learning Playwright-ZR surfaces.
+Independent learning dashboard for QA tools — categories and concepts from a
+senior automation skill set, with links to each product’s **official docs**.
 
-## Structure
+## Routes
 
-- `/` — dashboard of categories (UI, API, DB, AI Evals, RAG, Agents/MCP, Mobile)
-- `/tools/[category]` — tools in a category
-- `/tools/[category]/[tool]` — curated learning function calls
-- `/learn` — deeper lesson pages (linked from calls)
+- `/` — category dashboard  
+- `/tools/[category]` — tools in a category  
+- `/tools/[category]/[tool]` — curated learning items + docs links  
 
-Design source: `DESIGN.md`. Catalog: `lib/tools-catalog.ts`.
+See `DESIGN.md` for milestones.
 
 ## Develop
 
 ```bash
 npm install
 npm run dev
-```
-
-## Build
-
-```bash
 npm run build
 ```

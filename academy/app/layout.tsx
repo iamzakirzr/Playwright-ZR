@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s · AI QA Academy",
   },
   description:
-    "Dashboard of QA tool categories — UI, API, DB, AI evals, RAG, agents/MCP, mobile — with curated learning function calls from Playwright-ZR.",
+    "Learn QA tools by category — automation, frameworks, API/performance, databases, cloud/CI, Salesforce, AI evals — with links to official documentation.",
 };
 
 export default function RootLayout({

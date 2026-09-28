@@ -54,15 +54,20 @@ export default async function ToolPage({
           {tool.name}
         </h1>
         <p className="mt-3 text-muted-foreground leading-relaxed">{tool.summary}</p>
-        <p className="mt-2 font-[family-name:var(--font-code)] text-sm text-primary">
-          {tool.repoPath}
-        </p>
+        <a
+          href={tool.docsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+        >
+          {tool.docsLabel} — official docs ↗
+        </a>
 
         <h2 className="font-display mt-10 text-xl font-semibold tracking-tight">
-          Learning function calls
+          Learning focus
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Practice these calls in order. Each one maps to real code in this repo.
+          Practice these APIs and concepts using the vendor documentation.
         </p>
         <div className="mt-6">
           <LearningCallList calls={tool.calls} />
