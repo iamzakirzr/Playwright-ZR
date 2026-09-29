@@ -69,10 +69,8 @@ export function CurriculumSidebar(): React.JSX.Element {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-border/60 bg-[oklch(0.97_0.015_185)] px-4 py-3 lg:hidden">
-        <Link href="/" className="font-display text-sm font-semibold text-foreground">
-          Dashboard
-        </Link>
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:hidden">
+        <p className="font-display text-sm font-semibold text-foreground">Lessons</p>
         <Button
           type="button"
           size="icon"
@@ -95,7 +93,7 @@ export function CurriculumSidebar(): React.JSX.Element {
 
       <aside
         className={cn(
-          "sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border/70 bg-surface-elevated/95 p-4 lg:flex",
+          "sticky top-24 hidden h-[calc(100dvh-7rem)] shrink-0 flex-col rounded-2xl border border-border bg-card/60 p-4 backdrop-blur lg:flex",
           collapsed ? "w-[72px]" : "w-72",
         )}
       >

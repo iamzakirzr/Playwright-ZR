@@ -6,12 +6,9 @@ export function LearningCallList({
   calls: readonly LearningCall[];
 }>): React.JSX.Element {
   return (
-    <ol className="space-y-4">
+    <ol className="space-y-3">
       {calls.map((call, index) => (
-        <li
-          key={call.id}
-          className="rounded-2xl border border-border/70 bg-card px-4 py-4 sm:px-5"
-        >
+        <li key={call.id} className="bezel-card px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-baseline gap-2">
             <span className="font-[family-name:var(--font-code)] text-xs text-muted-foreground">
               {String(index + 1).padStart(2, "0")}
@@ -26,7 +23,7 @@ export function LearningCallList({
             href={call.docsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
           >
             Official docs →
           </a>

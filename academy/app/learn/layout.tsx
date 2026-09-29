@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppShell } from "@/components/dashboard/AppShell";
 import { CurriculumSidebar } from "@/components/features/CurriculumSidebar";
 
 export default function LearnLayout({
@@ -7,18 +7,11 @@ export default function LearnLayout({
   children: React.ReactNode;
 }>): React.JSX.Element {
   return (
-    <div className="min-h-dvh">
-      <div className="border-b border-border/60 px-4 py-3 lg:px-6">
-        <Link href="/" className="text-sm font-medium text-primary hover:underline">
-          ← Tools dashboard
-        </Link>
-      </div>
-      <div className="lg:flex">
+    <AppShell>
+      <div className="mx-auto flex max-w-6xl gap-0 lg:gap-2">
         <CurriculumSidebar />
-        <main id="main" className="min-w-0 flex-1">
-          {children}
-        </main>
+        <div className="min-w-0 flex-1">{children}</div>
       </div>
-    </div>
+    </AppShell>
   );
 }
