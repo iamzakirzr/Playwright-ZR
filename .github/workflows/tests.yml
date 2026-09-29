@@ -62,8 +62,14 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           browsers: ""
-          extras: ui,apps
-      - run: pytest -m "api or sql or hybrid" -n auto --junitxml=reports/junit.xml
+          extras: ui
+          with-torch: "false"
+      # Path-scoped: marker filter alone still collects tests/ai + visual modules,
+      # which import deepeval / langchain / Pillow not present in the lean ui extra.
+      - run: >
+          pytest tests/api tests/sql tests/hybrid
+          -m "api or sql or hybrid"
+          -n auto --junitxml=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
