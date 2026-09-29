@@ -101,7 +101,7 @@ export function ToolBentoCard({
             <h3 className="font-display text-lg font-semibold tracking-tight">{tool.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{tool.summary}</p>
             <p className="mt-3 text-xs text-muted-foreground">
-              {tool.calls.length + 4} on-site guides · {tool.docsLabel} reference
+              {tool.calls.length} APIs + examples · {tool.calls.length + 4} guides
             </p>
           </div>
           <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
