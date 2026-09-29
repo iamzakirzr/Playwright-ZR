@@ -16,10 +16,28 @@ export async function CodeBlock({
   className,
 }: CodeBlockProps): Promise<React.JSX.Element> {
   const trimmed = code.trim();
-  const html = await codeToHtml(trimmed, {
-    lang: language,
-    theme: "github-dark-default",
-  });
+  const langMap: Record<string, string> = {
+    gherkin: "plaintext",
+    robotframework: "plaintext",
+    text: "plaintext",
+    plaintext: "plaintext",
+    csharp: "csharp",
+    dockerfile: "docker",
+    groovy: "java",
+  };
+  const lang = langMap[language] ?? language;
+  let html: string;
+  try {
+    html = await codeToHtml(trimmed, {
+      lang,
+      theme: "github-dark-default",
+    });
+  } catch {
+    html = await codeToHtml(trimmed, {
+      lang: "plaintext",
+      theme: "github-dark-default",
+    });
+  }
 
   return (
     <div

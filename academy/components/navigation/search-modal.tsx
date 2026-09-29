@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
-import { toolCategories } from "@/lib/tools-catalog";
 import { curriculumTracks } from "@/lib/curriculum";
+import { toolCategories } from "@/lib/tools-catalog";
 import { cn } from "@/lib/utils";
 
 type Hit = {
@@ -12,11 +12,19 @@ type Hit = {
   title: string;
   subtitle: string;
   href: string;
-  kind: "tool" | "category" | "lesson";
+  kind: "tool" | "category" | "lesson" | "guide";
 };
 
+/** Lightweight index — catalog metadata only (no sample corpus on the client). */
 function buildIndex(): Hit[] {
   const hits: Hit[] = [];
+  const shellGuides = [
+    { id: "overview", title: "Getting started" },
+    { id: "patterns", title: "Patterns that scale" },
+    { id: "delivery", title: "Shipping with the team" },
+    { id: "practice", title: "Practice checklist" },
+  ] as const;
+
   for (const category of toolCategories) {
     hits.push({
       id: `cat-${category.id}`,
@@ -29,10 +37,28 @@ function buildIndex(): Hit[] {
       hits.push({
         id: `tool-${category.id}-${tool.id}`,
         title: tool.name,
-        subtitle: `${category.title} · ${tool.docsLabel}`,
+        subtitle: `${category.title} · course`,
         href: `/tools/${category.id}/${tool.id}`,
         kind: "tool",
       });
+      for (const shell of shellGuides) {
+        hits.push({
+          id: `guide-${category.id}-${tool.id}-${shell.id}`,
+          title: `${tool.name}: ${shell.title}`,
+          subtitle: `${tool.name} · on-site guide`,
+          href: `/tools/${category.id}/${tool.id}/${shell.id}`,
+          kind: "guide",
+        });
+      }
+      for (const call of tool.calls) {
+        hits.push({
+          id: `guide-${category.id}-${tool.id}-${call.id}`,
+          title: call.signature,
+          subtitle: `${tool.name} · ${call.summary}`,
+          href: `/tools/${category.id}/${tool.id}/${call.id}`,
+          kind: "guide",
+        });
+      }
     }
   }
   for (const track of curriculumTracks) {
@@ -146,7 +172,7 @@ export function SearchModal(): React.JSX.Element {
                     go(results[active].href);
                   }
                 }}
-                placeholder="Search tools, frameworks, lessons…"
+                placeholder="Search tools, guides, lessons…"
                 className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
               <button type="button" aria-label="Close search" onClick={close} className="p-1 text-muted-foreground">
