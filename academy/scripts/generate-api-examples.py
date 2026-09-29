@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from textwrap import dedent, indent
+from textwrap import dedent
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "lib" / "tool-api-catalog.ts"
