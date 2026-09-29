@@ -20,7 +20,10 @@ export async function CodeBlock({
     gherkin: "plaintext",
     robotframework: "plaintext",
     text: "plaintext",
+    plaintext: "plaintext",
     csharp: "csharp",
+    dockerfile: "docker",
+    groovy: "java",
   };
   const lang = langMap[language] ?? language;
   let html: string;

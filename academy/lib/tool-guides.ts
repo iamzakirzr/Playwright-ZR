@@ -1,5 +1,5 @@
 import { getLesson } from "@/lib/curriculum";
-import { toolCodeSamples } from "@/lib/tool-code-samples";
+import { getToolSamples } from "@/lib/samples";
 import { toolCategories } from "@/lib/tools-catalog";
 import type {
   AcademyTool,
@@ -109,21 +109,24 @@ function conceptGuide(
   call: LearningCall,
   index: number,
 ): ToolGuide {
-  const sample = toolCodeSamples[`${tool.id}.${call.id}`];
+  const samples = getToolSamples(tool.id, call.id);
+  const langs = [...new Set(samples.map((s) => s.language))];
   return {
     id: call.id,
     title: call.signature,
     summary: call.summary,
-    minutes: sample ? 8 : 7,
+    minutes: samples.length ? 10 : 7,
     order: index + 1,
     kind: "concept",
     signature: call.signature,
     docsUrl: call.docsUrl,
     docsLabel: tool.docsLabel,
-    code: sample,
+    codeSamples: samples,
     tip: [
       call.why,
-      `Primary learning is on this page — open ${tool.docsLabel} only when you need the canonical reference.`,
+      samples.length
+        ? `Advanced examples included (${langs.join(" + ")}) — type them, then adapt to your app.`
+        : `Primary learning is on this page — open ${tool.docsLabel} only when you need the canonical reference.`,
       "After reading, do the practice exercise before moving on.",
     ],
     sections: [
@@ -156,11 +159,16 @@ function conceptGuide(
           "Write one sentence on when you would NOT use this approach",
         ],
       },
-      ...(sample
+      ...(samples.length
         ? [
             {
-              heading: "Worked example",
-              body: "Study the example below, then adapt names and URLs to your app. Typing it yourself beats copy-paste for retention.",
+              heading: "Advanced coding examples",
+              body: `Production-minded ${langs.join(" / ")} examples for ${call.signature}. Study both when present — teams often mix Python services with TypeScript UI/API tests.`,
+              bullets: [
+                "Type the example once without copy-paste",
+                "Swap URLs, selectors, and credentials for your environment",
+                "Add one assertion that would catch a real regression",
+              ],
             },
           ]
         : []),
@@ -189,19 +197,23 @@ function conceptGuide(
 }
 
 function patternsGuide(tool: AcademyTool, order: number): ToolGuide {
+  const samples = getToolSamples(tool.id, "patterns");
   return {
     id: "patterns",
     title: `${tool.name} patterns that scale`,
     summary: `Reusable design patterns for keeping ${tool.name} suites maintainable as coverage grows.`,
-    minutes: 9,
+    minutes: samples.length ? 12 : 9,
     order,
     kind: "concept",
     docsUrl: tool.docsUrl,
     docsLabel: tool.docsLabel,
+    codeSamples: samples,
     tip: [
       "Prefer composition and clear names over copy-pasted flows.",
       "A pattern is only good if a teammate can extend it next week.",
-      "Official docs describe APIs — this guide focuses on how QA teams structure work.",
+      samples.length
+        ? "Advanced TypeScript / Python pattern code is below — refactor a real flow against it."
+        : "Official docs describe APIs — this guide focuses on how QA teams structure work.",
     ],
     sections: [
       {
@@ -224,6 +236,14 @@ function patternsGuide(tool: AcademyTool, order: number): ToolGuide {
           "Fail with actionable messages (what was expected vs observed)",
         ],
       },
+      ...(samples.length
+        ? [
+            {
+              heading: "Advanced coding examples",
+              body: `Pattern-level ${tool.name} code in TypeScript and/or Python — page objects, factories, clients, and suite structure.`,
+            },
+          ]
+        : []),
       {
         heading: "Practice: refactor one messy flow",
         body: `Take an existing ${tool.name} scenario (or draft one) and extract at least one reusable helper or page/action object.`,
@@ -238,19 +258,23 @@ function patternsGuide(tool: AcademyTool, order: number): ToolGuide {
 }
 
 function deliveryGuide(tool: AcademyTool, order: number): ToolGuide {
+  const samples = getToolSamples(tool.id, "delivery");
   return {
     id: "delivery",
     title: `Shipping ${tool.name} with the team`,
     summary: `How ${tool.name} shows up in PRs, CI gates, and release evidence — not only on a local laptop.`,
-    minutes: 8,
+    minutes: samples.length ? 11 : 8,
     order,
     kind: "concept",
     docsUrl: tool.docsUrl,
     docsLabel: tool.docsLabel,
+    codeSamples: samples,
     tip: [
       "If it only runs on your machine, it is a demo — not a quality gate.",
       "Define the signal you will trust before you automate the run.",
-      "Vendor docs cover runners; this guide covers team delivery habits.",
+      samples.length
+        ? "Use the CI / config samples below as a starting point for your pipeline."
+        : "Vendor docs cover runners; this guide covers team delivery habits.",
     ],
     sections: [
       {
@@ -273,6 +297,14 @@ function deliveryGuide(tool: AcademyTool, order: number): ToolGuide {
           "Owner: who triages failures within one business day",
         ],
       },
+      ...(samples.length
+        ? [
+            {
+              heading: "Advanced coding examples",
+              body: `Delivery configs and scripts for ${tool.name} — TypeScript/Python where teams wire CI, plus pipeline YAML when relevant.`,
+            },
+          ]
+        : []),
       {
         heading: "Practice: write the gate contract",
         body: `Draft a short “definition of done” for ${tool.name} in your squad.`,

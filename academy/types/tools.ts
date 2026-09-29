@@ -51,7 +51,8 @@ export interface ToolGuide {
   readonly docsLabel: string;
   readonly kind: "overview" | "concept" | "practice";
   readonly signature?: string;
-  readonly code?: CodeSample;
+  /** Advanced TypeScript / Python (and related) examples shown in the guide */
+  readonly codeSamples?: readonly CodeSample[];
 }
 
 export interface ToolCourse {

@@ -23,20 +23,26 @@ export async function ToolGuideView({
     guide.id,
   );
   const base = `/tools/${course.categoryId}/${course.tool.id}`;
+  const samples = guide.codeSamples ?? [];
+
+  const sampleBlocks =
+    samples.length > 0
+      ? await Promise.all(
+          samples.map(async (sample) => (
+            <div key={`${sample.filename}-${sample.language}`} className="mt-5">
+              <CodeBlock
+                code={sample.code}
+                language={sample.language}
+                filename={sample.filename}
+              />
+            </div>
+          )),
+        )
+      : [];
 
   const sectionBlocks = await Promise.all(
     guide.sections.map(async (section) => {
-      const showCode =
-        guide.code && section.heading === "Worked example" ? (
-          <div className="mt-5">
-            <CodeBlock
-              code={guide.code.code}
-              language={guide.code.language}
-              filename={guide.code.filename}
-            />
-          </div>
-        ) : null;
-
+      const injectSamples = section.heading === "Advanced coding examples";
       return (
         <section key={section.heading}>
           <h2 className="font-display text-xl font-semibold tracking-tight">
@@ -50,30 +56,26 @@ export async function ToolGuideView({
               ))}
             </ul>
           ) : null}
-          {showCode}
+          {injectSamples ? <div className="space-y-2">{sampleBlocks}</div> : null}
         </section>
       );
     }),
   );
 
-  // If there is code but no "Worked example" section rendered it, append once.
-  const hasWorkedExample = guide.sections.some((s) => s.heading === "Worked example");
-  const trailingCode =
-    guide.code && !hasWorkedExample ? (
+  const hasAdvancedSection = guide.sections.some(
+    (s) => s.heading === "Advanced coding examples",
+  );
+  const trailingSamples =
+    samples.length > 0 && !hasAdvancedSection ? (
       <section>
         <h2 className="font-display text-xl font-semibold tracking-tight">
-          Worked example
+          Advanced coding examples
         </h2>
         <p className="mt-3 text-muted-foreground leading-relaxed">
-          Adapt this example to your project, then re-run until green.
+          TypeScript and/or Python examples for this guide — adapt paths and credentials to
+          your environment.
         </p>
-        <div className="mt-5">
-          <CodeBlock
-            code={guide.code.code}
-            language={guide.code.language}
-            filename={guide.code.filename}
-          />
-        </div>
+        <div className="space-y-2">{sampleBlocks}</div>
       </section>
     ) : null;
 
@@ -81,12 +83,19 @@ export async function ToolGuideView({
     .map((slug) => getLesson(slug))
     .filter((lesson): lesson is NonNullable<typeof lesson> => Boolean(lesson));
 
+  const langBadges = [...new Set(samples.map((s) => s.language))];
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <Badge>{kindLabel[guide.kind]}</Badge>
         <Badge variant="outline">{guide.minutes} min</Badge>
         <Badge variant="outline">{course.tool.name}</Badge>
+        {langBadges.map((lang) => (
+          <Badge key={lang} variant="outline">
+            {lang}
+          </Badge>
+        ))}
       </div>
 
       <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -110,14 +119,14 @@ export async function ToolGuideView({
 
       <div className="mt-10 space-y-10">
         {sectionBlocks}
-        {trailingCode}
+        {trailingSamples}
       </div>
 
       <div className="mt-12 rounded-2xl border border-border bg-secondary/40 px-4 py-4 sm:px-5">
         <p className="text-sm font-medium text-foreground">Official reference</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Use vendor docs to confirm API details — your lesson and exercises stay on this
-          site.
+          Use vendor docs to confirm API details — your lesson, exercises, and code samples
+          stay on this site.
         </p>
         <a
           href={guide.docsUrl}
