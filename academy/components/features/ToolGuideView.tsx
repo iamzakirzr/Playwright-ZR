@@ -123,16 +123,16 @@ export async function ToolGuideView({
       </div>
 
       <div className="mt-12 rounded-2xl border border-border bg-secondary/40 px-4 py-4 sm:px-5">
-        <p className="text-sm font-medium text-foreground">Official reference</p>
+        <p className="text-sm font-medium text-foreground">Optional vendor reference</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Use vendor docs to confirm API details — your lesson, exercises, and code samples
-          stay on this site.
+          Lessons and runnable examples live above. Open vendor docs only if you need an
+          edge-case flag or version note.
         </p>
         <a
           href={guide.docsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          className="mt-3 inline-flex text-sm font-medium text-muted-foreground hover:text-primary hover:underline"
         >
           {guide.docsLabel} ↗
         </a>

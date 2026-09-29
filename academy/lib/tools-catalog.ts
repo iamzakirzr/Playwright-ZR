@@ -1,11 +1,15 @@
-import type { ToolCategory, ToolCategoryId } from "@/types/tools";
+import { TOOL_API_CALLS } from "@/lib/tool-api-catalog";
+import type { AcademyTool, ToolCategory, ToolCategoryId } from "@/types/tools";
 
 /**
  * CV-driven learning catalog. Each tool becomes an on-site course via
  * `lib/tool-guides.ts` (overview + concept guides + practice). Vendor
  * `docsUrl` values stay as secondary official references.
+ *
+ * Starter `calls` below are replaced by the full on-site API catalogs in
+ * `TOOL_API_CALLS` so learners get many functions + examples, not 3 docs links.
  */
-export const toolCategories: readonly ToolCategory[] = [
+const baseToolCategories: readonly ToolCategory[] = [
   {
     id: "test-automation",
     title: "Test Automation Tools",
@@ -1323,6 +1327,18 @@ export const toolCategories: readonly ToolCategory[] = [
     ],
   },
 ] as const;
+
+function withFullApiCatalog(tool: AcademyTool): AcademyTool {
+  const calls = TOOL_API_CALLS[tool.id];
+  return calls ? { ...tool, calls } : tool;
+}
+
+export const toolCategories: readonly ToolCategory[] = baseToolCategories.map(
+  (category) => ({
+    ...category,
+    tools: category.tools.map(withFullApiCatalog),
+  }),
+);
 
 export function getCategory(id: string): ToolCategory | undefined {
   return toolCategories.find((category) => category.id === id);

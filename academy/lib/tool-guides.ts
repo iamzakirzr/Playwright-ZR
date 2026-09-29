@@ -131,9 +131,9 @@ function conceptGuide(
     tip: [
       call.why,
       samples.length
-        ? `Advanced examples included (${langs.join(" + ")}) — type them, then adapt to your app.`
-        : `Primary learning is on this page — open ${tool.docsLabel} only when you need the canonical reference.`,
-      "After reading, do the practice exercise before moving on.",
+        ? `Work the ${langs.join(" + ")} examples on this page — type them, then adapt to your app.`
+        : "Primary learning is on this page with exercises you can run locally.",
+      "Finish the practice drill before moving to the next function.",
     ],
     sections: [
       {

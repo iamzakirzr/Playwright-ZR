@@ -73,8 +73,8 @@ export default async function ToolPage({
           Course outline
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Tap any card to open the full guide on this site. Official documentation is
-          linked inside each lesson as a secondary reference.
+          Every card is an on-site API lesson with TypeScript/Python (or best-fit)
+          example code. Vendor docs stay a secondary reference — you learn here.
         </p>
         <div className="mt-6">
           <LearningCallList
