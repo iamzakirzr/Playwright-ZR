@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { curriculumTracks } from "@/lib/curriculum";
-import { buildToolCourse } from "@/lib/tool-guides";
 import { toolCategories } from "@/lib/tools-catalog";
 import { cn } from "@/lib/utils";
 
@@ -16,8 +15,16 @@ type Hit = {
   kind: "tool" | "category" | "lesson" | "guide";
 };
 
+/** Lightweight index — catalog metadata only (no sample corpus on the client). */
 function buildIndex(): Hit[] {
   const hits: Hit[] = [];
+  const shellGuides = [
+    { id: "overview", title: "Getting started" },
+    { id: "patterns", title: "Patterns that scale" },
+    { id: "delivery", title: "Shipping with the team" },
+    { id: "practice", title: "Practice checklist" },
+  ] as const;
+
   for (const category of toolCategories) {
     hits.push({
       id: `cat-${category.id}`,
@@ -34,13 +41,21 @@ function buildIndex(): Hit[] {
         href: `/tools/${category.id}/${tool.id}`,
         kind: "tool",
       });
-      const course = buildToolCourse(category, tool);
-      for (const guide of course.guides) {
+      for (const shell of shellGuides) {
         hits.push({
-          id: `guide-${category.id}-${tool.id}-${guide.id}`,
-          title: guide.signature ?? guide.title,
+          id: `guide-${category.id}-${tool.id}-${shell.id}`,
+          title: `${tool.name}: ${shell.title}`,
           subtitle: `${tool.name} · on-site guide`,
-          href: `/tools/${category.id}/${tool.id}/${guide.id}`,
+          href: `/tools/${category.id}/${tool.id}/${shell.id}`,
+          kind: "guide",
+        });
+      }
+      for (const call of tool.calls) {
+        hits.push({
+          id: `guide-${category.id}-${tool.id}-${call.id}`,
+          title: call.signature,
+          subtitle: `${tool.name} · ${call.summary}`,
+          href: `/tools/${category.id}/${tool.id}/${call.id}`,
           kind: "guide",
         });
       }

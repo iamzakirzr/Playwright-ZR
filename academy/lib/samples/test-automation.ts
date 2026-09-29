@@ -397,6 +397,16 @@ Cypress.Commands.add('loginAs', (role) => {
   });
 });`,
     ),
+    py(
+      "cypress_fixture_guard.py",
+      `"""Keep Cypress fixtures aligned with API contracts (pytest companion)."""
+from pathlib import Path
+import json
+
+def test_login_fixture_shape():
+    data = json.loads(Path("cypress/fixtures/user.json").read_text())
+    assert "token" in data or "email" in data`,
+    ),
   ],
   "cypress.delivery": [
     ts(
@@ -420,8 +430,17 @@ export default defineConfig({
   },
 });`,
     ),
-  ],
+    py(
+      "run_cypress_ci.py",
+      `import os
+import subprocess
 
+def test_cypress_ci_command():
+    cmd = os.getenv("CYPRESS_CMD", "npx cypress run --browser chrome")
+    assert "cypress" in cmd
+    # Uncomment in real CI: subprocess.check_call(cmd, shell=True)`,
+    ),
+  ],
   "accelq.actions": [
     py(
       "accelq_actions_model.py",

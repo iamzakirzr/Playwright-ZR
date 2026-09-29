@@ -17,7 +17,7 @@ Flow: **Dashboard → Category → Tool course → On-site guide**.
 | ID | Category | Source skills |
 | --- | --- | --- |
 | `test-automation` | Test Automation Tools | AccelQ, Playwright, Selenium, Cypress, Cucumber, Appium, Squish |
-| `frameworks` | Automation Frameworks | TestNG, PyTest, NUnit, Mocha, Robot Framework, Nightwatch, WebdriverIO, BDD |
+| `frameworks` | Automation Frameworks | TestNG, PyTest, NUnit, Mocha, Robot Framework, Nightwatch, WebdriverIO, iSAFE, BDD |
 | `api-performance` | API & Performance | REST API testing, JMeter, K6, Artillery |
 | `databases` | Databases & Data | SQL, PostgreSQL, Snowflake |
 | `cloud-cicd` | Cloud & CI/CD | AWS, Azure, Azure DevOps, Jenkins, Docker, Git, Bitbucket |
