@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
-import { toolCategories } from "@/lib/tools-catalog";
 import { curriculumTracks } from "@/lib/curriculum";
+import { buildToolCourse } from "@/lib/tool-guides";
+import { toolCategories } from "@/lib/tools-catalog";
 import { cn } from "@/lib/utils";
 
 type Hit = {
@@ -12,7 +13,7 @@ type Hit = {
   title: string;
   subtitle: string;
   href: string;
-  kind: "tool" | "category" | "lesson";
+  kind: "tool" | "category" | "lesson" | "guide";
 };
 
 function buildIndex(): Hit[] {
@@ -29,10 +30,20 @@ function buildIndex(): Hit[] {
       hits.push({
         id: `tool-${category.id}-${tool.id}`,
         title: tool.name,
-        subtitle: `${category.title} · ${tool.docsLabel}`,
+        subtitle: `${category.title} · course`,
         href: `/tools/${category.id}/${tool.id}`,
         kind: "tool",
       });
+      const course = buildToolCourse(category, tool);
+      for (const guide of course.guides) {
+        hits.push({
+          id: `guide-${category.id}-${tool.id}-${guide.id}`,
+          title: guide.signature ?? guide.title,
+          subtitle: `${tool.name} · on-site guide`,
+          href: `/tools/${category.id}/${tool.id}/${guide.id}`,
+          kind: "guide",
+        });
+      }
     }
   }
   for (const track of curriculumTracks) {
@@ -146,7 +157,7 @@ export function SearchModal(): React.JSX.Element {
                     go(results[active].href);
                   }
                 }}
-                placeholder="Search tools, frameworks, lessons…"
+                placeholder="Search tools, guides, lessons…"
                 className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
               <button type="button" aria-label="Close search" onClick={close} className="p-1 text-muted-foreground">

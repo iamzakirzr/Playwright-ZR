@@ -1,13 +1,16 @@
-# AI QA Academy — CV Tools Learning Dashboard
+# AI QA Academy — On-site Tools Learning Courses
 
 ## Purpose
 
 An independent learning app for QA engineers. Categories and tools come from a
 senior QA skill profile (automation, frameworks, API/performance, data, cloud/CI,
-Salesforce, AI evals, collaboration). Every tool links to **that product’s official
-documentation** — not an internal code repository.
+Salesforce, AI evals, collaboration).
 
-Flow: **Dashboard → Category → Tool → curated learning APIs/concepts**.
+**Learning happens on this site.** Every tool is a mini-course with clickable
+guides (overview, concept lessons, practice checklist). Official vendor
+documentation is linked only as a secondary reference.
+
+Flow: **Dashboard → Category → Tool course → On-site guide**.
 
 ## Categories (milestones)
 
@@ -22,20 +25,21 @@ Flow: **Dashboard → Category → Tool → curated learning APIs/concepts**.
 | `ai-evals` | AI & LLM Evaluation | DeepEval, RAGAS, LangSmith, RAG, Agentic AI, Copilot |
 | `collaboration` | Collaboration & QA Ops | JIRA, STLC / defect management practices |
 
-## Phases
+## Course shape (every tool)
 
-1. Catalog typed from CV + official docs URLs  
-2. Dashboard lists all categories  
-3. Category pages list tools  
-4. Tool pages list ≥3 learning concepts/APIs each, with docs links  
-5. UI has no repository path / internal code references  
-6. Local build + UI walkthrough (no CI required for acceptance)
+1. **Getting started** — orientation guide (`/tools/{cat}/{tool}/overview`)
+2. **Concept guides** — one on-site lesson per curated API/concept (clickable cards)
+3. **Patterns that scale** — maintainable suite design (`.../patterns`)
+4. **Shipping with the team** — CI / PR / release evidence (`.../delivery`)
+5. **Practice checklist** — capstone drills (`.../practice`)
+6. **Related curriculum** — cross-links into `/learn` where topics overlap
+7. **Official reference** — vendor docs link inside each guide (secondary)
 
 ## Done when
 
 - Every CV tool family above is represented  
-- Every tool has ≥3 docs-backed learning items  
-- Navigation works dashboard → category → tool  
+- Every tool has a full on-site course (guides open on this site)  
+- Learning cards are clickable routes, not docs-only teaser text  
+- Official docs remain available as reference, not the primary CTA  
 - `npm run build` passes locally  
-- UI eval confirms mobile/desktop lists and external docs links  
-- PR merged to `main`
+- UI walkthrough confirms mobile/desktop course → guide flow  

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
+import { getToolGuide } from "@/lib/tool-guides";
 import { getCategory, getTool } from "@/lib/tools-catalog";
 
 function labelFor(segment: string, index: number, parts: string[]): string {
@@ -17,6 +18,12 @@ function labelFor(segment: string, index: number, parts: string[]): string {
   }
   if (parts[0] === "tools" && index === 2) {
     return getTool(parts[1] ?? "", segment)?.tool.name ?? segment;
+  }
+  if (parts[0] === "tools" && index === 3) {
+    const match = getToolGuide(parts[1] ?? "", parts[2] ?? "", segment);
+    if (match) {
+      return match.guide.signature ?? match.guide.title;
+    }
   }
   return segment
     .split("-")

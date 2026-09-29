@@ -1,8 +1,9 @@
 import type { ToolCategory, ToolCategoryId } from "@/types/tools";
 
 /**
- * CV-driven learning catalog. Concepts and links point at each tool's
- * official documentation — not any application source tree.
+ * CV-driven learning catalog. Each tool becomes an on-site course via
+ * `lib/tool-guides.ts` (overview + concept guides + practice). Vendor
+ * `docsUrl` values stay as secondary official references.
  */
 export const toolCategories: readonly ToolCategory[] = [
   {
