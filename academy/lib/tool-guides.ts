@@ -1,4 +1,5 @@
 import { getLesson } from "@/lib/curriculum";
+import { walkthrough } from "@/lib/guide-clarity";
 import { getToolSamples } from "@/lib/samples";
 import { toolCategories } from "@/lib/tools-catalog";
 import type {
@@ -117,11 +118,12 @@ function conceptGuide(
 ): ToolGuide {
   const samples = getToolSamples(tool.id, call.id);
   const langs = [...new Set(samples.map((s) => s.language))];
+  const clarity = walkthrough(tool, call);
   return {
     id: call.id,
     title: call.signature,
     summary: call.summary,
-    minutes: samples.length ? 10 : 7,
+    minutes: samples.length ? 8 : 6,
     order: index + 1,
     kind: "concept",
     signature: call.signature,
@@ -131,72 +133,49 @@ function conceptGuide(
     tip: [
       call.why,
       samples.length
-        ? `Work the ${langs.join(" + ")} examples on this page — type them, then adapt to your app.`
-        : "Primary learning is on this page with exercises you can run locally.",
-      "Finish the practice drill before moving to the next function.",
+        ? `Coding examples below are in ${langs.join(" + ")} — run the happy path, then break one assertion on purpose.`
+        : "Primary learning is on this page with a practice drill you can run locally.",
+      `Do not leave this lesson until you can explain ${call.signature} in one sentence.`,
     ],
     sections: [
       {
-        heading: "Why this matters in QA",
-        body: `${call.why} In ${tool.name}, mastering “${call.signature}” is a building block you will reuse across suites, reviews, and production gates.`,
-        bullets: [
-          call.summary,
-          "Treat this as a skill, not a one-off API lookup",
-          "Be ready to explain it in a PR or test-plan review",
-        ],
+        heading: "What this API does",
+        body: clarity.what.body,
+        bullets: clarity.what.bullets,
       },
       {
-        heading: "Concept deep dive",
-        body: `In ${tool.name}, “${call.signature}” means: ${call.summary} ${call.why}`,
-        bullets: [
-          `Tool context: ${tool.summary}`,
-          `Primary signal: ${call.summary}`,
-          `Why teams invest here: ${call.why}`,
-          "Map inputs → behavior → observable outcome → failure modes before coding",
-        ],
-      },
-      {
-        heading: "How to apply it",
-        body: `Build a minimal ${tool.name} exercise centered on ${call.signature}, then add one negative path. Prefer a real journey (auth, CRUD, contract, pipeline stage, eval case) over a toy demo.`,
-        bullets: [
-          `Bootstrap ${tool.name} against a known-good environment`,
-          `Implement the happy path that requires ${call.signature}`,
-          "Add one failure case (timeout, 4xx/5xx, empty data, bad locator, low score)",
-          "Capture evidence you would attach to a PR or defect",
-        ],
+        heading: "Clear walkthrough",
+        body: clarity.steps.body,
+        bullets: clarity.steps.bullets,
       },
       ...(samples.length
         ? [
             {
-              heading: "Advanced coding examples",
-              body: `Production-minded ${langs.join(" / ")} examples for ${call.signature}. Study both when present — teams often mix Python services with TypeScript UI/API tests.`,
+              heading: "Coding examples",
+              body: `Runnable ${langs.join(" / ")} examples for ${call.signature}. Each sample names the file you would create in a real suite — type it, then adapt paths and credentials.`,
               bullets: [
-                "Type the example once without copy-paste",
-                "Swap URLs, selectors, and credentials for your environment",
-                "Add one assertion that would catch a real regression",
+                "Read the comments at the top of each sample first",
+                "Run or mentally execute the happy path line by line",
+                "Change one value and predict what should fail",
+                "Keep the negative-path idea for the practice section",
               ],
             },
           ]
         : []),
       {
         heading: "Practice exercise",
-        body: `Design a 10-minute drill that forces you to use ${call.signature} deliberately.`,
+        body: `Ten-minute drill centered on ${call.signature} in ${tool.name}.`,
         bullets: [
-          `Write a short goal statement that requires ${call.signature}`,
-          "Implement or configure the smallest working version",
-          "Break it on purpose once, then fix it using the tool’s feedback",
-          "Note one insight you would teach a junior teammate",
+          `Goal: prove ${call.signature} using your own URL/data`,
+          "Implement the smallest working version from the examples",
+          "Add one deliberate failure and fix it using tool feedback",
+          "Write the one-sentence explanation you would give in a PR review",
         ],
       },
       {
         heading: "Common mistakes",
-        body: "Most learners stumble on the same patterns. Check these before blaming the tool.",
-        bullets: [
-          "Skipping waits / readiness and calling the result “flaky”",
-          "Hard-coding environment details instead of config or fixtures",
-          "Asserting implementation details instead of user-visible outcomes",
-          "Reading vendor docs without a concrete experiment to validate",
-        ],
+        body: `Watch for these when learning ${call.signature}.`,
+        bullets: clarity.mistakes,
       },
     ],
   };

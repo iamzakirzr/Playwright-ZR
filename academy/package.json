@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate:api-examples": "python3 scripts/generate-api-examples.py"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.20",
