@@ -63,7 +63,9 @@ export function LearningCallList({
                 </p>
               </div>
               <span className="text-sm font-medium text-primary">
-                Open guide →
+                {guide.codeSamples && guide.codeSamples.length > 0
+                  ? `Open guide · ${guide.codeSamples.length} code samples →`
+                  : "Open guide →"}
               </span>
             </Link>
           </li>
