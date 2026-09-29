@@ -42,7 +42,9 @@ export async function ToolGuideView({
 
   const sectionBlocks = await Promise.all(
     guide.sections.map(async (section) => {
-      const injectSamples = section.heading === "Advanced coding examples";
+      const injectSamples =
+        section.heading === "Coding examples" ||
+        section.heading === "Advanced coding examples";
       return (
         <section key={section.heading}>
           <h2 className="font-display text-xl font-semibold tracking-tight">
@@ -62,14 +64,15 @@ export async function ToolGuideView({
     }),
   );
 
-  const hasAdvancedSection = guide.sections.some(
-    (s) => s.heading === "Advanced coding examples",
+  const hasCodeSection = guide.sections.some(
+    (s) =>
+      s.heading === "Coding examples" || s.heading === "Advanced coding examples",
   );
   const trailingSamples =
-    samples.length > 0 && !hasAdvancedSection ? (
+    samples.length > 0 && !hasCodeSection ? (
       <section>
         <h2 className="font-display text-xl font-semibold tracking-tight">
-          Advanced coding examples
+          Coding examples
         </h2>
         <p className="mt-3 text-muted-foreground leading-relaxed">
           TypeScript and/or Python examples for this guide — adapt paths and credentials to
