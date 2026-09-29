@@ -20,10 +20,29 @@ os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
 
 TESTS_ROOT = Path(__file__).parent / "tests"
 
-# Hermetic PR CI installs extras without Appium. Skip collecting mobile suites so
-# import of Appium/Selenium screen objects cannot fail collection of other tests.
+# Lean extras (e.g. api-sql CI installs only ``ui``) must not fail collection of
+# unrelated suites that import optional stacks. Mirror the Appium guard for AI/visual.
+collect_ignore_glob: list[str] = []
 if importlib.util.find_spec("appium") is None:
-    collect_ignore_glob = ["tests/mobile/**"]
+    collect_ignore_glob.append("tests/mobile/**")
+if importlib.util.find_spec("PIL") is None:
+    collect_ignore_glob.extend(
+        [
+            "tests/ui/essentials/**",
+            "tests/ui/visual/**",
+            "tests/unit/test_visual_comparator.py",
+        ]
+    )
+if importlib.util.find_spec("langchain_core") is None:
+    collect_ignore_glob.extend(
+        [
+            "tests/ai/**",
+            "tests/ui/healing/**",
+            "tests/unit/test_shop_assistant_shared.py",
+        ]
+    )
+if importlib.util.find_spec("deepeval") is None:
+    collect_ignore_glob.append("tests/unit/test_metric_factory_gates.py")
 
 
 # --------------------------------------------------------------------------- #
