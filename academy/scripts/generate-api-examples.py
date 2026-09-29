@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate academy/lib/samples/api-examples.generated.ts with per-call code for every tool."""
+
 from __future__ import annotations
 
 import re
@@ -44,15 +45,20 @@ def pascal(s: str) -> str:
 
 def emit_sample(helper: str, filename: str, code: str) -> str:
     # helper is ts|py|js|yaml|sql|bash|plain
-    return (
-        f"    {helper}(\n"
-        f"      `{esc(filename)}`,\n"
-        f"      `{esc(code.strip())}`,\n"
-        f"    )"
-    )
+    return f"    {helper}(\n      `{esc(filename)}`,\n      `{esc(code.strip())}`,\n    )"
 
 
-def pair_ts_py(tool: str, call_id: str, sig: str, summary: str, why: str, ts_body: str, py_body: str, ts_imports: str = "", py_imports: str = "") -> list[str]:
+def pair_ts_py(
+    tool: str,
+    call_id: str,
+    sig: str,
+    summary: str,
+    why: str,
+    ts_body: str,
+    py_body: str,
+    ts_imports: str = "",
+    py_imports: str = "",
+) -> list[str]:
     ts_code = dedent(
         f"""\
         {ts_imports}/**
@@ -402,7 +408,7 @@ def cypress_samples(call_id: str, sig: str, summary: str, why: str) -> list[str]
 
 def pytest_samples(call_id: str, sig: str, summary: str, why: str) -> list[str]:
     bodies = {
-        "test-fn": "def test_refund_window_is_30_days():\n    assert {\"days\": 30}[\"days\"] == 30",
+        "test-fn": 'def test_refund_window_is_30_days():\n    assert {"days": 30}["days"] == 30',
         "fixtures": "@pytest.fixture\ndef number():\n    return 2\n\ndef test_fixtures(number):\n    assert number * 3 == 6",
         "parametrize": "@pytest.mark.parametrize('status,ok', [(200, True), (404, False)])\ndef test_parametrize(status, ok):\n    assert (200 <= status < 300) is ok",
         "markers": "@pytest.mark.smoke\ndef test_markers_health():\n    assert True",
@@ -599,9 +605,7 @@ def main() -> None:
         "\n"
         "export const generatedApiExamples: Readonly<\n"
         "  Record<string, readonly CodeSample[]>\n"
-        "> = {\n"
-        + ",\n".join(entries)
-        + "\n};\n"
+        "> = {\n" + ",\n".join(entries) + "\n};\n"
     )
     OUT.write_text(content)
     print(f"Wrote {OUT.relative_to(ROOT)} with {total} API lessons across {len(tool_calls)} tools")
