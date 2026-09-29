@@ -68,8 +68,10 @@ export function CurriculumSidebar(): React.JSX.Element {
   );
 
   return (
-    <>
-      <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:hidden">
+    // One flex child for the learn layout (mobile chrome + desktop aside).
+    // A fragment would leak the mobile bar as a side-by-side flex sibling.
+    <div className="w-full shrink-0 lg:w-auto">
+      <div className="flex w-full items-center justify-between border-b border-border px-4 py-3 lg:hidden">
         <p className="font-display text-sm font-semibold text-foreground">Lessons</p>
         <Button
           type="button"
@@ -124,6 +126,6 @@ export function CurriculumSidebar(): React.JSX.Element {
         </div>
         <div className="flex-1 overflow-y-auto">{nav}</div>
       </aside>
-    </>
+    </div>
   );
 }
